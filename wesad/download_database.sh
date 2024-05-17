@@ -4,7 +4,7 @@
 WESAD_URL="https://uni-siegen.sciebo.de/s/HGdUkoNlW1Ub0Gx/download"
 
 # Define the name of the zip file
-ZIP_FILE="wesad.zip"
+ZIP_FILE="wesad/wesad.zip"
 
 # Download the WESAD database
 echo "Downloading WESAD database..."
