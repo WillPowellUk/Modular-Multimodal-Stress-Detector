@@ -5,24 +5,9 @@ import sys
 import gc
 import os
 
-import logging
-
-# Configure logging
-logging.basicConfig(
-    filename='log.log',  # Change this to your desired log file path
-    level=logging.DEBUG,  # Change logging level as needed
-    format='%(asctime)s %(levelname)s:%(message)s'
-)
-
-# Example usage of logging
-logging.debug('This is a debug message')
-logging.info('This is an info message')
-logging.warning('This is a warning message')
-logging.error('This is an error message')
-logging.critical('This is a critical message')
-
 class DataPreprocessor:
     DATA_PATH = 'wesad/WESAD/'
+    RAW_PATH = os.path.join(DATA_PATH, 'raw/')
     CHEST_COLUMNS = ['sid', 'acc1', 'acc2', 'acc3', 'ecg', 'emg', 'eda', 'temp', 'resp', 'label']
     ALL_COLUMNS = ['sid', 'c_acc_x', 'c_acc_y', 'c_acc_z', 'ecg', 'emg', 'c_eda', 'c_temp', 'resp', 'w_acc_x', 'w_acc_y', 'w_acc_z', 'bvp', 'w_eda', 'w_temp', 'label']
     IDS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17]
@@ -31,6 +16,11 @@ class DataPreprocessor:
     SF_TEMP = 4
     SF_ACC = 32
     SF_CHEST = 700
+
+    def __init__(self):
+        # Create the Raw directory if it does not exist
+        if not os.path.exists(self.RAW_PATH):
+            os.makedirs(self.RAW_PATH)
 
     def pkl_to_np_wrist(self, filename, subject_id):
         print(f"Processing wrist data for subject {subject_id}")
@@ -92,9 +82,9 @@ class DataPreprocessor:
                 md2 = np.concatenate((md2, last_subj2), axis=0)
                 md3 = np.concatenate((md3, last_subj3), axis=0)
 
-        fn_merged1 = 'wesad/WESAD/subj_merged_acc_w.pkl'
-        fn_merged2 = 'wesad/WESAD/subj_merged_bvp_w.pkl'
-        fn_merged3 = 'wesad/WESAD/subj_merged_eda_temp_w.pkl'
+        fn_merged1 = os.path.join(self.RAW_PATH, 'subj_merged_acc_w.pkl')
+        fn_merged2 = os.path.join(self.RAW_PATH, 'subj_merged_bvp_w.pkl')
+        fn_merged3 = os.path.join(self.RAW_PATH, 'subj_merged_eda_temp_w.pkl')
         all_columns1 = ['sid', 'w_acc_x', 'w_acc_y', 'w_acc_z', 'label']
         all_columns2 = ['sid', 'bvp', 'label']
         all_columns3 = ['sid', 'w_eda', 'w_temp', 'label']
@@ -122,7 +112,7 @@ class DataPreprocessor:
         print("Merging chest data...")
 
         # Define a memory-mapped file for merged data
-        merged_data_filename = 'wesad/WESAD/merged_chest.dat'
+        merged_data_filename = os.path.join(self.RAW_PATH, 'merged_chest.dat')
         dtype = np.float32  # Assuming data type is float32; change if necessary
 
         # Initialize size estimation
@@ -157,7 +147,7 @@ class DataPreprocessor:
 
             # Save as pickle file
             final_df = pd.DataFrame(np.array(merged_data), columns=self.CHEST_COLUMNS)
-            final_df.to_pickle('wesad/WESAD/merged_chest.pkl')
+            final_df.to_pickle(os.path.join(self.RAW_PATH, 'merged_chest.pkl'))
 
             print("Finished merging chest data")
 
@@ -169,10 +159,10 @@ class DataPreprocessor:
 
     def filter_chest_data(self):
         print("Filtering chest data...")
-        df = pd.read_pickle("wesad/WESAD/merged_chest.pkl")
+        df = pd.read_pickle(os.path.join(self.RAW_PATH, "merged_chest.pkl"))
         df_fltr = df[df["label"].isin([1, 2, 3])]
         df_fltr = df_fltr[df_fltr["temp"] > 0]
-        pd.DataFrame(df_fltr, columns=self.CHEST_COLUMNS).to_pickle("wesad/WESAD/merged_chest_fltr.pkl")
+        pd.DataFrame(df_fltr, columns=self.CHEST_COLUMNS).to_pickle(os.path.join(self.RAW_PATH, "merged_chest_fltr.pkl"))
         print("Finished filtering chest data")
 
     def preprocess(self):

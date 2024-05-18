@@ -157,12 +157,3 @@ def perform_loocv(preprocessor, use_preprocessed=False, preprocessed_filepath=No
             
     return results
 
-# Usage example
-preprocessor = WesadPreprocessor()
-preprocessed_filepath = 'preprocessed_wesad_data.pkl'
-
-# First time processing and saving the data
-perform_loocv(preprocessor, use_preprocessed=False, preprocessed_filepath=preprocessed_filepath)
-
-# Later on, loading the preprocessed data for LOOCV
-results = perform_loocv(preprocessor, use_preprocessed=True, preprocessed_filepath=preprocessed_filepath)
