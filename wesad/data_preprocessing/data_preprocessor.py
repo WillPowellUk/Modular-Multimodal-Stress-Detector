@@ -68,29 +68,30 @@ class DataPreprocessor:
 
         print(f"Finished processing wrist data for subject {subject_id}")
         return data1, data2, data3
-
+    
     def merge_wrist_data(self):
         print("Merging wrist data...")
-        for i, sid in enumerate(self.IDS):
-            file = self.DATA_PATH + 'S' + str(sid) + '/S' + str(sid) + '.pkl'
-            print(f"Processing file: {file}")
-            if i == 0:
-                md1, md2, md3 = self.pkl_to_np_wrist(file, sid)
-            else:
-                last_subj1, last_subj2, last_subj3 = self.pkl_to_np_wrist(file, sid)
-                md1 = np.concatenate((md1, last_subj1), axis=0)
-                md2 = np.concatenate((md2, last_subj2), axis=0)
-                md3 = np.concatenate((md3, last_subj3), axis=0)
+        combined_data = []
 
-        fn_merged1 = os.path.join(self.RAW_PATH, 'subj_merged_acc_w.pkl')
-        fn_merged2 = os.path.join(self.RAW_PATH, 'subj_merged_bvp_w.pkl')
-        fn_merged3 = os.path.join(self.RAW_PATH, 'subj_merged_eda_temp_w.pkl')
-        all_columns1 = ['sid', 'w_acc_x', 'w_acc_y', 'w_acc_z', 'label']
-        all_columns2 = ['sid', 'bvp', 'label']
-        all_columns3 = ['sid', 'w_eda', 'w_temp', 'label']
-        pd.DataFrame(md1, columns=all_columns1).to_pickle(fn_merged1)
-        pd.DataFrame(md2, columns=all_columns2).to_pickle(fn_merged2)
-        pd.DataFrame(md3, columns=all_columns3).to_pickle(fn_merged3)
+        for i, sid in enumerate(self.IDS):
+            file = os.path.join(self.DATA_PATH, f'S{sid}', f'S{sid}.pkl')
+            print(f"Processing file: {file}")
+            subj1, subj2, subj3 = self.pkl_to_np_wrist(file, sid)
+
+            # Combine the data for this subject, ensuring 'label' is the last column
+            combined_subj = np.hstack((subj1[:, :-1], subj2[:, 1:-1], subj3[:, 1:-1], subj1[:, -1:]))
+            combined_data.append(combined_subj)
+
+        # Concatenate all subjects' data
+        combined_data = np.vstack(combined_data)
+
+        # Define columns
+        all_columns = ['sid', 'w_acc_x', 'w_acc_y', 'w_acc_z', 'bvp', 'w_eda', 'w_temp', 'label']
+
+        # Save the combined DataFrame to a single pickle file
+        fn_merged = os.path.join(self.RAW_PATH, 'merged_wrist.pkl')
+        pd.DataFrame(combined_data, columns=all_columns).to_pickle(fn_merged)
+
         print("Finished merging wrist data")
 
     def pkl_to_np_chest(self, filename, subject_id):
@@ -147,7 +148,7 @@ class DataPreprocessor:
 
             # Save as pickle file
             final_df = pd.DataFrame(np.array(merged_data), columns=self.CHEST_COLUMNS)
-            final_df.to_pickle(os.path.join(self.RAW_PATH, 'merged_chest.pkl'))
+            final_df.to_pickle(os.path.join(self.RAW_PATH, 'merged_chest_temp.pkl'))
 
             print("Finished merging chest data")
 
@@ -159,10 +160,11 @@ class DataPreprocessor:
 
     def filter_chest_data(self):
         print("Filtering chest data...")
-        df = pd.read_pickle(os.path.join(self.RAW_PATH, "merged_chest.pkl"))
+        df = pd.read_pickle(os.path.join(self.RAW_PATH, "merged_chest_temp.pkl"))
         df_fltr = df[df["label"].isin([1, 2, 3])]
         df_fltr = df_fltr[df_fltr["temp"] > 0]
-        pd.DataFrame(df_fltr, columns=self.CHEST_COLUMNS).to_pickle(os.path.join(self.RAW_PATH, "merged_chest_fltr.pkl"))
+        pd.DataFrame(df_fltr, columns=self.CHEST_COLUMNS).to_pickle(os.path.join(self.RAW_PATH, "merged_chest.pkl"))
+        os.remove(os.path.join(self.RAW_PATH, "merged_chest_temp.pkl"))
         print("Finished filtering chest data")
 
     def preprocess(self):
