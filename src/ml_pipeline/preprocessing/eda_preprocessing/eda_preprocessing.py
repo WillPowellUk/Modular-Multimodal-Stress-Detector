@@ -1,5 +1,6 @@
 import pandas as pd
 from scipy.signal import butter, filtfilt, savgol_filter
+from submodules.pyEDA.main import *
 
 class EDAPreprocessing:
     def __init__(self, df, sg_window_size=11, sg_poly_order=3, lp_order=2, lp_cutoff=5.0, fs=700):
@@ -10,9 +11,10 @@ class EDAPreprocessing:
         self.lp_cutoff = lp_cutoff
         self.fs = fs
 
-    def process(self, use_pyEDA=False):
+    def process(self, use_pyEDA=False, sample_rate=128):
         if use_pyEDA:
-            
+            m, wd, eda_clean = process_statistical(self.df['eda'], use_scipy=True, sample_rate=128, new_sample_rate=40, segment_width=600, segment_overlap=0)
+            return eda_clean
         else:
             self.df['eda'] = self.df['eda'].apply(self.smooth_eda).apply(self.lowpass_filter)
         return self.df
