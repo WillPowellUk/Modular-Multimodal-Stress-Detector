@@ -78,6 +78,14 @@ class DataPreprocessor:
             print(f"Processing file: {file}")
             subj1, subj2, subj3 = self.pkl_to_np_wrist(file, sid)
 
+            # Find the minimum length among the three arrays
+            min_length = min(subj1.shape[0], subj2.shape[0], subj3.shape[0])
+
+            # Truncate the arrays to the minimum length
+            subj1 = subj1[:min_length, :]
+            subj2 = subj2[:min_length, :]
+            subj3 = subj3[:min_length, :]
+
             # Combine the data for this subject, ensuring 'label' is the last column
             combined_subj = np.hstack((subj1[:, :-1], subj2[:, 1:-1], subj3[:, 1:-1], subj1[:, -1:]))
             combined_data.append(combined_subj)
@@ -94,6 +102,7 @@ class DataPreprocessor:
 
         print("Finished merging wrist data")
 
+    
     def pkl_to_np_chest(self, filename, subject_id):
         print(f"Processing chest data for subject {subject_id}")
         unpickled_df = pd.read_pickle(filename)

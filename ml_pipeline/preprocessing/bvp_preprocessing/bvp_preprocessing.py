@@ -8,20 +8,28 @@ Fusion From Wearable Devices, 2023.
 '''
 
 import pandas as pd
+from scipy.signal import butter, filtfilt
 
 class BVPPreprocessing:
-    def __init__(self, df):
+    def __init__(self, df, order=3, lowcut=0.7, highcut=3.7, fs=64):
         self.df = df
+        self.order = order
+        self.lowcut = lowcut
+        self.highcut = highcut
+        self.fs = fs
 
     def process(self):
-        # Example preprocessing steps for BVP signal
+        # Apply the BVP filter to each signal
         self.df['bvp'] = self.df['bvp'].apply(self.bvp_filter)
-        # Add more preprocessing steps as needed
         return self.df
 
     def bvp_filter(self, signal):
-        # Implement the actual filtering logic here
-        # Placeholder: return the signal as-is
-        return signal
-
-
+        # Calculate the Nyquist frequency
+        nyquist = 0.5 * self.fs
+        low = self.lowcut / nyquist
+        high = self.highcut / nyquist
+        # Create the Butterworth band-pass filter
+        b, a = butter(self.order, [low, high], btype='band')
+        # Apply the filter to the signal
+        filtered_signal = filtfilt(b, a, signal)
+        return filtered_signal
