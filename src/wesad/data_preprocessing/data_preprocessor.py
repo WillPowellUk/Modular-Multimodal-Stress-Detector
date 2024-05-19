@@ -6,7 +6,7 @@ import gc
 import os
 
 class DataPreprocessor:
-    DATA_PATH = 'wesad/WESAD/'
+    DATA_PATH = 'src/wesad/WESAD/'
     RAW_PATH = os.path.join(DATA_PATH, 'raw/')
     CHEST_COLUMNS = ['sid', 'acc1', 'acc2', 'acc3', 'ecg', 'emg', 'eda', 'temp', 'resp', 'label']
     ALL_COLUMNS = ['sid', 'c_acc_x', 'c_acc_y', 'c_acc_z', 'ecg', 'emg', 'c_eda', 'c_temp', 'resp', 'w_acc_x', 'w_acc_y', 'w_acc_z', 'bvp', 'w_eda', 'w_temp', 'label']

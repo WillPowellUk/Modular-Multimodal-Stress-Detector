@@ -10,8 +10,11 @@ class EDAPreprocessing:
         self.lp_cutoff = lp_cutoff
         self.fs = fs
 
-    def process(self):
-        self.df['eda'] = self.df['eda'].apply(self.smooth_eda).apply(self.lowpass_filter)
+    def process(self, use_pyEDA=False):
+        if use_pyEDA:
+            
+        else:
+            self.df['eda'] = self.df['eda'].apply(self.smooth_eda).apply(self.lowpass_filter)
         return self.df
 
     def smooth_eda(self, signal):
