@@ -12,7 +12,10 @@ class RespPreprocessing:
         self.fs = fs
 
     def process(self):
-        self.df['resp'] = self.df['resp'].apply(self.smooth_resp).apply(self.butterworth_filter)
+        resp_signal = self.df['resp'].values
+        smoothed_signal = self.smooth_resp(resp_signal)
+        filtered_signal = self.butterworth_filter(smoothed_signal)
+        self.df['resp'] = filtered_signal
         return self.df
 
     def smooth_resp(self, signal):

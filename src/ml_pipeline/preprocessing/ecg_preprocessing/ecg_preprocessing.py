@@ -12,7 +12,11 @@ class ECGPreprocessing:
         self.fs = fs
 
     def process(self):
-        self.df['ecg'] = self.df['ecg'].apply(self.smooth_ecg).apply(self.butterworth_filter)
+        # Process the entire 'ecg' column as a single sequence
+        ecg_signal = self.df['ecg'].values
+        smoothed_signal = self.smooth_ecg(ecg_signal)
+        filtered_signal = self.butterworth_filter(smoothed_signal)
+        self.df['ecg'] = filtered_signal
         return self.df
 
     def smooth_ecg(self, signal):
@@ -24,3 +28,10 @@ class ECGPreprocessing:
         high = self.bw_highcut / nyquist
         b, a = butter(self.bw_order, [low, high], btype='band')
         return filtfilt(b, a, signal)
+
+# Example usage:
+# Assuming df is your DataFrame containing the 'ecg' column
+# df = pd.read_csv('your_ecg_data.csv')
+# ecg_processor = ECGPreprocessing(df)
+# processed_df = ecg_processor.process()
+# print(processed_df)

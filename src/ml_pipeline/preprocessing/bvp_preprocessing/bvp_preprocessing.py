@@ -19,17 +19,15 @@ class BVPPreprocessing:
         self.fs = fs
 
     def process(self):
-        # Apply the BVP filter to each signal
-        self.df['bvp'] = self.df['bvp'].apply(self.bvp_filter)
+        bvp_signal = self.df['bvp'].values
+        filtered_signal = self.bvp_filter(bvp_signal)
+        self.df['bvp'] = filtered_signal
         return self.df
 
     def bvp_filter(self, signal):
-        # Calculate the Nyquist frequency
         nyquist = 0.5 * self.fs
         low = self.lowcut / nyquist
         high = self.highcut / nyquist
-        # Create the Butterworth band-pass filter
         b, a = butter(self.order, [low, high], btype='band')
-        # Apply the filter to the signal
         filtered_signal = filtfilt(b, a, signal)
         return filtered_signal

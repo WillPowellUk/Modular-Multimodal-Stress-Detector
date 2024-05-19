@@ -2,14 +2,18 @@ import pandas as pd
 from scipy.signal import savgol_filter
 
 class TempPreprocessing:
-    def __init__(self, df):
+    def __init__(self, df, window_size=31, poly_order=5, wrist=False):
         self.df = df
+        self.window_size = window_size
+        self.poly_order = poly_order
+        self.wrist = wrist
 
     def process(self):
-        self.df['temp'] = self.df['temp'].apply(self.temp_filter)
+        key = 'w_temp' if self.wrist else 'temp'
+        temp_signal = self.df[key].values
+        filtered_signal = self.temp_filter(temp_signal)
+        self.df[key] = filtered_signal
         return self.df
 
-    def temp_filter(self, signal, window_size=11, poly_order=3):
-        # Apply Savitzky–Golay filter
-        smoothed_signal = savgol_filter(signal, window_size, poly_order)
-        return smoothed_signal
+    def temp_filter(self, signal):
+        return savgol_filter(signal, self.window_size, self.poly_order)

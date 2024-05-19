@@ -178,7 +178,7 @@ class DataPreprocessor:
 
     def preprocess(self):
         print("Starting preprocessing...")
-        self.merge_wrist_data()
+        # self.merge_wrist_data()
         self.merge_chest_data()
         self.filter_chest_data()
         print("Preprocessing completed")
