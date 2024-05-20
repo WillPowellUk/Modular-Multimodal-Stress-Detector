@@ -5,8 +5,8 @@
     "eda": 700,
     "temp": 700,
     "resp": 700,
-    "w_acc": 32,
     "bvp": 64,
+    "w_acc": 32,
     "w_eda": 4,
     "w_temp": 4
 }
