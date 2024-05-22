@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from scipy.integrate import simps
 from scipy.fft import rfft, rfftfreq
-
+"""  """
 class AccFeatureExtractor:
     def __init__(self, acc_data: pd.DataFrame, sampling_rate: int = 100):
         self.acc_data = acc_data
@@ -25,7 +25,7 @@ class AccFeatureExtractor:
 
         # Peak frequency of each axis
         for axis in ['x', 'y', 'z']:
-            freq, power = self._calculate_peak_frequency(self.acc_data[axis])
+            freq, power = self._calculate_peak_frequency(self.acc_data[axis].values)
             features[f'peak_freq_acc_{axis}'] = freq
 
         return pd.DataFrame([features])

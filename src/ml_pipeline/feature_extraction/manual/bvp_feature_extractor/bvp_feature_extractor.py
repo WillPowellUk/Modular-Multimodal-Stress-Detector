@@ -9,7 +9,7 @@ class BVPFeatureExtractor:
 
     def extract_features(self):
         # Use the preprocessed BVP signal directly
-        bvp_signal = self.bvp_data['BVP'].values
+        bvp_signal = self.bvp_data.values
         
         # Process BVP signal to find peaks
         signals, info = nk.ppg_process(bvp_signal, sampling_rate=self.sampling_rate)

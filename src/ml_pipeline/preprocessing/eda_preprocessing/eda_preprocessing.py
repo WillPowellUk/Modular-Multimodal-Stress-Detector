@@ -12,10 +12,13 @@ class EDAPreprocessing:
         self.fs = fs
         self.wrist = wrist
 
-    def process(self, use_pyEDA=False, sample_rate=128):
+    def process(self, use_pyEDA=False, use_neurokit=False, sample_rate=128):
         key = 'w_eda' if self.wrist else 'eda'
         if use_pyEDA:
             m, wd, eda_clean = process_statistical(self.df[key], use_scipy=True, sample_rate=sample_rate, new_sample_rate=40, segment_width=600, segment_overlap=0)
+            self.df[key] = eda_clean
+        if use_neurokit:
+            eda_clean = eda_clean(eda_signal, sampling_rate=sample_rate, method='neurokit')
             self.df[key] = eda_clean
         else:
             eda_signal = self.df[key].values
