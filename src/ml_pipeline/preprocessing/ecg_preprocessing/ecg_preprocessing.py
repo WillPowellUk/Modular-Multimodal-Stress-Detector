@@ -26,12 +26,5 @@ class ECGPreprocessing:
         nyquist = 0.5 * self.fs
         low = self.bw_lowcut / nyquist
         high = self.bw_highcut / nyquist
-        b, a = butter(self.bw_order, [low, high], btype='band')
+        b, a = butter(self.bw_order, [low, high], btype='bandpass')
         return filtfilt(b, a, signal)
-
-# Example usage:
-# Assuming df is your DataFrame containing the 'ecg' column
-# df = pd.read_csv('your_ecg_data.csv')
-# ecg_processor = ECGPreprocessing(df)
-# processed_df = ecg_processor.process()
-# print(processed_df)

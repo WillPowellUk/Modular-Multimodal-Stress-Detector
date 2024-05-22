@@ -19,9 +19,10 @@ class EDAPreprocessing:
             self.df[key] = eda_clean
         else:
             eda_signal = self.df[key].values
-            smoothed_signal = self.smooth_eda(eda_signal)
-            filtered_signal = self.lowpass_filter(smoothed_signal)
-            self.df['eda'] = filtered_signal
+            if not self.wrist:
+                eda_signal = self.smooth_eda(eda_signal)
+            filtered_signal = self.lowpass_filter(eda_signal)
+            self.df[key] = filtered_signal
         return self.df
 
     def smooth_eda(self, signal):
@@ -29,6 +30,11 @@ class EDAPreprocessing:
 
     def lowpass_filter(self, signal):
         nyquist = 0.5 * self.fs
-        cutoff = self.lp_cutoff / nyquist
-        b, a = butter(self.lp_order, cutoff, btype='low')
+        if self.wrist:
+            cutoff = 1.0 / nyquist  # Cut-off frequency of 1 Hz for wrist
+            order = 6  # Butterworth lowpass filter of order 6 for wrist
+        else:
+            cutoff = self.lp_cutoff / nyquist  # Custom cut-off frequency
+            order = self.lp_order  # Custom filter order
+        b, a = butter(order, cutoff, btype='low')
         return filtfilt(b, a, signal)
