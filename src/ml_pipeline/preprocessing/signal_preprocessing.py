@@ -42,7 +42,7 @@ class SignalPreprocessor:
         if 'ecg' in self.sampling_rates:
             print("Processing Chest ECG...")
             ecg_processor = ECGPreprocessing(self.df, fs=self.sampling_rates['ecg'])
-            self.df = ecg_processor.process()
+            self.df = ecg_processor.process(use_neurokit=True, plot=False)
             print("Chest ECG processing completed.")
 
         # Chest EMG Preprocessing

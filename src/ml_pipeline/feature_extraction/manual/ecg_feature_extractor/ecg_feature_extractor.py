@@ -6,13 +6,14 @@ from matplotlib.lines import Line2D
 import warnings
 
 class ECGFeatureExtractor:
+    min_HR = 40
+    max_HR = 220
     def __init__(self, ecg_data: pd.DataFrame, sampling_rate: int = 1000):
         np.seterr(divide="ignore", invalid="ignore")
-        nk.signal_plot(ecg_data[:(len(ecg_data)//10)])
         self.ecg_data = ecg_data.values
         self.sampling_rate = sampling_rate
 
-    def plot_segment(self, segment, ECG_processed=None, peaks=None, colors=['r', 'g', 'c', 'm', 'y', 'k']):
+    def plot_segment(self, segment, ecg_processed=None, peaks=None, colors=['r', 'g', 'c', 'm', 'y', 'k']):
         t = np.arange(len(segment)) / self.sampling_rate
         if isinstance(peaks, type(None)):
             fft = np.fft.fft(self.ecg_data)
@@ -40,7 +41,7 @@ class ECGFeatureExtractor:
             plt.plot(t, self.ecg_data)
             lines = [Line2D([0], [0], linestyle='--', color=colors[i]) for i in range(len(peaks))]
             for i, peak in enumerate(peaks):
-                peak_inds = np.where(ECG_processed[peak] == 1)[0]
+                peak_inds = np.where(ecg_processed[peak] == 1)[0]
                 for ind in peak_inds:
                     plt.axvline(x=t[ind], linestyle='--', color=colors[i])
             plt.legend(handles=lines, labels=peaks, loc='lower right')
@@ -50,29 +51,26 @@ class ECGFeatureExtractor:
             plt.xlim(t.max()*0, t.max()*0.1)
             plt.show()
 
-    def wave_analysis(self, ecg_data: pd.DataFrame, plot=False) -> pd.DataFrame:
-        ECG_processed, info = nk.ecg_process(self.ecg_data.to_numpy(dtype='float64'), sampling_rate=self.sampling_rate, method='neurokit')
+    def wave_analysis(self, ecg_processed, plot=False) -> pd.DataFrame:
         peaks = ['ECG_P_Peaks', 'ECG_Q_Peaks', 'ECG_R_Peaks', 'ECG_S_Peaks', 'ECG_T_Peaks']
-        min_HR = 30
-        max_HR = 200
-        min_interval = 60e6 / max_HR
-        max_interval = 60e6 / min_HR
+        min_interval = 60e6 / self.max_HR
+        max_interval = 60e6 / self.min_HR
 
         df = pd.DataFrame()
         for peak in peaks:
-            intervals = np.diff(np.where(np.array(ECG_processed[peak] == 1))) * self.sampling_rate
+            intervals = np.diff(np.where(np.array(ecg_processed[peak] == 1))) * self.sampling_rate
             intervals = intervals[(intervals >= min_interval) & (intervals <= max_interval)]
             df[f'{peak}_Interval_Mean'] = [np.mean(intervals)]
             df[f'{peak}_Interval_SD'] = [np.std(intervals)]
 
         if plot:
-            self.plot_self.ecg_data(self.ecg_data, ECG_processed, peaks)
+            self.plot_self.ecg_data(self.ecg_data, ecg_processed, peaks)
 
         waves = ['P', 'R', 'T']
         max_duration = [120000, 120000, 200000]
         for w, wave in enumerate(waves):
-            onsets = np.where(np.array(ECG_processed[f'ECG_{wave}_Onsets'] == 1))[0]
-            offsets = np.where(np.array(ECG_processed[f'ECG_{wave}_Offsets'] == 1))[0]
+            onsets = np.where(np.array(ecg_processed[f'ECG_{wave}_Onsets'] == 1))[0]
+            offsets = np.where(np.array(ecg_processed[f'ECG_{wave}_Offsets'] == 1))[0]
             idx_offset = np.where(offsets >= onsets[0])[0][0]
             duration_size = min(onsets.size, offsets.size)
             offsets = offsets[idx_offset:duration_size]
@@ -98,7 +96,7 @@ class ECGFeatureExtractor:
         wave_onsets_offsets = [f'ECG_{wave}_Onsets' for wave in waves] + [f'ECG_{wave}_Offsets' for wave in waves]
 
         if plot:
-            self.plot_self.ecg_data(self.ecg_data, ECG_processed, wave_onsets_offsets, colors=['r', 'r', 'g', 'g', 'b', 'b'])
+            self.plot_self.ecg_data(self.ecg_data, ecg_processed, wave_onsets_offsets, colors=['r', 'r', 'g', 'g', 'b', 'b'])
 
         return df
 
@@ -147,22 +145,26 @@ class ECGFeatureExtractor:
         return EDR_Distance, EDR_RMSSD
 
     def extract_features(self):
-        r_peaks = nk.ecg_peaks(self.ecg_data, sampling_rate=self.sampling_rate, correct_artifacts=True)[0]
+        r_peaks = nk.ecg_peaks(self.ecg_data, sampling_rate=self.sampling_rate)[0]
         np.seterr(divide="ignore", invalid="ignore")
+        
         # skip segment if insufficient peaks are detected (otherwise will cause NK error)
-        if int(r_peaks[r_peaks == 1].sum().iloc[0]) < 4:
+        ecg_duration_minutes = (len(self.ecg_data) / self.sampling_rate) / 60
+
+        r_peaks_detected = int(r_peaks[r_peaks == 1].sum().iloc[0])
+        # exit if incorrect peaks are detected
+        if r_peaks_detected < (self.min_HR * ecg_duration_minutes) or r_peaks_detected > (self.max_HR * ecg_duration_minutes):
             return
-        else:
-            print("Found peaks")
         time_domain = nk.hrv_time(r_peaks, sampling_rate=self.sampling_rate)
         frequency_domain = nk.hrv_frequency(r_peaks, sampling_rate=self.sampling_rate)
-        rri = nk.ecg_intervalrelated(r_peaks, sampling_rate=self.sampling_rate, interval_type='rri')
+        ecg_processed, info = nk.ecg_process(self.ecg_data, sampling_rate=self.sampling_rate, method='neurokit')
+        rri = nk.ecg_intervalrelated(ecg_processed, sampling_rate=self.sampling_rate)
         min_scale = 4
         max_scale = min(len(rri)//2, 50)
         nonlinear_features = nk.hrv_nonlinear(rri, sampling_rate=self.sampling_rate, scale=range(min_scale, max_scale))
         all_features = pd.concat([time_domain, frequency_domain, nonlinear_features], axis=1)
 
-        wave_features = self.wave_analysis()
+        wave_features = self.wave_analysis(ecg_processed)
         psd_features = self.calc_PSD()
         edr_distance, edr_rmssd = self.calc_EDR(r_peaks, show_plot=False)
         additional_features = pd.concat([wave_features, psd_features, edr_distance, edr_rmssd], axis=1)

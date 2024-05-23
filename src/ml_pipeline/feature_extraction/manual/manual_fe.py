@@ -2,6 +2,7 @@ import pandas as pd
 import json
 import pickle
 import os
+import warnings
 from .eda_feature_extractor import EDAFeatureExtractor
 from .bvp_feature_extractor import BVPFeatureExtractor
 from .acc_feature_extractor import AccFeatureExtractor
@@ -19,70 +20,64 @@ class ManualFE:
         with open(config_path, 'r') as file:
             self.sampling_rates = json.load(file)
 
+        # Ignore runtime warning for mean of empty slice
+        warnings.filterwarnings("ignore", message="Mean of empty slice")
+
     def extract_features_from_batch(self, batch):
-        features_list = []
+        features_dict = {}
 
         if self.wrist:
             if 'w_eda' in self.sampling_rates:
-                print("Extracting wrist EDA features...")
                 eda_features = EDAFeatureExtractor(batch['w_eda'], self.sampling_rates['w_eda']).extract_features()
-                features_list.append(eda_features)
+                features_dict['w_eda'] = eda_features
             if 'w_bvp' in self.sampling_rates:
-                print("Extracting wrist BVP features...")
                 bvp_features = BVPFeatureExtractor(batch['w_bvp'], self.sampling_rates['w_bvp']).extract_features()
-                features_list.append(bvp_features)
+                features_dict['w_bvp'] = bvp_features
             if 'w_acc' in self.sampling_rates:
-                print("Extracting wrist ACC features...")
                 acc_df = pd.DataFrame({
                     'x': batch['w_acc_x'],
                     'y': batch['w_acc_y'],
                     'z': batch['w_acc_z']
                 })
                 acc_features = AccFeatureExtractor(acc_df, self.sampling_rates['w_acc']).extract_features()
-                features_list.append(acc_features)
+                features_dict['w_acc'] = acc_features
             if 'w_temp' in self.sampling_rates:
-                print("Extracting wrist TEMP features...")
                 temp_features = TempFeatureExtractor(batch['w_temp']).extract_features()
-                features_list.append(temp_features)
+                features_dict['w_temp'] = temp_features
         else:
-            # if 'eda' in self.sampling_rates:
-            #     print("Extracting EDA features...")
-            #     eda_features = EDAFeatureExtractor(batch['eda'], self.sampling_rates['eda']).extract_features()
-            #     features_list.append(eda_features)
-            # if 'acc' in self.sampling_rates:
-            #     print("Extracting ACC features...")
-            #     acc_df = pd.DataFrame({
-            #         'x': batch['acc1'],
-            #         'y': batch['acc2'],
-            #         'z': batch['acc3']
-            #     })
-            #     acc_features = AccFeatureExtractor(acc_df, self.sampling_rates['acc']).extract_features()
-            #     features_list.append(acc_features)
+            if 'eda' in self.sampling_rates:
+                eda_features = EDAFeatureExtractor(batch['eda'], self.sampling_rates['eda']).extract_features()
+                features_dict['eda'] = eda_features
+            if 'acc' in self.sampling_rates:
+                acc_df = pd.DataFrame({
+                    'x': batch['acc1'],
+                    'y': batch['acc2'],
+                    'z': batch['acc3']
+                })
+                acc_features = AccFeatureExtractor(acc_df, self.sampling_rates['acc']).extract_features()
+                features_dict['acc'] = acc_features
             if 'ecg' in self.sampling_rates:
-                print("Extracting ECG features...")
                 ecg_features = ECGFeatureExtractor(batch['ecg'], self.sampling_rates['ecg']).extract_features()
-                features_list.append(ecg_features)
+                features_dict['ecg'] = ecg_features
             if 'emg' in self.sampling_rates:
-                print("Extracting EMG features...")
                 emg_features = EMGFeatureExtractor(batch['emg'], self.sampling_rates['emg']).extract_features()
-                features_list.append(emg_features)
+                features_dict['emg'] = emg_features
             if 'resp' in self.sampling_rates:
-                print("Extracting RESP features...")
                 resp_features = RespFeatureExtractor(batch['resp'], self.sampling_rates['resp']).extract_features()
-                features_list.append(resp_features)
+                features_dict['resp'] = resp_features
             if 'temp' in self.sampling_rates:
-                print("Extracting TEMP features...")
                 temp_features = TempFeatureExtractor(batch['temp']).extract_features()
-                features_list.append(temp_features)
+                features_dict['temp'] = temp_features
 
-        # Combine all features into a single DataFrame
-        all_features = pd.concat(features_list, axis=1)
+        # Combine all feature DataFrames into one DataFrame for each category
+        all_features = {key: pd.concat(val, axis=1) if isinstance(val, list) else val for key, val in features_dict.items()}
         return all_features
-
+    
     def extract_features(self):
         all_batches_features = []
-        for batch in self.batches:
-            for df in batch:
+        for i, batch in enumerate(self.batches):
+            print(f"Extracting features from batch {i}/{len(self.batches)}")
+            for j, df in enumerate(batch):
                 batch_features = self.extract_features_from_batch(df)
                 all_batches_features.append(batch_features)
 
