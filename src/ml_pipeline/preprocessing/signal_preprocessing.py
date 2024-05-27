@@ -23,6 +23,9 @@ class SignalPreprocessor:
         with open(config_path, 'r') as file:
             self.sampling_rates = json.load(file)
 
+        # Set the sampling rate to the maximum sampling rate
+        self.sampling_rate = max(self.sampling_rates.values())
+
     def preprocess_signals(self):
         print("Starting signal preprocessing...")
 
@@ -41,21 +44,21 @@ class SignalPreprocessor:
         # Chest ECG Preprocessing
         if 'ecg' in self.sampling_rates:
             print("Processing Chest ECG...")
-            ecg_processor = ECGPreprocessing(self.df, fs=self.sampling_rates['ecg'])
+            ecg_processor = ECGPreprocessing(self.df, fs=self.sampling_rate)
             self.df = ecg_processor.process(use_neurokit=True, plot=False)
             print("Chest ECG processing completed.")
 
         # Chest EMG Preprocessing
         if 'emg' in self.sampling_rates:
             print("Processing Chest EMG...")
-            emg_processor = EMGPreprocessing(self.df, fs=self.sampling_rates['emg'])
+            emg_processor = EMGPreprocessing(self.df, fs=self.sampling_rate)
             self.df = emg_processor.process()
             print("Chest EMG processing completed.")
 
         # Chest EDA Preprocessing
         if 'eda' in self.sampling_rates:
             print("Processing Chest EDA...")
-            eda_processor = EDAPreprocessing(self.df, fs=self.sampling_rates['eda'])
+            eda_processor = EDAPreprocessing(self.df, fs=self.sampling_rate)
             self.df = eda_processor.process()
             print("Chest EDA processing completed.")
 
@@ -69,7 +72,7 @@ class SignalPreprocessor:
         # Chest RESP Preprocessing
         if 'resp' in self.sampling_rates:
             print("Processing Chest RESP...")
-            resp_processor = RespPreprocessing(self.df, fs=self.sampling_rates['resp'])
+            resp_processor = RespPreprocessing(self.df, fs=self.sampling_rate)
             self.df = resp_processor.process()
             print("Chest RESP processing completed.")
 
@@ -91,14 +94,14 @@ class SignalPreprocessor:
         # Wrist BVP Preprocessing
         if 'bvp' in self.sampling_rates:
             print("Processing Wrist BVP...")
-            bvp_processor = BVPPreprocessing(self.df, fs=self.sampling_rates['bvp'])
+            bvp_processor = BVPPreprocessing(self.df, fs=self.sampling_rate)
             self.df = bvp_processor.process()
             print("Wrist BVP processing completed.")
 
         # Wrist EDA Preprocessing
         if 'w_eda' in self.sampling_rates:
             print("Processing Wrist EDA...")
-            eda_processor_wrist = EDAPreprocessing(self.df, fs=self.sampling_rates['w_eda'], lp_order=6, lp_cutoff=1.0, wrist=True)
+            eda_processor_wrist = EDAPreprocessing(self.df, fs=self.sampling_rate) lp_order=6, lp_cutoff=1.0, wrist=True)
             self.df = eda_processor_wrist.process()
             print("Wrist EDA processing completed.")
 

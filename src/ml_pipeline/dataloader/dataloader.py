@@ -1,56 +1,45 @@
 import pandas as pd
 import numpy as np
+import pickle
 import json
 import re
-import pickle
 
 class DataLoader:
-    def __init__(self, dataframe_path, config_file, batch_size):
+    def __init__(self, dataframe_path, config_path):
         self.dataframe = self.load_dataframe(dataframe_path)
-        self.config = self.load_config(config_file)
-        self.batch_size = batch_size
-        self.window_size = 60  # 60 seconds window
-        self.sliding_length = 5  # 5 seconds sliding length
+        self.config = self.load_config(config_path)
+
+        # Set the sampling rate to the maximum sampling rate
+        self.sampling_rate = max(self.config.values()) 
         
     def load_dataframe(self, dataframe_path):
         with open(dataframe_path, 'rb') as file:
             dataframe = pickle.load(file)
         return dataframe
 
-    def load_config(self, config_file):
-        with open(config_file, 'r') as file:
+    def load_config(self, config_path):
+        with open(config_path, 'r') as file:
             config = json.load(file)
         return config
 
-    def get_sample_rate(self, column):
-        for sensor, rate in self.config.items():
-            if re.match(sensor, column):
-                return rate
-        return None
-
-    def segment_data(self):
+    def segment_data(self, window_size=60, sliding_length=5):
         segments = []
         grouped = self.dataframe.groupby('sid')
         for sid, group in grouped:
             start_idx = 0
-            sample_rate = self.get_sample_rate(group.columns[1])
-            end_idx = start_idx + self.window_size * sample_rate
-            sliding_step = self.sliding_length * sample_rate
+            sample_rate = self.sampling_rate
+            end_idx = window_size * sample_rate
+            sliding_step = sliding_length * sample_rate
 
             while end_idx <= len(group):
                 segment = group.iloc[start_idx:end_idx]
-                if len(segment) == self.window_size * sample_rate:
+                if first_segment or start_idx % (window_size * sample_rate) == 0:
+                    segment['is_augmented'] = False
+                    first_segment = False
+                else:
+                    segment['is_augmented'] = True
+                if len(segment) == window_size * sample_rate:
                     segments.append(segment)
                 start_idx += sliding_step
-                end_idx = start_idx + self.window_size * sample_rate
+                end_idx += sliding_step
         return segments
-
-    def generate_batches(self):
-        segments = self.segment_data()
-        np.random.shuffle(segments)  # Shuffle the segments to ensure randomness
-        batches = []
-        for i in range(0, len(segments), self.batch_size):
-            batch = segments[i:i + self.batch_size]
-            if len(batch) == self.batch_size:
-                batches.append(batch)
-        return batches

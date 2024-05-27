@@ -5,7 +5,7 @@ import sys
 import gc
 import os
 
-class DataPreprocessor:
+class WESADDataPreprocessor:
     DATA_PATH = 'src/wesad/WESAD/'
     RAW_PATH = os.path.join(DATA_PATH, 'raw/')
     CHEST_COLUMNS = ['sid', 'acc1', 'acc2', 'acc3', 'ecg', 'emg', 'eda', 'temp', 'resp', 'label']
@@ -178,11 +178,11 @@ class DataPreprocessor:
 
     def preprocess(self):
         print("Starting preprocessing...")
-        # self.merge_wrist_data()
+        self.merge_wrist_data()
         self.merge_chest_data()
         self.filter_chest_data()
         print("Preprocessing completed")
 
 if __name__ == "__main__":
-    preprocessor = DataPreprocessor()
+    preprocessor = WESADDataPreprocessor()
     preprocessor.preprocess()

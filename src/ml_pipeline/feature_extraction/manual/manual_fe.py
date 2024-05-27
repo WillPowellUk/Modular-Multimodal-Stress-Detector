@@ -1,6 +1,5 @@
 import pandas as pd
 import json
-import pickle
 import os
 import time
 import warnings
@@ -75,14 +74,14 @@ class ManualFE:
         return all_features
     
     def extract_features(self):
-        # Suppress all numpy warnings
-        old_settings = np.seterr(all='ignore')
-        
+        warnings.warn_explicit = warnings.warn = lambda *_, **__: None
+        warnings.filterwarnings("ignore")
+         
         all_batches_features = []
         total_batches = len(self.batches)
         start_time = time.time()
         
-        for i, batch in enumerate(self.batches):
+        for i, (sid, batch) in enumerate(self.batches):
             elapsed_time = time.time() - start_time
             average_time_per_batch = elapsed_time / (i + 1)
             remaining_batches = total_batches - (i + 1)
@@ -90,12 +89,20 @@ class ManualFE:
 
             print(f"Extracting features from batch {i+1}/{total_batches} | ETA: {eta:.2f} seconds")
 
-            for j, df in enumerate(batch):
-                batch_features = self.extract_features_from_batch(df)
-                all_batches_features.append(batch_features)
-            break
+            batch_features = self.extract_features_from_batch(batch)
+            all_batches_features.append(batch_features)
+
+            if i ==3:
+                break
+
+        # Ensure the directory exists
+        dir_name = os.path.dirname(self.save_path)
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name, exist_ok=True)
         
-        # Restore original numpy settings
-        np.seterr(**old_settings)
-        
+        # Save the features
+        with open(self.save_path, 'wb') as file:
+            pd.to_pickle(all_batches_features, file)
+
         return all_batches_features
+    
