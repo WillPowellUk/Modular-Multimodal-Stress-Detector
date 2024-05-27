@@ -52,7 +52,7 @@ class ECGFeatureExtractor:
             plt.show()
 
     def wave_analysis(self, ecg_processed, plot=False) -> pd.DataFrame:
-        peaks = ['ECG_P_Peaks', 'ECG_Q_Peaks', 'ECG_R_Peaks', 'ECG_S_Peaks', 'ECG_T_Peaks']
+        peaks = ['ECG_P_Peaks', 'ECG_Q_Peaks', 'ECG_S_Peaks', 'ECG_T_Peaks']
         min_interval = 60e6 / self.max_HR
         max_interval = 60e6 / self.min_HR
 
@@ -71,6 +71,8 @@ class ECGFeatureExtractor:
         for w, wave in enumerate(waves):
             onsets = np.where(np.array(ecg_processed[f'ECG_{wave}_Onsets'] == 1))[0]
             offsets = np.where(np.array(ecg_processed[f'ECG_{wave}_Offsets'] == 1))[0]
+            if len(onsets) == 0 or len(offsets) == 0:
+                continue
             idx_offset = np.where(offsets >= onsets[0])[0][0]
             duration_size = min(onsets.size, offsets.size)
             offsets = offsets[idx_offset:duration_size]
@@ -101,7 +103,7 @@ class ECGFeatureExtractor:
         return df
 
     def calc_PSD(self) -> pd.DataFrame:
-        PSD = nk.signal_psd(self.ecg_data.to_list(), sampling_rate=self.sampling_rate, method="welch", min_frequency=0.5, max_frequency=200)
+        PSD = nk.signal_psd(self.ecg_data, sampling_rate=self.sampling_rate, method="welch", min_frequency=0.5, max_frequency=200)
         binned_power = []
         frequency = 0
         bin_range = 10
@@ -147,7 +149,7 @@ class ECGFeatureExtractor:
     def extract_features(self):
         r_peaks = nk.ecg_peaks(self.ecg_data, sampling_rate=self.sampling_rate)[0]
         np.seterr(divide="ignore", invalid="ignore")
-        
+
         # skip segment if insufficient peaks are detected (otherwise will cause NK error)
         ecg_duration_minutes = (len(self.ecg_data) / self.sampling_rate) / 60
 
@@ -157,17 +159,18 @@ class ECGFeatureExtractor:
             return
         time_domain = nk.hrv_time(r_peaks, sampling_rate=self.sampling_rate)
         frequency_domain = nk.hrv_frequency(r_peaks, sampling_rate=self.sampling_rate)
-        ecg_processed, info = nk.ecg_process(self.ecg_data, sampling_rate=self.sampling_rate, method='neurokit')
-        rri = nk.ecg_intervalrelated(ecg_processed, sampling_rate=self.sampling_rate)
-        min_scale = 4
-        max_scale = min(len(rri)//2, 50)
-        nonlinear_features = nk.hrv_nonlinear(rri, sampling_rate=self.sampling_rate, scale=range(min_scale, max_scale))
-        all_features = pd.concat([time_domain, frequency_domain, nonlinear_features], axis=1)
+        signals, waves = nk.ecg_delineate(self.ecg_data, sampling_rate=self.sampling_rate)
 
-        wave_features = self.wave_analysis(ecg_processed)
+        # ecg_processed, info = nk.ecg_process(self.ecg_data, sampling_rate=self.sampling_rate, method='neurokit')
+        # rri = nk.ecg_intervalrelated(ecg_processed, sampling_rate=self.sampling_rate)
+        # min_scale = 4
+        # max_scale = min(len(rri)//2, 50)
+        # nonlinear_features = nk.hrv_nonlinear(rri, sampling_rate=self.sampling_rate, scale=range(min_scale, max_scale))
+
+        wave_features = self.wave_analysis(waves)
         psd_features = self.calc_PSD()
         edr_distance, edr_rmssd = self.calc_EDR(r_peaks, show_plot=False)
         additional_features = pd.concat([wave_features, psd_features, edr_distance, edr_rmssd], axis=1)
-        all_features = pd.concat([all_features, additional_features], axis=1)
+        all_features = pd.concat([time_domain, frequency_domain, additional_features], axis=1)
 
         return all_features

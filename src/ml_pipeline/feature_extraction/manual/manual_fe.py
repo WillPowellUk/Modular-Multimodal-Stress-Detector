@@ -2,6 +2,7 @@ import pandas as pd
 import json
 import pickle
 import os
+import time
 import warnings
 from .eda_feature_extractor import EDAFeatureExtractor
 from .bvp_feature_extractor import BVPFeatureExtractor
@@ -74,23 +75,27 @@ class ManualFE:
         return all_features
     
     def extract_features(self):
+        # Suppress all numpy warnings
+        old_settings = np.seterr(all='ignore')
+        
         all_batches_features = []
+        total_batches = len(self.batches)
+        start_time = time.time()
+        
         for i, batch in enumerate(self.batches):
-            print(f"Extracting features from batch {i}/{len(self.batches)}")
+            elapsed_time = time.time() - start_time
+            average_time_per_batch = elapsed_time / (i + 1)
+            remaining_batches = total_batches - (i + 1)
+            eta = average_time_per_batch * remaining_batches
+
+            print(f"Extracting features from batch {i+1}/{total_batches} | ETA: {eta:.2f} seconds")
+
             for j, df in enumerate(batch):
                 batch_features = self.extract_features_from_batch(df)
                 all_batches_features.append(batch_features)
-
-        # Concatenate all batch features
-        final_features = pd.concat(all_batches_features, axis=0)
+            break
         
-        # Ensure the save path directory exists
-        save_dir = os.path.dirname(self.save_path)
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-
-        # Save features as pkl
-        with open(self.save_path, 'wb') as file:
-            pickle.dump(final_features, file)
-
-        return final_features
+        # Restore original numpy settings
+        np.seterr(**old_settings)
+        
+        return all_batches_features
