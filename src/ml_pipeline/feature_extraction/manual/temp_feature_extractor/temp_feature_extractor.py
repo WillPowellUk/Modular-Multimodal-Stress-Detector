@@ -2,8 +2,9 @@ import pandas as pd
 import numpy as np
 
 class TempFeatureExtractor:
-    def __init__(self, temp_data: pd.DataFrame):
+    def __init__(self, temp_data: pd.DataFrame, sampling_rate: int):
         self.temp_data = temp_data.values
+        self.sampling_rate = sampling_rate
 
     def extract_features(self):
         features = {}

@@ -1,1 +1,1 @@
-from .dataloader import DataLoader
+from .data_segmentation import DataSegmentation

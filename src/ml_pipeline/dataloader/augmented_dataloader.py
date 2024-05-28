@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-class AugmentedDataLoader:
+class AugmentedDataSegmentation:
     def __init__(self, features_path, batch_size, window_size=60, sliding_length=5):
         self.features = self.load_features(features_path)
         self.batch_size = batch_size
