@@ -1,0 +1,22 @@
+{
+    "sensors": {
+        "acc1": true,
+        "acc2": true,
+        "acc3": true,
+        "ecg": true,
+        "emg": true,
+        "eda": true,
+        "temp": true,
+        "resp": true
+    },
+    "sampling rate": {
+        "acc1": 700,
+        "acc2": 700,
+        "acc3": 700,
+        "ecg": 700,
+        "emg": 700,
+        "eda": 700,
+        "temp": 700,
+        "resp": 700
+    }
+}

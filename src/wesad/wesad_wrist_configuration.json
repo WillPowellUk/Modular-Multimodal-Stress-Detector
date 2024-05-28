@@ -1,0 +1,18 @@
+{
+    "sensors": {
+        "bvp": true,
+        "w_acc_x": true,
+        "w_acc_y": true,
+        "w_acc_z": true,
+        "w_eda": true,
+        "w_temp": true
+    },
+    "sampling rate": {
+        "bvp": 64,
+        "w_acc_x": 32,
+        "w_acc_y": 32,
+        "w_acc_z": 32,
+        "w_eda": 4,
+        "w_temp": 4
+    }
+}

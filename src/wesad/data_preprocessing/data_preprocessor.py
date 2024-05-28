@@ -1,26 +1,35 @@
 import pandas as pd
 import numpy as np
-from scipy import signal, stats
+from scipy import signal
+from scipy.interpolate import interp1d
 import sys
 import gc
 import os
 
 class WESADDataPreprocessor:
-    DATA_PATH = 'src/wesad/WESAD/'
-    RAW_PATH = os.path.join(DATA_PATH, 'raw/')
     CHEST_COLUMNS = ['sid', 'acc1', 'acc2', 'acc3', 'ecg', 'emg', 'eda', 'temp', 'resp', 'label']
     ALL_COLUMNS = ['sid', 'c_acc_x', 'c_acc_y', 'c_acc_z', 'ecg', 'emg', 'c_eda', 'c_temp', 'resp', 'w_acc_x', 'w_acc_y', 'w_acc_z', 'bvp', 'w_eda', 'w_temp', 'label']
-    IDS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17]
     SF_BVP = 64
     SF_EDA = 4
     SF_TEMP = 4
     SF_ACC = 32
+    SF_WRIST = max(SF_BVP, SF_EDA, SF_TEMP)
     SF_CHEST = 700
 
-    def __init__(self):
-        # Create the Raw directory if it does not exist
-        if not os.path.exists(self.RAW_PATH):
-            os.makedirs(self.RAW_PATH)
+    def __init__(self, dataset_path='src/wesad/WESAD/', IDs = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17]):
+        self.IDs = IDs
+        self.dataset_path = dataset_path
+        self.raw_path = os.path.join(dataset_path, 'raw/')
+
+        # Ensure the directories exists
+        dir_name = os.path.dirname(self.dataset_path)
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name, exist_ok=True)
+
+        dir_name = os.path.dirname(self.raw_path)
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name, exist_ok=True)
+
 
     def pkl_to_np_wrist(self, filename, subject_id):
         print(f"Processing wrist data for subject {subject_id}")
@@ -30,6 +39,7 @@ class WESADDataPreprocessor:
             print(f"File {filename} not found. Have you ran the download_database.sh script and are you running from the root directory?")
             sys.exit(1)
 
+        # Assuming unpickled_df is already loaded and subject_id is defined
         wrist_acc = unpickled_df["signal"]["wrist"]["ACC"]
         wrist_bvp = unpickled_df["signal"]["wrist"]["BVP"]
         wrist_eda = unpickled_df["signal"]["wrist"]["EDA"]
@@ -41,53 +51,47 @@ class WESADDataPreprocessor:
         n_wrist_eda = len(wrist_eda)
         n_wrist_temp = len(wrist_temp)
 
-        sid_acc = np.repeat(subject_id, n_wrist_acc).reshape((n_wrist_acc, 1))
-        batch_size = self.SF_CHEST / self.SF_ACC
-        lbl_m = np.zeros((n_wrist_acc, 1))
-        for i in range(n_wrist_acc):
-            lbl_m[i] = (stats.mode(lbl[round(i * batch_size): round((i + 1) * batch_size) - 1]))[0].squeeze()
-        lbl_acc = lbl_m
-
+        # sid / label for wrist data will be bvp as all data will be resampled to bvp since it has the highest sampling rate
         sid_bvp = np.repeat(subject_id, n_wrist_bvp).reshape((n_wrist_bvp, 1))
-        batch_size = self.SF_CHEST / self.SF_BVP
-        lbl_m = np.zeros((n_wrist_bvp, 1))
-        for i in range(n_wrist_bvp):
-            lbl_m[i] = (stats.mode(lbl[round(i * batch_size): round((i + 1) * batch_size) - 1]))[0].squeeze()
-        lbl_bvp = lbl_m
 
-        sid_eda_temp = np.repeat(subject_id, n_wrist_eda).reshape((n_wrist_eda, 1))
-        batch_size = self.SF_CHEST / self.SF_EDA
-        lbl_m = np.zeros((n_wrist_eda, 1))
-        for i in range(n_wrist_eda):
-            lbl_m[i] = (stats.mode(lbl[round(i * batch_size): round((i + 1) * batch_size) - 1]))[0].squeeze()
-        lbl_eda_temp = lbl_m
+        # Ensure lbl is one-dimensional for interpolation
+        lbl = lbl.flatten()
 
-        data1 = np.concatenate((sid_acc, wrist_acc, lbl_acc), axis=1)
-        data2 = np.concatenate((sid_bvp, wrist_bvp, lbl_bvp), axis=1)
-        data3 = np.concatenate((sid_eda_temp, wrist_eda, wrist_temp, lbl_eda_temp), axis=1)
+        # Create time arrays for original and target sampling rates
+        time_original = np.linspace(0, len(lbl) / self.SF_CHEST, len(lbl))
+        time_target = np.linspace(0, len(lbl) / self.SF_CHEST, n_wrist_bvp)
+
+        # Create the interpolator
+        interpolator = interp1d(time_original, lbl, kind='nearest', fill_value="extrapolate")
+
+        # Interpolate the labels to the BVP sampling frequency
+        lbl_bvp = interpolator(time_target).reshape(-1, 1)
+
+        # resample to bvp sampling rate
+        resampled_wrist_acc = np.zeros((n_wrist_bvp, 3))
+        
+        # Resample to bvp sampling rate
+        for i in range(3):
+            resampled_wrist_acc[:, i] = signal.resample(wrist_acc[:, i], n_wrist_bvp)
+
+        wrist_acc = resampled_wrist_acc
+        wrist_eda = signal.resample(wrist_eda, n_wrist_bvp)
+        wrist_temp = signal.resample(wrist_temp, n_wrist_bvp)
 
         print(f"Finished processing wrist data for subject {subject_id}")
-        return data1, data2, data3
+        return sid_bvp, wrist_acc, wrist_bvp, wrist_eda, wrist_temp, lbl_bvp
     
     def merge_wrist_data(self):
         print("Merging wrist data...")
         combined_data = []
 
-        for i, sid in enumerate(self.IDS):
-            file = os.path.join(self.DATA_PATH, f'S{sid}', f'S{sid}.pkl')
+        for i, sid in enumerate(self.IDs):
+            file = os.path.join(self.dataset_path, f'S{sid}', f'S{sid}.pkl')
             print(f"Processing file: {file}")
-            subj1, subj2, subj3 = self.pkl_to_np_wrist(file, sid)
-
-            # Find the minimum length among the three arrays
-            min_length = min(subj1.shape[0], subj2.shape[0], subj3.shape[0])
-
-            # Truncate the arrays to the minimum length
-            subj1 = subj1[:min_length, :]
-            subj2 = subj2[:min_length, :]
-            subj3 = subj3[:min_length, :]
+            sid, wrist_acc, wrist_bvp, wrist_eda, wrist_temp, lbl = self.pkl_to_np_wrist(file, sid)
 
             # Combine the data for this subject, ensuring 'label' is the last column
-            combined_subj = np.hstack((subj1[:, :-1], subj2[:, 1:-1], subj3[:, 1:-1], subj1[:, -1:]))
+            combined_subj = np.hstack((sid, wrist_acc, wrist_bvp, wrist_eda, wrist_temp, lbl))
             combined_data.append(combined_subj)
 
         # Concatenate all subjects' data
@@ -97,7 +101,7 @@ class WESADDataPreprocessor:
         all_columns = ['sid', 'w_acc_x', 'w_acc_y', 'w_acc_z', 'bvp', 'w_eda', 'w_temp', 'label']
 
         # Save the combined DataFrame to a single pickle file
-        fn_merged = os.path.join(self.RAW_PATH, 'merged_wrist.pkl')
+        fn_merged = os.path.join(self.raw_path, 'merged_wrist.pkl')
         pd.DataFrame(combined_data, columns=all_columns).to_pickle(fn_merged)
 
         print("Finished merging wrist data")
@@ -122,16 +126,16 @@ class WESADDataPreprocessor:
         print("Merging chest data...")
 
         # Define a memory-mapped file for merged data
-        merged_data_filename = os.path.join(self.RAW_PATH, 'merged_chest.dat')
+        merged_data_filename = os.path.join(self.dataset_path, 'merged_chest.dat')
         dtype = np.float32  # Assuming data type is float32; change if necessary
 
         # Initialize size estimation
-        initial_file = self.DATA_PATH + 'S' + str(self.IDS[0]) + '/S' + str(self.IDS[0]) + '.pkl'
-        initial_data = self.pkl_to_np_chest(initial_file, self.IDS[0])
+        initial_file = self.dataset_path + 'S' + str(self.IDs[0]) + '/S' + str(self.IDs[0]) + '.pkl'
+        initial_data = self.pkl_to_np_chest(initial_file, self.IDs[0])
         num_columns = initial_data.shape[1]
         
         # Estimate total number of rows (if possible)
-        total_rows = sum(self.pkl_to_np_chest(self.DATA_PATH + 'S' + str(sid) + '/S' + str(sid) + '.pkl', sid).shape[0] for sid in self.IDS)
+        total_rows = sum(self.pkl_to_np_chest(self.dataset_path + 'S' + str(sid) + '/S' + str(sid) + '.pkl', sid).shape[0] for sid in self.IDs)
         
         # Create a memory-mapped file with estimated size
         merged_data = np.memmap(merged_data_filename, dtype=dtype, mode='w+', shape=(total_rows, num_columns))
@@ -139,8 +143,8 @@ class WESADDataPreprocessor:
         current_row = 0
         
         try:
-            for i, sid in enumerate(self.IDS):
-                file = self.DATA_PATH + 'S' + str(sid) + '/S' + str(sid) + '.pkl'
+            for i, sid in enumerate(self.IDs):
+                file = self.dataset_path + 'S' + str(sid) + '/S' + str(sid) + '.pkl'
                 print(f"Processing file: {file}")
                 subj_data = self.pkl_to_np_chest(file, sid)
                 
@@ -157,7 +161,7 @@ class WESADDataPreprocessor:
 
             # Save as pickle file
             final_df = pd.DataFrame(np.array(merged_data), columns=self.CHEST_COLUMNS)
-            final_df.to_pickle(os.path.join(self.RAW_PATH, 'merged_chest_temp.pkl'))
+            final_df.to_pickle(os.path.join(self.raw_path, 'merged_chest_temp.pkl'))
 
             print("Finished merging chest data")
 
@@ -169,11 +173,11 @@ class WESADDataPreprocessor:
 
     def filter_chest_data(self):
         print("Filtering chest data...")
-        df = pd.read_pickle(os.path.join(self.RAW_PATH, "merged_chest_temp.pkl"))
+        df = pd.read_pickle(os.path.join(self.raw_path, "merged_chest_temp.pkl"))
         df_fltr = df[df["label"].isin([1, 2, 3])]
         df_fltr = df_fltr[df_fltr["temp"] > 0]
-        pd.DataFrame(df_fltr, columns=self.CHEST_COLUMNS).to_pickle(os.path.join(self.RAW_PATH, "merged_chest.pkl"))
-        os.remove(os.path.join(self.RAW_PATH, "merged_chest_temp.pkl"))
+        pd.DataFrame(df_fltr, columns=self.CHEST_COLUMNS).to_pickle(os.path.join(self.raw_path, "merged_chest.pkl"))
+        os.remove(os.path.join(self.raw_path, "merged_chest_temp.pkl"))
         print("Finished filtering chest data")
 
     def preprocess(self):

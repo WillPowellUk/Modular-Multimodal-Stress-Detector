@@ -10,7 +10,7 @@ class DataLoader:
         self.config = self.load_config(config_path)
 
         # Set the sampling rate to the maximum sampling rate
-        self.sampling_rate = max(self.config.values()) 
+        self.sampling_rate = self.config['max']
         
     def load_dataframe(self, dataframe_path):
         with open(dataframe_path, 'rb') as file:
