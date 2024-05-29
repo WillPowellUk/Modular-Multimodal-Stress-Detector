@@ -23,6 +23,7 @@ class AugmentedDataset(Dataset):
                 
                 for aug in hdf5_file[subject].keys():
                     is_augmented = aug.split('_')[1] == 'True'
+
                     if not self.include_augmented and is_augmented:
                         continue
 
@@ -77,8 +78,8 @@ class LOSOCVDataLoader:
             train_dataset = self.get_dataset(exclude_subject=subject_id, include_augmented=True)
             val_dataset = self.get_dataset(exclude_subject=subject_id, include_augmented=False)
 
-            train_loader = DataLoader(train_dataset, **self.params, num_workers=4, pin_memory=True)
-            val_loader = DataLoader(val_dataset, **self.params, num_workers=4, pin_memory=True)
+            train_loader = DataLoader(train_dataset, **self.params)
+            val_loader = DataLoader(val_dataset, **self.params)
 
             dataloaders[subject_id] = {'train': train_loader, 'val': val_loader}
         

@@ -100,7 +100,6 @@ class ManualFE:
                     else:
                         label_group.create_dataset(unique_feature_name, data=feature_data)
 
-
     def extract_features(self):
         warnings.warn_explicit = warnings.warn = lambda *_, **__: None
         warnings.filterwarnings("ignore")
