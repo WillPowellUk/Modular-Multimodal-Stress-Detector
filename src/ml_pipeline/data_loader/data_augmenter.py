@@ -14,22 +14,25 @@ class DataAugmenter:
         return dataframe
 
     def segment_data(self, window_size=60, sliding_length=5):
+        print('Segmenting data...')
         segments = []
         grouped = self.dataframe.groupby('sid')
-        for sid, group in grouped:
-            start_idx = 0
-            sample_rate = self.sampling_rate
-            end_idx = window_size * sample_rate
-            sliding_step = sliding_length * sample_rate
 
-            while end_idx <= len(group):
-                segment = group.iloc[start_idx:end_idx]
-                if start_idx % (window_size * sample_rate) == 0:
-                    segment['is_augmented'] = False
-                else:
-                    segment['is_augmented'] = True
-                if len(segment) == window_size * sample_rate:
-                    segments.append(segment)
-                start_idx += sliding_step
-                end_idx += sliding_step
+        sample_rate = self.sampling_rate
+        window_size_samples = window_size * sample_rate
+        sliding_step_samples = sliding_length * sample_rate
+
+        for sid, group in grouped:
+            # Compute the number of segments
+            num_segments = (len(group) - window_size_samples) // sliding_step_samples + 1
+
+            for i in range(num_segments):
+                start_idx = i * sliding_step_samples
+                end_idx = start_idx + window_size_samples
+                segment = group.iloc[start_idx:end_idx].copy()  # Make a copy of the slice
+
+                segment['is_augmented'] = i != 0
+                segments.append(segment)
+
+        print('Segmentation complete.')
         return segments

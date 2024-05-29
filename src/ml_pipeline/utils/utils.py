@@ -9,9 +9,9 @@ def get_max_sampling_rate(config_path):
     
     return max_sampling_rate
 
-def get_active_sensors(config_path):
+def get_active_key(config_path, key):
     with open(config_path, 'r') as f:
         config = json.load(f)
     
-    active_sensors = [sensor for sensor, is_active in config['sensors'].items() if is_active]
-    return active_sensors
+    active_keys = [val for val, is_active in config[key].items() if is_active]
+    return active_keys

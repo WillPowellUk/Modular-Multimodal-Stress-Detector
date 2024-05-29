@@ -3,7 +3,9 @@ import re
 import os
 import time
 import warnings
-from src.ml_pipeline.utils.utils import get_max_sampling_rate, get_active_sensors
+import numpy as np
+import h5py
+from src.ml_pipeline.utils.utils import get_max_sampling_rate, get_active_key
 from .eda_feature_extractor import EDAFeatureExtractor
 from .bvp_feature_extractor import BVPFeatureExtractor
 from .acc_feature_extractor import AccFeatureExtractor
@@ -16,7 +18,7 @@ class ManualFE:
     def __init__(self, batches, save_path: str, config_path: str):
         self.batches = batches
         self.save_path = save_path
-        self.sensors = get_active_sensors(config_path)
+        self.sensors = get_active_key(config_path, 'sensors')
         self.sampling_rate = get_max_sampling_rate(config_path)
 
         # Ignore runtime warning for mean of empty slice
@@ -25,14 +27,17 @@ class ManualFE:
     def extract_features_from_batch(self, batch):
         features_dict = {}
 
-        features_dict['sid'] = batch['sid']
+        sid = batch['sid'].iloc[0]
+        is_augmented = batch['is_augmented'].iloc[0]
+        features_dict['sid'] = sid
+        features_dict['is_augmented'] = is_augmented
 
         if 'w_eda' in self.sensors:
             eda_features = EDAFeatureExtractor(batch['w_eda'], self.sampling_rate).extract_features()
             features_dict['w_eda'] = eda_features
-        if 'w_bvp' in self.sensors:
-            bvp_features = BVPFeatureExtractor(batch['w_bvp'], self.sampling_rate).extract_features()
-            features_dict['w_bvp'] = bvp_features
+        if 'bvp' in self.sensors:
+            bvp_features = BVPFeatureExtractor(batch['bvp'], self.sampling_rate).extract_features()
+            features_dict['bvp'] = bvp_features
         if any(re.search(r'w_acc', sensor) for sensor in self.sensors):
             acc_df = pd.DataFrame({
                 'x': batch['w_acc_x'],
@@ -71,13 +76,31 @@ class ManualFE:
             temp_features = TempFeatureExtractor(batch['temp'], self.sampling_rate).extract_features()
             features_dict['temp'] = temp_features
 
-        features_dict['label'] = batch['label']
-        features_dict['is_augmented'] = batch['is_augmented']
+        features_dict['label'] = batch['label'].iloc[0]
 
-        # Combine all feature DataFrames into one DataFrame for each category
-        all_features = {key: pd.concat(val, axis=1) if isinstance(val, list) else val for key, val in features_dict.items()}
-        return all_features
+        return features_dict
     
+    def save_to_hdf5(self, all_batches_features):
+        with h5py.File(self.save_path, 'w') as hdf5_file:
+            for batch_index, features in enumerate(all_batches_features):
+                sid = str(int(features.pop('sid')))
+                is_augmented = 'augmented_True' if features.pop('is_augmented') else 'augmented_False'
+                label = str(features.pop('label'))
+
+                group = hdf5_file.require_group(f'subject_{sid}')
+                sub_group = group.require_group(is_augmented)
+                label_group = sub_group.require_group(label)
+
+                for feature_name, feature_data in features.items():
+                    unique_feature_name = f"{feature_name}_{batch_index}"  # Append batch_index to make the name unique
+                    
+                    if isinstance(feature_data, pd.DataFrame):
+                        label_group.create_dataset(unique_feature_name, data=feature_data.values)
+                        label_group.create_dataset(f'{unique_feature_name}_columns', data=np.array(feature_data.columns, dtype='S'))
+                    else:
+                        label_group.create_dataset(unique_feature_name, data=feature_data)
+
+
     def extract_features(self):
         warnings.warn_explicit = warnings.warn = lambda *_, **__: None
         warnings.filterwarnings("ignore")
@@ -103,7 +126,5 @@ class ManualFE:
         if not os.path.exists(dir_name):
             os.makedirs(dir_name, exist_ok=True)
         
-        # Save the features
-        with open(self.save_path, 'wb') as file:
-            pd.to_pickle(all_batches_features, file)
-    
+        # Save the features to HDF5
+        self.save_to_hdf5(all_batches_features)

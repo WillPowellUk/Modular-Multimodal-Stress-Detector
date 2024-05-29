@@ -3,7 +3,7 @@ import numpy as np
 import os
 import re
 import pickle
-from src.ml_pipeline.utils.utils import get_max_sampling_rate, get_active_sensors
+from src.ml_pipeline.utils.utils import get_max_sampling_rate, get_active_key
 from src.ml_pipeline.preprocessing.acc_preprocessing import AccPreprocessing
 from src.ml_pipeline.preprocessing.ecg_preprocessing import ECGPreprocessing
 from src.ml_pipeline.preprocessing.bvp_preprocessing import BVPPreprocessing
@@ -26,7 +26,7 @@ class SignalPreprocessor:
     def preprocess_signals(self):
         print("Starting signal preprocessing...")
 
-        sensors = get_active_sensors(self.config_path)
+        sensors = get_active_key(self.config_path, 'sensors')
 
         # Chest ECG Preprocessing
         if 'ecg' in sensors:

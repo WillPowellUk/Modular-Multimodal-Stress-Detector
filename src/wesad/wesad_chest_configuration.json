@@ -18,5 +18,32 @@
         "eda": 700,
         "temp": 700,
         "resp": 700
+    },
+    "subjects": {
+        "2.0": true,
+        "3.0": true,
+        "4.0": true,
+        "5.0": true,
+        "6.0": true,
+        "7.0": true,
+        "8.0": true,
+        "9.0": true,
+        "10.0": true,
+        "11.0": true,
+        "13.0": true,
+        "14.0": true,
+        "15.0": true,
+        "16.0": true,
+        "17.0": true
+    },
+    "labels": {
+        "0": false,
+        "1": true,
+        "2": true,
+        "3": true,
+        "4": false,
+        "5": false,
+        "6": false,
+        "7": false
     }
 }
