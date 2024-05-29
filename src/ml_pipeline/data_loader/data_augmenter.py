@@ -3,7 +3,7 @@ import numpy as np
 import pickle
 from src.ml_pipeline.utils.utils import get_max_sampling_rate
 
-class DataSegmentation:
+class DataAugmenter:
     def __init__(self, dataframe_path, config_path):
         self.dataframe = self.load_dataframe(dataframe_path)
         self.sampling_rate = get_max_sampling_rate(config_path)

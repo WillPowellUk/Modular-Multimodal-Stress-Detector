@@ -25,6 +25,8 @@ class ManualFE:
     def extract_features_from_batch(self, batch):
         features_dict = {}
 
+        features_dict['sid'] = batch['sid']
+
         if 'w_eda' in self.sensors:
             eda_features = EDAFeatureExtractor(batch['w_eda'], self.sampling_rate).extract_features()
             features_dict['w_eda'] = eda_features
@@ -68,6 +70,9 @@ class ManualFE:
         if 'temp' in self.sensors:
             temp_features = TempFeatureExtractor(batch['temp'], self.sampling_rate).extract_features()
             features_dict['temp'] = temp_features
+
+        features_dict['label'] = batch['label']
+        features_dict['is_augmented'] = batch['is_augmented']
 
         # Combine all feature DataFrames into one DataFrame for each category
         all_features = {key: pd.concat(val, axis=1) if isinstance(val, list) else val for key, val in features_dict.items()}
