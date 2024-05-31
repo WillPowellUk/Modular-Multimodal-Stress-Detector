@@ -36,11 +36,9 @@ class EMGFeatureExtractor:
 
         # Energy in seven bands
         band_limits = [0, 4, 8, 12, 16, 20, 24, 28, np.inf]
-        band_energies = []
         for i in range(len(band_limits) - 1):
             band_power = power_spectrum[(freqs >= band_limits[i]) & (freqs < band_limits[i + 1])]
-            band_energies.append(np.sum(band_power))
-        features['energy_bands_EMG'] = band_energies
+            features[f'energy_band_{band_limits[i]}_EMG'] = np.sum(band_power)
 
         # Number of peaks
         peaks, _ = find_peaks(self.emg_data)

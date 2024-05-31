@@ -5,11 +5,11 @@ from torch.utils.data import Dataset, DataLoader
 from src.ml_pipeline.utils.utils import get_max_sampling_rate, get_active_key
 
 class AugmentedDataset(Dataset):
-    def __init__(self, features_path, sensors, labels, exclude_subject=None, include_augmented=True):
+    def __init__(self, features_path, sensors, labels, exclude_subjects=None, include_augmented=True):
         self.features_path = features_path
         self.sensors = sensors
         self.labels = labels
-        self.exclude_subject = exclude_subject
+        self.exclude_subjects = exclude_subjects
         self.include_augmented = include_augmented
         self.data_info = self._gather_data_info()
 
@@ -18,7 +18,7 @@ class AugmentedDataset(Dataset):
         
         with h5py.File(self.features_path, 'r') as hdf5_file:
             for subject in hdf5_file.keys():
-                if self.exclude_subject is not None and subject.split('_')[1] == str(self.exclude_subject):
+                if self.exclude_subjects is not None and subject.split('_')[1] == str(self.exclude_subjects):
                     continue
                 
                 for aug in hdf5_file[subject].keys():
@@ -67,16 +67,16 @@ class LOSOCVDataLoader:
         self.labels = get_active_key(config_path, 'labels')
         self.params = params
 
-    def get_dataset(self, exclude_subject=None, include_augmented=True):
-        dataset = AugmentedDataset(self.features_path, self.sensors, self.labels, exclude_subject, include_augmented)
+    def get_dataset(self, exclude_subjects=None, include_augmented=True):
+        dataset = AugmentedDataset(self.features_path, self.sensors, self.labels, exclude_subjects, include_augmented)
         return dataset
 
     def get_dataloaders(self):
         dataloaders = {}
 
         for subject_id in self.subjects:
-            train_dataset = self.get_dataset(exclude_subject=subject_id, include_augmented=True)
-            val_dataset = self.get_dataset(exclude_subject=subject_id, include_augmented=False)
+            train_dataset = self.get_dataset(exclude_subjects=subject_id, include_augmented=True)
+            val_dataset = self.get_dataset(exclude_subjects=subject_id, include_augmented=False)
 
             train_loader = DataLoader(train_dataset, **self.params)
             val_loader = DataLoader(val_dataset, **self.params)
