@@ -1,15 +1,21 @@
 import h2o
-from h2o.estimators import H2ORandomForestEstimator
+import json
+from h2o.estimators import H2ORandomForestEstimator, H2OGradientBoostingEstimator, H2OGeneralizedLinearEstimator
 import pandas as pd
+import numpy as np
 
 class H2OTrainer:
-    def __init__(self, model, train_loader, val_loader=None, target_column='target'):
+    def __init__(self, config_path, train_loader, val_loader=None, target_column='target'):
         h2o.init()
         self.train_data = self._loader_to_h2o_frame(train_loader, target_column)
         self.val_data = self._loader_to_h2o_frame(val_loader, target_column) if val_loader is not None else None
         self.target_column = target_column
         self.features = [col for col in self.train_data.columns if col != target_column]
-        self.model = model
+        self.config = self._load_config(config_path)
+        
+    def _load_config(self, config_path):
+        with open(config_path, 'r') as file:
+            return json.load(file)
         
     def _loader_to_h2o_frame(self, loader, target_column):
         if loader is None:
@@ -28,11 +34,28 @@ class H2OTrainer:
         return h2o.H2OFrame(data_df)
         
     def train(self):
-        self.model.train(x=self.features, y=self.target_column, training_frame=self.train_data)
-        print("Training complete.")
+        for model_config in self.config['models']:
+            model_type = model_config['type']
+            hyperparameters = model_config['hyperparameters']
+            model = self._initialize_model(model_type, hyperparameters)
+            self.model = model
+            self.model.train(x=self.features, y=self.target_column, training_frame=self.train_data)
+            print(f"Training complete for model: {model_type}")
+            
+            if self.val_data is not None:
+                self.evaluate()
         
-        if self.val_data is not None:
-            self.evaluate()
+    def _initialize_model(self, model_type, hyperparameters):
+        match model_type:
+            case 'random_forest':
+                return H2ORandomForestEstimator(**hyperparameters)
+            case 'gbm':
+                return H2OGradientBoostingEstimator(**hyperparameters)
+            case 'glm':
+                return H2OGeneralizedLinearEstimator(**hyperparameters)
+            case _:
+                raise ValueError(f"Model type '{model_type}' is not supported.")
+
         
     def evaluate(self):
         if self.val_data is None:

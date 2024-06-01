@@ -51,19 +51,20 @@ class AugmentedDataset(Dataset):
         
         with h5py.File(self.features_path, 'r') as hdf5_file:
             feature_data = []
-            for sensor in self.sensors:
-                if sensor in hdf5_file[subject][aug][label]:
-                    sensor_data = hdf5_file[subject][aug][label][sensor][data_idx]
+            group = hdf5_file[subject][aug][label]
+            for key in group.keys():
+                if not key.endswith('_columns'):
+                    sensor_data = group[key][data_idx]
                     feature_data.append(sensor_data)
             
             sample = np.concatenate(feature_data)
-            label = hdf5_file[subject][aug][label]['label'][data_idx]
+            label_data = group['label'][data_idx]
         
         data = torch.tensor(sample, dtype=torch.float32)
-        label = torch.tensor(label, dtype=torch.long)
+        label = torch.tensor(label_data, dtype=torch.long)
         
         return data, label
-
+    
 class LOSOCVDataLoader:
     def __init__(self, features_path, config_path, **params):
         self.features_path = features_path
@@ -76,7 +77,7 @@ class LOSOCVDataLoader:
         dataset = AugmentedDataset(self.features_path, self.sensors, self.labels, exclude_subjects, include_subjects, include_augmented)
         return dataset
 
-    def get_dataloaders(self):
+    def get_data_loaders(self):
         dataloaders = {}
 
         for subject_id in self.subjects:
