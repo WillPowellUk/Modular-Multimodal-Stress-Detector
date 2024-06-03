@@ -16,7 +16,7 @@ class AugmentedDataset(Dataset):
 
     def _gather_data_info(self):
         data_info = []
-        
+
         with h5py.File(self.features_path, 'r') as hdf5_file:
             for subject in hdf5_file.keys():
                 subject_id = int(subject.split('_')[1])
@@ -38,32 +38,34 @@ class AugmentedDataset(Dataset):
                             continue
                         
                         num_samples = len(hdf5_file[subject][aug][label].keys())
+                        if num_samples != 160:
+                            print("Subject: ", subject, "Aug: ", aug, "Label: ", label, "Num samples: ", num_samples)
                         for idx in range(num_samples):
                             data_info.append((subject, aug, label, idx))
         
+        self.data_info = data_info
         return data_info
-
+    
     def __len__(self):
         return len(self.data_info)
 
     def __getitem__(self, idx):
         subject, aug, label, data_idx = self.data_info[idx]
-        
         with h5py.File(self.features_path, 'r') as hdf5_file:
             feature_data = []
             group = hdf5_file[subject][aug][label]
             for key in group.keys():
                 if not key.endswith('_columns'):
-                    sensor_data = group[key][data_idx]
-                    feature_data.append(sensor_data)
+                    sample_data = group[key]
+                    feature_data.append(sample_data[:].flatten())
             
             sample = np.concatenate(feature_data)
-            label_data = group['label'][data_idx]
         
         data = torch.tensor(sample, dtype=torch.float32)
-        label = torch.tensor(label_data, dtype=torch.long)
+        label_tensor = torch.tensor(int(float(label)), dtype=torch.long)
         
-        return data, label
+        return data, label_tensor
+
     
 class LOSOCVDataLoader:
     def __init__(self, features_path, config_path, **params):
