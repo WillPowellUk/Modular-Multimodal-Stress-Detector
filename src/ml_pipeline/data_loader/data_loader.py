@@ -5,13 +5,15 @@ from torch.utils.data import Dataset, DataLoader
 from src.ml_pipeline.utils.utils import get_max_sampling_rate, get_active_key
 
 class AugmentedDataset(Dataset):
-    def __init__(self, features_path, sensors, labels, exclude_subjects=None, include_subjects=None, include_augmented=True):
+    def __init__(self, features_path, **kwargs):
         self.features_path = features_path
-        self.sensors = sensors
-        self.labels = labels
-        self.exclude_subjects = exclude_subjects if exclude_subjects is not None else []
-        self.include_subjects = include_subjects if include_subjects is not None else []
-        self.include_augmented = include_augmented
+        self.labels = kwargs.get('labels', [])
+        self.exclude_subjects = kwargs.get('exclude_subjects', [])
+        self.include_subjects = kwargs.get('include_subjects', [])
+        self.include_augmented = kwargs.get('include_augmented', True)
+        self.include_sensors = kwargs.get('include_sensors', [])
+        self.include_features = kwargs.get('include_features', [])
+
         self.data_info = self._gather_data_info()
 
     def _gather_data_info(self):
@@ -37,11 +39,19 @@ class AugmentedDataset(Dataset):
                         if label not in self.labels:
                             continue
                         
-                        num_samples = len(hdf5_file[subject][aug][label].keys())
-                        if num_samples != 160:
-                            print("Subject: ", subject, "Aug: ", aug, "Label: ", label, "Num samples: ", num_samples)
-                        for idx in range(num_samples):
-                            data_info.append((subject, aug, label, idx))
+                        for sensor in hdf5_file[subject][aug][label].keys():
+                            if sensor not in self.include_sensors:
+                                continue
+                            
+                            for feature in hdf5_file[subject][aug][label][sensor].keys():
+                                if feature not in self.include_features:
+                                    continue
+
+                                feature_data = hdf5_file[subject][aug][label][sensor][feature]['values']
+                                num_samples = len(feature_data)
+
+                                for idx in range(num_samples):
+                                    data_info.append((subject, aug, label, sensor, feature, idx))
         
         self.data_info = data_info
         return data_info
@@ -50,33 +60,36 @@ class AugmentedDataset(Dataset):
         return len(self.data_info)
 
     def __getitem__(self, idx):
-        subject, aug, label, data_idx = self.data_info[idx]
+        subject, aug, label, sensor, feature, data_idx = self.data_info[idx]
         with h5py.File(self.features_path, 'r') as hdf5_file:
-            feature_data = []
-            group = hdf5_file[subject][aug][label]
-            for key in group.keys():
-                if not key.endswith('_columns'):
-                    sample_data = group[key]
-                    feature_data.append(sample_data[:].flatten())
+            group = hdf5_file[subject][aug][label][sensor][feature]
+            sample_data = group['values'][data_idx]
             
-            sample = np.concatenate(feature_data)
-        
-        data = torch.tensor(sample, dtype=torch.float32)
-        label_tensor = torch.tensor(int(float(label)), dtype=torch.long)
-        
-        return data, label_tensor
-
+            # Convert to tensor
+            data = torch.tensor(sample_data, dtype=torch.float32)
+            label_tensor = torch.tensor(int(float(label)), dtype=torch.long)
+            
+            return data, label_tensor
     
 class LOSOCVDataLoader:
     def __init__(self, features_path, config_path, **params):
         self.features_path = features_path
-        self.sensors = get_active_key(config_path, 'sensors')
+        self.dataset_config = {
+            'include_sensors': get_active_key(config_path, 'sensors'),
+            'include_features': get_active_key(config_path, 'features'),
+            'labels': get_active_key(config_path, 'labels')
+        }
         self.subjects = get_active_key(config_path, 'subjects')
-        self.labels = get_active_key(config_path, 'labels')
         self.params = params
 
     def get_dataset(self, exclude_subjects=None, include_subjects=None, include_augmented=True):
-        dataset = AugmentedDataset(self.features_path, self.sensors, self.labels, exclude_subjects, include_subjects, include_augmented)
+        config = {
+            **self.dataset_config,
+            'exclude_subjects': exclude_subjects,
+            'include_subjects': include_subjects,
+            'include_augmented': include_augmented
+        }
+        dataset = AugmentedDataset(self.features_path, **config)
         return dataset
 
     def get_data_loaders(self):

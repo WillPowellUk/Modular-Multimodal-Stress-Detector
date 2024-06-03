@@ -5,6 +5,8 @@ import time
 import warnings
 import numpy as np
 import h5py
+from sklearn.preprocessing import StandardScaler
+
 from src.ml_pipeline.utils.utils import get_max_sampling_rate, get_active_key
 from .eda_feature_extractor import EDAFeatureExtractor
 from .bvp_feature_extractor import BVPFeatureExtractor
@@ -82,7 +84,7 @@ class ManualFE:
     
     def save_to_hdf5(self, all_batches_features):
         with h5py.File(self.save_path, 'w') as hdf5_file:
-            for features in all_batches_features:
+            for i, features in enumerate(all_batches_features):
                 sid = str(int(features.pop('sid')))
                 is_augmented = 'augmented_True' if features.pop('is_augmented') else 'augmented_False'
                 label = str(features.pop('label'))
@@ -91,18 +93,93 @@ class ManualFE:
                 augmented_group = subject_group.require_group(is_augmented)
                 label_group = augmented_group.require_group(label)
 
-                for sensor_name, feature_data in features.items():
+                for j, (sensor_name, feature_data) in enumerate(features.items()):
                     sensor_group = label_group.require_group(sensor_name)
 
                     if isinstance(feature_data, pd.DataFrame):
-                        for column in feature_data.columns:
+                        for k, column in enumerate(feature_data.columns):
                             feature_group = sensor_group.require_group(column)
                             feature_values = feature_data[column].values
-                            feature_group.create_dataset('values', data=feature_values)
+                            feature_group.create_dataset(f'batch_{i}_sensor_{i}_feature{k}', data=feature_values)
                     else:
-                        feature_group = sensor_group.require_group(sensor_name)
-                        feature_group.create_dataset('values', data=feature_data)
+                        raise ValueError(f"Unknown feature data type: {type(feature_data)}")
 
+    def impute_features(self, all_batches_features):
+        # Collecting all features for imputation
+        feature_data = {}
+        for batch in all_batches_features:
+            for key, value in batch.items():
+                if key in ['sid', 'label', 'is_augmented']:
+                    continue
+                if key not in feature_data:
+                    feature_data[key] = []
+                feature_data[key].append(value)
+
+        # Impute missing values
+        for key, data_list in feature_data.items():
+            if all(isinstance(d, pd.DataFrame) for d in data_list):
+                # For DataFrame features
+                combined_df = pd.concat(data_list)
+                mean_values = combined_df.mean()
+                for m in mean_values:
+                    if np.isnan(m):
+                        mean_values.fillna(0, inplace=True)
+                for df in data_list:
+                    df.fillna(mean_values, inplace=True)
+            else:
+                # For non-DataFrame features
+                combined_array = np.array(data_list)
+                mean_value = np.nanmean(combined_array)
+                for i, value in enumerate(data_list):
+                    if np.isnan(value):
+                        feature_data[key][i] = mean_value
+
+        # Replace imputed features back into all_batches_features
+        for i, batch in enumerate(all_batches_features):
+            for key in batch.keys():
+                if key in ['sid', 'label', 'is_augmented']:
+                    continue
+                batch[key] = feature_data[key][i]
+
+        return all_batches_features
+
+    def normalize_features(self, all_batches_features):
+        # Collecting all features for normalization
+        feature_data = {}
+        for batch in all_batches_features:
+            for key, value in batch.items():
+                if key in ['sid', 'label', 'is_augmented']:
+                    continue
+                if key not in feature_data:
+                    feature_data[key] = []
+                feature_data[key].append(value)
+
+        # Normalize features
+        for key, data_list in feature_data.items():
+            if all(isinstance(d, pd.DataFrame) for d in data_list):
+                # For DataFrame features
+                combined_df = pd.concat(data_list)
+                scaler = StandardScaler()
+                scaled_values = scaler.fit_transform(combined_df)
+                split_dataframes = np.split(scaled_values, len(data_list))
+                for i, df in enumerate(data_list):
+                    df[:] = split_dataframes[i]
+            else:
+                # For non-DataFrame features
+                combined_array = np.array(data_list)
+                scaler = StandardScaler()
+                scaled_array = scaler.fit_transform(combined_array.reshape(-1, 1)).flatten()
+                for i in range(len(data_list)):
+                    feature_data[key][i] = scaled_array[i]
+
+        # Replace normalized features back into all_batches_features
+        for i, batch in enumerate(all_batches_features):
+            for key in batch.keys():
+                if key in ['sid', 'label', 'is_augmented']:
+                    continue
+                batch[key] = feature_data[key][i]
+
+        return all_batches_features
 
     def extract_features(self):
         warnings.warn_explicit = warnings.warn = lambda *_, **__: None
@@ -120,12 +197,15 @@ class ManualFE:
 
             if i % 100 == 0:
                 print(f"Extracting features from batch {i+1}/{total_batches} | ETA: {eta:.2f} seconds")
+            
+            if i == 20:
+                break
 
             batch_features = self.extract_features_from_batch(batch)
             all_batches_features.append(batch_features)
 
-            if i == 1:
-                break
+        all_batches_features = self.impute_features(all_batches_features)
+        all_batches_features = self.normalize_features(all_batches_features)
 
         # Ensure the directory exists
         dir_name = os.path.dirname(self.save_path)
