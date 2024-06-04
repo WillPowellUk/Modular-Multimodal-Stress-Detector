@@ -1,14 +1,9 @@
 {
     "sensors": {
-        "bvp": true,
-        "w_acc_x": true,
-        "w_acc_y": true,
-        "w_acc_z": true,
+        "bvp": false,
+        "w_acc": true,
         "w_eda": true,
         "w_temp": true
-    },
-    "features": {
-        
     },
     "sampling rate": {
         "bvp": 64,
@@ -44,5 +39,66 @@
         "5.0": false,
         "6.0": false,
         "7.0": false
+    },
+    "features": {
+        "bvp": [
+          "area_SCR",
+          "corr_SCL_t",
+          "max_EDA",
+          "mean_EDA",
+          "mean_SCL",
+          "mean_SCR",
+          "min_EDA",
+          "num_SCR",
+          "range_EDA",
+          "slope_EDA",
+          "std_EDA",
+          "std_SCL",
+          "std_SCR",
+          "sum_amp_SCR",
+          "sum_t_SCR"
+        ],
+        "w_acc": [
+          "abs_integral_acc_all",
+          "abs_integral_acc_x",
+          "abs_integral_acc_y",
+          "abs_integral_acc_z",
+          "mean_acc_all",
+          "mean_acc_x",
+          "mean_acc_y",
+          "mean_acc_z",
+          "peak_freq_acc_x",
+          "peak_freq_acc_y",
+          "peak_freq_acc_z",
+          "std_acc_all",
+          "std_acc_x",
+          "std_acc_y",
+          "std_acc_z"
+        ],
+        "w_eda": [
+          "area_SCR",
+          "corr_SCL_t",
+          "max_EDA",
+          "mean_EDA",
+          "mean_SCL",
+          "mean_SCR",
+          "min_EDA",
+          "num_SCR",
+          "range_EDA",
+          "slope_EDA",
+          "std_EDA",
+          "std_SCL",
+          "std_SCR",
+          "sum_amp_SCR",
+          "sum_t_SCR"
+        ],
+        "w_temp": [
+          "max_temp",
+          "mean_temp",
+          "min_temp",
+          "range_temp",
+          "slope_temp",
+          "std_temp"
+        ]
     }
 }

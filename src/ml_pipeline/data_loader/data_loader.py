@@ -39,6 +39,7 @@ class AugmentedDataset(Dataset):
                         if label not in self.labels:
                             continue
                         
+                        min_feature_length = np.inf
                         for sensor in hdf5_file[subject][aug][label].keys():
                             if sensor not in self.include_sensors:
                                 continue
@@ -46,12 +47,11 @@ class AugmentedDataset(Dataset):
                             for feature in hdf5_file[subject][aug][label][sensor].keys():
                                 if feature not in self.include_features:
                                     continue
+                                if len(hdf5_file[subject][aug][label][sensor][feature]) < min_feature_length:
+                                    min_feature_length = len(hdf5_file[subject][aug][label][sensor][feature])
 
-                                feature_data = hdf5_file[subject][aug][label][sensor][feature]['values']
-                                num_samples = len(feature_data)
-
-                                for idx in range(num_samples):
-                                    data_info.append((subject, aug, label, sensor, feature, idx))
+                        for idx in range(min_feature_length):
+                            data_info.append((subject, aug, label, idx))
         
         self.data_info = data_info
         return data_info
@@ -60,23 +60,30 @@ class AugmentedDataset(Dataset):
         return len(self.data_info)
 
     def __getitem__(self, idx):
-        subject, aug, label, sensor, feature, data_idx = self.data_info[idx]
+        subject, aug, label, index = self.data_info[idx]
+        data = []
         with h5py.File(self.features_path, 'r') as hdf5_file:
-            group = hdf5_file[subject][aug][label][sensor][feature]
-            sample_data = group['values'][data_idx]
-            
-            # Convert to tensor
-            data = torch.tensor(sample_data, dtype=torch.float32)
-            label_tensor = torch.tensor(int(float(label)), dtype=torch.long)
-            
-            return data, label_tensor
+            for sensor in hdf5_file[subject][aug][label].keys():
+                if sensor not in self.include_sensors:
+                    continue
+                
+                for feature in hdf5_file[subject][aug][label][sensor].keys():
+                    if feature not in self.include_features:
+                        continue
+                    data.append(hdf5_file[subject][aug][label][sensor][feature][index])
+        
+        # Convert to tensor
+        data = torch.tensor(data, dtype=torch.float32)
+        label_tensor = torch.tensor(int(float(label)), dtype=torch.long)
+        
+        return data, label_tensor
     
 class LOSOCVDataLoader:
     def __init__(self, features_path, config_path, **params):
         self.features_path = features_path
         self.dataset_config = {
             'include_sensors': get_active_key(config_path, 'sensors'),
-            'include_features': get_active_key(config_path, 'features'),
+            'include_features': get_active_key(config_path, 'features', recursive=True),
             'labels': get_active_key(config_path, 'labels')
         }
         self.subjects = get_active_key(config_path, 'subjects')

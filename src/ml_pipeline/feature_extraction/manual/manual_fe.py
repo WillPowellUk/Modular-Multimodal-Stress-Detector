@@ -83,6 +83,7 @@ class ManualFE:
         return features_dict
     
     def save_to_hdf5(self, all_batches_features):
+        print(f'Saving features to {self.save_path}...')
         with h5py.File(self.save_path, 'w') as hdf5_file:
             for i, features in enumerate(all_batches_features):
                 sid = str(int(features.pop('sid')))
@@ -98,13 +99,19 @@ class ManualFE:
 
                     if isinstance(feature_data, pd.DataFrame):
                         for k, column in enumerate(feature_data.columns):
-                            feature_group = sensor_group.require_group(column)
-                            feature_values = feature_data[column].values
-                            feature_group.create_dataset(f'batch_{i}_sensor_{j}_feature{k}', data=feature_values)
+                            # Concatenate all values for each feature across all batches
+                            if column in sensor_group:
+                                dataset = sensor_group[column]
+                                dataset.resize((dataset.shape[0] + feature_data.shape[0],))
+                                dataset[-feature_data.shape[0]:] = feature_data[column].values
+                            else:
+                                sensor_group.create_dataset(column, data=feature_data[column].values, maxshape=(None,))
                     else:
                         raise ValueError(f"Unknown feature data type: {type(feature_data)}")
+        print('Features saved successfully')
 
     def impute_features(self, all_batches_features):
+        print('Imputing missing values...')
         # Collecting all features for imputation
         feature_data = {}
         for batch in all_batches_features:
@@ -141,9 +148,11 @@ class ManualFE:
                     continue
                 batch[key] = feature_data[key][i]
 
+        print('Imputation complete')
         return all_batches_features
 
     def normalize_features(self, all_batches_features):
+        print('Normalizing features...')
         # Collecting all features for normalization
         feature_data = {}
         for batch in all_batches_features:
@@ -178,7 +187,7 @@ class ManualFE:
                 if key in ['sid', 'label', 'is_augmented']:
                     continue
                 batch[key] = feature_data[key][i]
-
+        print('Normalization complete')
         return all_batches_features
 
     def extract_features(self):
@@ -197,9 +206,6 @@ class ManualFE:
 
             if i % 100 == 0:
                 print(f"Extracting features from batch {i+1}/{total_batches} | ETA: {eta:.2f} seconds")
-            
-            if i == 20:
-                break
 
             batch_features = self.extract_features_from_batch(batch)
             all_batches_features.append(batch_features)

@@ -5,7 +5,7 @@
             "hyperparameters": {
                 "ntrees": 50,
                 "max_depth": 20,
-                "min_rows": 1
+                "min_rows": 2
             }
         },
         {
