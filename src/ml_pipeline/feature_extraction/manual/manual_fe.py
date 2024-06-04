@@ -100,7 +100,7 @@ class ManualFE:
                         for k, column in enumerate(feature_data.columns):
                             feature_group = sensor_group.require_group(column)
                             feature_values = feature_data[column].values
-                            feature_group.create_dataset(f'batch_{i}_sensor_{i}_feature{k}', data=feature_values)
+                            feature_group.create_dataset(f'batch_{i}_sensor_{j}_feature{k}', data=feature_values)
                     else:
                         raise ValueError(f"Unknown feature data type: {type(feature_data)}")
 
