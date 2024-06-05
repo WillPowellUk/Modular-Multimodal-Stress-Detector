@@ -67,6 +67,7 @@ class TraditionalMLTrainer:
         X_train, y_train = self._loader_to_numpy(self.train_loader)
         trained_models = []
         for model in self.models:
+            print("Training model:", model.__class__.__name__)
             model.fit(X_train, y_train)
             trained_models.append(model)
         return trained_models
@@ -78,6 +79,7 @@ class TraditionalMLTrainer:
         X_val, y_val = self._loader_to_numpy(self.val_loader)
         results = {}
         for model in trained_models:
+            print("Validating model:", model.__class__.__name__)
             y_pred = model.predict(X_val)
             accuracy = accuracy_score(y_val, y_pred)
             results[model.__class__.__name__] = accuracy
