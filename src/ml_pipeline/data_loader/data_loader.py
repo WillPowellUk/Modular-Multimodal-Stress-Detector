@@ -108,8 +108,8 @@ class AugmentedDataset(Dataset):
                                         data.append(hdf5_file[subject][aug][label][sensor][feature][idx])
                                 
                                 # Save the preprocessed sample
-                                new_hdf5_file.create_dataset(f'data_{sample_idx}', data=np.array(data))
-                                new_hdf5_file.create_dataset(f'label_{sample_idx}', data=int(float(label)))
+                                data_label = np.concatenate((np.array(data), np.array([float(label)])))
+                                new_hdf5_file.create_dataset(f'data_label_{sample_idx}', data=data_label)
                                 sample_idx += 1
     
     def __len__(self):
@@ -160,8 +160,8 @@ class LOSOCVDataLoader:
         datesets_path = {}
         for subject_id in self.subjects:
             subject_id = int(float(subject_id))
-            train_dataset_path = f'{self.features_path.split(".hdf5")[0]}/losocv/train_{subject_id}.hdf5'
-            val_dataset_path = f'{self.features_path.split(".hdf5")[0]}/losocv/val_{subject_id}.hdf5'
+            train_dataset_path = f'{os.path.dirname(self.features_path)}/losocv/train_{subject_id}.hdf5'
+            val_dataset_path = f'{os.path.dirname(self.features_path)}/losocv/val_{subject_id}.hdf5'
             self._get_dataset(train_dataset_path, exclude_subjects=[subject_id], include_augmented=True)
             self._get_dataset(val_dataset_path, include_subjects=[subject_id], include_augmented=False)
             datesets_path[subject_id] = {'train': train_dataset_path, 'val': val_dataset_path}
@@ -204,7 +204,7 @@ class LOSOCVDataset(Dataset):
     def __getitem__(self, idx):
         with h5py.File(self.features_path, 'r') as hdf5_file:
             sample_key = self.data_keys[idx]
-            data = torch.tensor(hdf5_file[sample_key][:], dtype=torch.float32)
-            label = torch.tensor(hdf5_file[f'label_{sample_key}'][()], dtype=torch.long)
+            data = torch.tensor(hdf5_file[sample_key][:-1], dtype=torch.float32)
+            label = torch.tensor(int(hdf5_file[sample_key][-1]), dtype=torch.long)
         
         return data, label
