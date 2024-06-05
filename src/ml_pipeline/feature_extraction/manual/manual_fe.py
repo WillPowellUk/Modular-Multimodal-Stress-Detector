@@ -1,5 +1,4 @@
 import pandas as pd
-import re
 import os
 import time
 import warnings
@@ -60,23 +59,22 @@ class ManualFE:
                 case 'temp':
                     temp_features = TempFeatureExtractor(batch['temp'], self.sampling_rate).extract_features()
                     features_dict['temp'] = temp_features
-                case _:
-                    if re.search(r'w_acc', sensor):
-                        acc_df = pd.DataFrame({
-                            'x': batch['w_acc_x'],
-                            'y': batch['w_acc_y'],
-                            'z': batch['w_acc_z']
-                        })
-                        acc_features = AccFeatureExtractor(acc_df, self.sampling_rate).extract_features()
-                        features_dict['w_acc'] = acc_features
-                    elif re.search(r'(?<!w_)acc', sensor):
-                        acc_df = pd.DataFrame({
-                            'x': batch['acc1'],
-                            'y': batch['acc2'],
-                            'z': batch['acc3']
-                        })
-                        acc_features = AccFeatureExtractor(acc_df, self.sampling_rate).extract_features()
-                        features_dict['acc'] = acc_features
+                case 'w_acc':
+                    acc_df = pd.DataFrame({
+                        'x': batch['w_acc_x'],
+                        'y': batch['w_acc_y'],
+                        'z': batch['w_acc_z']
+                    })
+                    acc_features = AccFeatureExtractor(acc_df, self.sampling_rate).extract_features()
+                    features_dict['w_acc'] = acc_features
+                case 'acc':
+                    acc_df = pd.DataFrame({
+                        'x': batch['acc1'],
+                        'y': batch['acc2'],
+                        'z': batch['acc3']
+                    })
+                    acc_features = AccFeatureExtractor(acc_df, self.sampling_rate).extract_features()
+                    features_dict['acc'] = acc_features
 
         features_dict['label'] = batch['label'].iloc[0]
 

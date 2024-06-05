@@ -1,6 +1,6 @@
 {
     "sensors": {
-        "bvp": false,
+        "bvp": true,
         "w_acc": true,
         "w_eda": true,
         "w_temp": true
