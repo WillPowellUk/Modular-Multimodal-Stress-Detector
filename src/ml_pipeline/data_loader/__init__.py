@@ -1,2 +1,2 @@
 from .data_augmenter import DataAugmenter
-from .data_loader import AugmentedDataset, LOSOCVDataLoader
+from .data_loader import AugmentedDataset, LOSOCVDataLoader, LOSOCVDataset
