@@ -125,18 +125,26 @@ class ManualFE:
             if all(isinstance(d, pd.DataFrame) for d in data_list):
                 # For DataFrame features
                 combined_df = pd.concat(data_list)
+                
+                # Replace inf and -inf with NaN to handle them uniformly
+                combined_df.replace([np.inf, -np.inf], np.nan, inplace=True)
+                
                 mean_values = combined_df.mean()
-                for m in mean_values:
-                    if np.isnan(m):
-                        mean_values.fillna(0, inplace=True)
+                mean_values.fillna(0, inplace=True)  # Handling case where mean itself is NaN
+                
                 for df in data_list:
                     df.fillna(mean_values, inplace=True)
             else:
                 # For non-DataFrame features
                 combined_array = np.array(data_list)
+                
+                # Replace inf and -inf with NaN to handle them uniformly
+                combined_array[np.isinf(combined_array)] = np.nan
+                
                 mean_value = np.nanmean(combined_array)
+                
                 for i, value in enumerate(data_list):
-                    if np.isnan(value):
+                    if np.isnan(value) or np.isinf(value):
                         feature_data[key][i] = mean_value
 
         # Replace imputed features back into all_batches_features
