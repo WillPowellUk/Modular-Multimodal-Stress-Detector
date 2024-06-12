@@ -1,0 +1,12 @@
+{
+    "models": [
+        {
+            "type": "random_forest",
+            "hyperparameters": {
+                "ntrees": 50,
+                "max_depth": 20,
+                "min_rows": 2
+            }
+        }
+    ]
+}
