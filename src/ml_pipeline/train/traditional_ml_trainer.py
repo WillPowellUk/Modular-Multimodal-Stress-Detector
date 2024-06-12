@@ -1,11 +1,11 @@
 import json
 import os
+import numpy as np
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import accuracy_score, confusion_matrix, log_loss
-import numpy as np
+from sklearn.metrics import accuracy_score, confusion_matrix, log_loss, precision_score, recall_score, f1_score
 
 class TraditionalMLTrainer:
     def __init__(self, config_path, train_loader, val_loader=None):
@@ -97,7 +97,7 @@ class TraditionalMLTrainer:
         with open(self.config_path, 'r') as file:
             config = json.load(file)
 
-        for model_cfg in config.get("models", []):
+        for i, model_cfg in enumerate(config.get("models", [])):
             model_type = model_cfg.get("type")
 
             match model_type:
@@ -134,12 +134,14 @@ class TraditionalMLTrainer:
                     print(f"Hyperparameter tuning not implemented for model type: {model_type}")
                     continue
 
+            print(f"Tuning hyperparameters for {model_type}")
             grid_search = GridSearchCV(
                 estimator=model,
                 param_grid=param_grid,
                 scoring='accuracy',
-                cv=5,
-                n_jobs=-1
+                cv=None,
+                n_jobs=None,
+                verbose=2
             )
             grid_search.fit(X_train, y_train)
             best_model = grid_search.best_estimator_
@@ -147,13 +149,12 @@ class TraditionalMLTrainer:
             best_score = grid_search.best_score_
 
             description = f"{model_type.upper()}_best_" + "_".join([f"{key}_{value}" for key, value in best_params.items()])
-            self.models.append({
-                "model": best_model,
-                "description": description
-            })
+            self.models[i]["model"] = best_model
 
             print(f"Best hyperparameters for {model_type}: {best_params}")
             print(f"Best cross-validated accuracy: {best_score:.5f}")
+
+        return self.models
 
     def train(self):
         X_train, y_train = self._loader_to_numpy(self.train_loader)
@@ -178,11 +179,17 @@ class TraditionalMLTrainer:
 
             accuracy = accuracy_score(y_val, y_pred)
             conf_matrix = confusion_matrix(y_val, y_pred)
+            precision = precision_score(y_val, y_pred, average='weighted')
+            recall = recall_score(y_val, y_pred, average='weighted')
+            f1 = f1_score(y_val, y_pred, average='weighted')
             loss = log_loss(y_val, y_pred_proba) if y_pred_proba is not None else None
             
             results[model_info["description"]] = {
                 "accuracy": accuracy,
                 "confusion_matrix": conf_matrix,
+                "precision": precision,
+                "recall": recall,
+                "f1_score": f1,
                 "loss": loss
             }
         return results
