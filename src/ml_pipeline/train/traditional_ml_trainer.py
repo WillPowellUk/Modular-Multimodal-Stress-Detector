@@ -88,7 +88,7 @@ class TraditionalMLTrainer:
             y.append(target.numpy())
         return np.concatenate(X, axis=0), np.concatenate(y, axis=0)
 
-    def tune_hyperparameters(self):
+    def tune_hyperparameters(self, n_jobs=None, cv=None, verbose=1):
         X_train, y_train = self._loader_to_numpy(self.train_loader)
 
         if not os.path.exists(self.config_path):
@@ -139,8 +139,8 @@ class TraditionalMLTrainer:
                 estimator=model,
                 param_grid=param_grid,
                 scoring='accuracy',
-                cv=None,
-                n_jobs=None,
+                cv=cv,
+                n_jobs=n_jobs,
                 verbose=2
             )
             grid_search.fit(X_train, y_train)

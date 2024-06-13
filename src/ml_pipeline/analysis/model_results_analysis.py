@@ -1,5 +1,6 @@
 import json
 import numpy as np
+import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics import (accuracy_score, confusion_matrix, log_loss, 
                              precision_score, recall_score, f1_score, ConfusionMatrixDisplay)
@@ -80,6 +81,25 @@ class ModelResultsAnalysis:
             num_of_labels = len(all_cm)
             self.plot_confusion_matrix(num_of_labels, cm=all_cm)
 
-    def save_results_to_json(self, file_path):
-        with open(file_path, 'w') as file:
-            json.dump(self.results, file, indent=4)
+        for model_name, metrics in collective_metrics.items():
+            all_cm = np.sum([subject_results[model_name]['confusion_matrix'] for subject_results in self.results], axis=0)
+            num_of_labels = len(all_cm)
+            self.plot_confusion_matrix(num_of_labels, cm=all_cm)
+
+    def plot_confusion_matrix(self, num_labels, cm):
+        plt.figure(figsize=(10, 7))
+        ax = plt.gca()
+        
+        cm_sum = np.sum(cm, axis=1, keepdims=True)
+        cm_percentage = cm / cm_sum.astype(float) * 100
+
+        labels = np.asarray([f"{value}\n{percentage:.2f}%" for value, percentage in zip(cm.flatten(), cm_percentage.flatten())]).reshape(cm.shape)
+
+        sns.heatmap(cm, annot=labels, fmt='', cmap='Blues', cbar=True, ax=ax, annot_kws={"size": 14})
+
+        ax.set_xlabel('Predicted labels', fontsize=16)
+        ax.set_ylabel('True labels', fontsize=16)
+        # ax.set_title('Confusion Matrix', fontsize=20)
+        plt.xticks(fontsize=14)
+        plt.yticks(fontsize=14)
+        plt.show()
