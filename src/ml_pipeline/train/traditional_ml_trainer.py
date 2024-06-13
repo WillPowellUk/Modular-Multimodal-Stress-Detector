@@ -28,9 +28,9 @@ class TraditionalMLTrainer:
             
             match model_type:
                 case "random_forest":
-                    n_estimators = hyperparameters.get("ntrees", 100)
+                    n_estimators = hyperparameters.get("n_estimators", 100)
                     max_depth = hyperparameters.get("max_depth")
-                    min_samples_split = hyperparameters.get("min_rows", 2)
+                    min_samples_split = hyperparameters.get("min_samples_split", 2)
                     self.models.append({
                         "model": RandomForestClassifier(
                             n_estimators=n_estimators,

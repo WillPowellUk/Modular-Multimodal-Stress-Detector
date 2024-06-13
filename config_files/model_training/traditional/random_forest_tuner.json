@@ -1,0 +1,12 @@
+{
+    "models": [
+        {
+            "type": "random_forest",
+            "hyperparameters": {
+                "min_samples_split": 2,
+                "max_depth": 30,
+                "n_estimators": 150
+            }
+        }
+    ]
+}

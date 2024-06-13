@@ -1,0 +1,6 @@
+{
+    "LR": 0.001,
+    "EPOCH": 50,
+    "SAVE_PATH": "ckpts/san",
+    "BATCH_SIZE": 32
+}
