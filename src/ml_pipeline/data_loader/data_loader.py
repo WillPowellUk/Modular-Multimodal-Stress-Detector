@@ -16,48 +16,6 @@ class AugmentedDataset(Dataset):
         self.include_sensors = kwargs.get('include_sensors', [])
         self.include_features = kwargs.get('include_features', [])
 
-        self.data_info = self._gather_data_info()
-
-    def _gather_data_info(self):
-        data_info = []
-
-        with h5py.File(self.features_path, 'r') as hdf5_file:
-            for subject in hdf5_file.keys():
-                subject_id = int(subject.split('_')[1])
-                
-                if self.exclude_subjects and subject_id in self.exclude_subjects:
-                    continue
-                
-                if self.include_subjects and subject_id not in self.include_subjects:
-                    continue
-
-                for aug in hdf5_file[subject].keys():
-                    is_augmented = aug.split('_')[1] == 'True'
-
-                    if not self.include_augmented and is_augmented:
-                        continue
-
-                    for label in hdf5_file[subject][aug].keys():
-                        if label not in self.labels:
-                            continue
-                        
-                        min_feature_length = np.inf
-                        for sensor in hdf5_file[subject][aug][label].keys():
-                            if sensor not in self.include_sensors:
-                                continue
-                            
-                            for feature in hdf5_file[subject][aug][label][sensor].keys():
-                                if feature not in self.include_features:
-                                    continue
-                                if len(hdf5_file[subject][aug][label][sensor][feature]) < min_feature_length:
-                                    min_feature_length = len(hdf5_file[subject][aug][label][sensor][feature])
-
-                        for idx in range(min_feature_length):
-                            data_info.append((subject, aug, label, idx))
-        
-        self.data_info = data_info
-        return data_info
-    
     def preprocess_and_save(self, output_path):
         directory = os.path.dirname(output_path)
         if not os.path.exists(directory):
@@ -69,11 +27,11 @@ class AugmentedDataset(Dataset):
                 for subject in hdf5_file.keys():
                     subject_id = int(subject.split('_')[1])
                     
-                    if self.exclude_subjects and subject_id in self.exclude_subjects:
-                        continue
+                    # if self.exclude_subjects and subject_id in self.exclude_subjects:
+                    #     continue
                     
-                    if self.include_subjects and subject_id not in self.include_subjects:
-                        continue
+                    # if self.include_subjects and subject_id not in self.include_subjects:
+                    #     continue
 
                     for aug in hdf5_file[subject].keys():
                         is_augmented = aug.split('_')[1] == 'True'
@@ -82,58 +40,31 @@ class AugmentedDataset(Dataset):
                             continue
 
                         for label in hdf5_file[subject][aug].keys():
-                            if label not in self.labels:
-                                continue
-                            
-                            min_feature_length = np.inf
-                            for sensor in hdf5_file[subject][aug][label].keys():
-                                if sensor not in self.include_sensors:
-                                    continue
-                                
-                                for feature in hdf5_file[subject][aug][label][sensor].keys():
-                                    if feature not in self.include_features:
-                                        continue
-                                    if len(hdf5_file[subject][aug][label][sensor][feature]) < min_feature_length:
-                                        min_feature_length = len(hdf5_file[subject][aug][label][sensor][feature])
-
-                            for idx in range(min_feature_length):
-                                data = []
-                                for sensor in hdf5_file[subject][aug][label].keys():
+                            # if label not in self.labels:
+                            #     continue
+                            data = []
+                            for batch in hdf5_file[subject][aug][label].keys():
+                                for sensor in hdf5_file[subject][aug][label][batch].keys():
                                     if sensor not in self.include_sensors:
                                         continue
                                     
-                                    for feature in hdf5_file[subject][aug][label][sensor].keys():
+                                    for feature in hdf5_file[subject][aug][label][batch][sensor].keys():
                                         if feature not in self.include_features:
+                                            print(f'Feature: {feature} for sensor {sensor} not in include_features list')
                                             continue
-                                        data.append(hdf5_file[subject][aug][label][sensor][feature][idx])
-                                
-                                # Save the preprocessed sample
-                                data_label = np.concatenate((np.array(data), np.array([float(label)])))
-                                new_hdf5_file.create_dataset(f'data_label_{sample_idx}', data=data_label)
-                                sample_idx += 1
+                                        data.append(hdf5_file[subject][aug][label][batch][sensor][feature][:])
+                                    
+                            # Save the preprocessed sample
+                            data_label = np.concatenate((np.array(data).flatten(), np.array([float(label)])))
+                            new_hdf5_file.create_dataset(f'data_label_{sample_idx}', data=data_label)
+                            sample_idx += 1
     
     def __len__(self):
         return len(self.data_info)
 
     def __getitem__(self, idx):
-        subject, aug, label, index = self.data_info[idx]
-        data = []
-        with h5py.File(self.features_path, 'r') as hdf5_file:
-            for sensor in hdf5_file[subject][aug][label].keys():
-                if sensor not in self.include_sensors:
-                    continue
-                
-                for feature in hdf5_file[subject][aug][label][sensor].keys():
-                    if feature not in self.include_features:
-                        continue
-                    data.append(hdf5_file[subject][aug][label][sensor][feature][index])
-        
-        # Convert to tensor
-        data = torch.tensor(data, dtype=torch.float32)
-        label_tensor = torch.tensor(int(float(label)), dtype=torch.long)
-        
-        return data, label_tensor
-    
+        pass
+
 class LOSOCVDataLoader:
     def __init__(self, features_path, config_path, **params):
         self.features_path = features_path
@@ -180,8 +111,8 @@ class LOSOCVDataLoader:
         dataloaders = {}
         for subject_id in self.subjects:
             subject_id = int(float(subject_id))
-            train_dataset = LOSOCVDataset(datasets_path[subject_id]['train'], splits=self.params['num_splits'])
-            val_dataset = LOSOCVDataset(datasets_path[subject_id]['val'], splits=self.params['num_splits'])
+            train_dataset = LOSOCVDataset(datasets_path[subject_id]['train'])
+            val_dataset = LOSOCVDataset(datasets_path[subject_id]['val'])
 
             train_loader = DataLoader(train_dataset, **self.params)
             val_loader = DataLoader(val_dataset, **self.params)
@@ -191,10 +122,8 @@ class LOSOCVDataLoader:
         return dataloaders
 
 class LOSOCVDataset(Dataset):
-    def __init__(self, features_path, splits=None):
+    def __init__(self, features_path):
         self.features_path = features_path
-        if splits is not None:
-            self.splits = splits
 
         with h5py.File(self.features_path, 'r') as hdf5_file:
             self.data_keys = list(hdf5_file.keys())
