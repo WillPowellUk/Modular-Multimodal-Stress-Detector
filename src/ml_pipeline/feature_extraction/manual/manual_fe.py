@@ -25,102 +25,109 @@ class ManualFE:
         # Ignore runtime warning for mean of empty slice
         warnings.filterwarnings("ignore", message="Mean of empty slice")
 
-    def extract_features_from_batch(self, batch):
+    def extract_features_from_split(self, split):
         features_dict = {}
-
-        sid = batch['sid'].iloc[0]
-        is_augmented = batch['is_augmented'].iloc[0]
-        features_dict['sid'] = sid
-        features_dict['is_augmented'] = is_augmented
+        features_dict['sid'] = split['sid'].iloc[0]
+        features_dict['is_augmented'] = split['is_augmented'].iloc[0]
 
         for sensor in self.sensors:
             match sensor:
                 case 'w_eda':
-                    eda_features = EDAFeatureExtractor(batch['w_eda'], self.sampling_rate).extract_features()
+                    eda_features = EDAFeatureExtractor(split['w_eda'], self.sampling_rate).extract_features()
                     features_dict['w_eda'] = eda_features
                 case 'bvp':
-                    bvp_features = BVPFeatureExtractor(batch['bvp'], self.sampling_rate).extract_features()
+                    bvp_features = BVPFeatureExtractor(split['bvp'], self.sampling_rate).extract_features()
                     features_dict['bvp'] = bvp_features
                 case 'w_temp':
-                    temp_features = TempFeatureExtractor(batch['w_temp'], self.sampling_rate).extract_features()
+                    temp_features = TempFeatureExtractor(split['w_temp'], self.sampling_rate).extract_features()
                     features_dict['w_temp'] = temp_features
                 case 'eda':
-                    eda_features = EDAFeatureExtractor(batch['eda'], self.sampling_rate).extract_features()
+                    eda_features = EDAFeatureExtractor(split['eda'], self.sampling_rate).extract_features()
                     features_dict['eda'] = eda_features
                 case 'ecg':
-                    ecg_features = ECGFeatureExtractor(batch['ecg'], self.sampling_rate).extract_features()
+                    ecg_features = ECGFeatureExtractor(split['ecg'], self.sampling_rate).extract_features()
                     features_dict['ecg'] = ecg_features
                 case 'emg':
-                    emg_features = EMGFeatureExtractor(batch['emg'], self.sampling_rate).extract_features()
+                    emg_features = EMGFeatureExtractor(split['emg'], self.sampling_rate).extract_features()
                     features_dict['emg'] = emg_features
                 case 'resp':
-                    resp_features = RespFeatureExtractor(batch['resp'], self.sampling_rate).extract_features()
+                    resp_features = RespFeatureExtractor(split['resp'], self.sampling_rate).extract_features()
                     features_dict['resp'] = resp_features
                 case 'temp':
-                    temp_features = TempFeatureExtractor(batch['temp'], self.sampling_rate).extract_features()
+                    temp_features = TempFeatureExtractor(split['temp'], self.sampling_rate).extract_features()
                     features_dict['temp'] = temp_features
                 case 'w_acc':
                     acc_df = pd.DataFrame({
-                        'x': batch['w_acc_x'],
-                        'y': batch['w_acc_y'],
-                        'z': batch['w_acc_z']
+                        'x': split['w_acc_x'],
+                        'y': split['w_acc_y'],
+                        'z': split['w_acc_z']
                     })
                     acc_features = AccFeatureExtractor(acc_df, self.sampling_rate).extract_features()
                     features_dict['w_acc'] = acc_features
                 case 'acc':
                     acc_df = pd.DataFrame({
-                        'x': batch['acc1'],
-                        'y': batch['acc2'],
-                        'z': batch['acc3']
+                        'x': split['acc1'],
+                        'y': split['acc2'],
+                        'z': split['acc3']
                     })
                     acc_features = AccFeatureExtractor(acc_df, self.sampling_rate).extract_features()
                     features_dict['acc'] = acc_features
 
-        features_dict['label'] = batch['label'].iloc[0]
+        features_dict['label'] = split['label'].iloc[0]
 
         return features_dict
     
     def save_to_hdf5(self, all_batches_features):
         print(f'Saving features to {self.save_path}...')
         with h5py.File(self.save_path, 'w') as hdf5_file:
-            for i, features in enumerate(all_batches_features):
-                sid = str(int(features.pop('sid')))
-                is_augmented = 'augmented_True' if features.pop('is_augmented') else 'augmented_False'
-                label = str(features.pop('label'))
+            for b, batch in enumerate(all_batches_features):
+                for i, features in enumerate(batch):
+                    sid = str(int(features.pop('sid')))
+                    is_augmented = 'augmented_True' if features.pop('is_augmented') else 'augmented_False'
+                    label = str(features.pop('label'))
 
-                subject_group = hdf5_file.require_group(f'subject_{sid}')
-                augmented_group = subject_group.require_group(is_augmented)
-                label_group = augmented_group.require_group(label)
+                    subject_group = hdf5_file.require_group(f'subject_{sid}')
+                    augmented_group = subject_group.require_group(is_augmented)
+                    label_group = augmented_group.require_group(label)
+                    batch_group = label_group.require_group(str(b))
 
-                for j, (sensor_name, feature_data) in enumerate(features.items()):
-                    sensor_group = label_group.require_group(sensor_name)
+                    for j, (sensor_name, feature_data) in enumerate(features.items()):
+                        sensor_group = batch_group.require_group(sensor_name)
 
-                    if isinstance(feature_data, pd.DataFrame):
-                        for k, column in enumerate(feature_data.columns):
-                            # Concatenate all values for each feature across all batches
-                            if column in sensor_group:
-                                dataset = sensor_group[column]
-                                dataset.resize((dataset.shape[0] + feature_data.shape[0],))
-                                dataset[-feature_data.shape[0]:] = feature_data[column].values
-                            else:
-                                sensor_group.create_dataset(column, data=feature_data[column].values, maxshape=(None,))
-                    else:
-                        raise ValueError(f"Unknown feature data type: {type(feature_data)}")
+                        if isinstance(feature_data, pd.DataFrame):
+                            for k, column in enumerate(feature_data.columns):
+                                # Concatenate all values for each feature across each batch
+                                if column in sensor_group:
+                                    dataset = sensor_group[column]
+                                    dataset.resize((dataset.shape[0] + feature_data.shape[0],))
+                                    dataset[-feature_data.shape[0]:] = feature_data[column].values
+                                else:
+                                    sensor_group.create_dataset(column, data=feature_data[column].values, maxshape=(None,))
+                        else:
+                            raise ValueError(f"Unknown feature data type: {type(feature_data)}")
         print('Features saved successfully')
 
-    def impute_features(self, all_batches_features):
-        print('Imputing missing values...')
-        # Collecting all features for imputation
-        feature_data = {}
-        for batch in all_batches_features:
-            for key, value in batch.items():
-                if key in ['sid', 'label', 'is_augmented']:
-                    continue
-                if key not in feature_data:
-                    feature_data[key] = []
-                feature_data[key].append(value)
 
-        # Impute missing values
+    def impute_and_normalize_features(self, all_batches_features):
+        print('Scaling and imputing missing values...')
+        
+        # Collecting all features for scaling and imputation
+        feature_data = {}
+        feature_lengths = {}  # To track the lengths of features for each batch
+        
+        for batch in all_batches_features:
+            for minibatch in batch:
+                for key, value in minibatch.items():
+                    if key in ['sid', 'label', 'is_augmented']:
+                        continue
+                    if key not in feature_data:
+                        feature_data[key] = []
+                        feature_lengths[key] = []
+                    feature_data[key].append(value)
+                    feature_lengths[key].append(len(value) if isinstance(value, (list, np.ndarray, pd.DataFrame)) else 1)
+
+        # Scale and then impute missing values
+        scaler = StandardScaler()
         for key, data_list in feature_data.items():
             if all(isinstance(d, pd.DataFrame) for d in data_list):
                 # For DataFrame features
@@ -129,11 +136,17 @@ class ManualFE:
                 # Replace inf and -inf with NaN to handle them uniformly
                 combined_df.replace([np.inf, -np.inf], np.nan, inplace=True)
                 
-                mean_values = combined_df.mean()
+                # Normalize the features
+                normalized_df = pd.DataFrame(scaler.fit_transform(combined_df), columns=combined_df.columns)
+                
+                # Impute missing values
+                mean_values = normalized_df.mean()
                 mean_values.fillna(0, inplace=True)  # Handling case where mean itself is NaN
                 
-                for df in data_list:
-                    df.fillna(mean_values, inplace=True)
+                for i, df in enumerate(data_list):
+                    data_list[i] = normalized_df.iloc[i * len(df):(i + 1) * len(df)].copy()
+                    data_list[i].fillna(mean_values, inplace=True)
+
             else:
                 # For non-DataFrame features
                 combined_array = np.array(data_list)
@@ -141,61 +154,34 @@ class ManualFE:
                 # Replace inf and -inf with NaN to handle them uniformly
                 combined_array[np.isinf(combined_array)] = np.nan
                 
-                mean_value = np.nanmean(combined_array)
+                # Normalize the features
+                combined_array = combined_array.reshape(-1, 1)
+                normalized_array = scaler.fit_transform(combined_array).flatten()
+                feature_data[key] = normalized_array.tolist()
                 
-                for i, value in enumerate(data_list):
+                # Impute missing values
+                mean_value = np.nanmean(feature_data[key])
+                for i, value in enumerate(feature_data[key]):
                     if np.isnan(value) or np.isinf(value):
                         feature_data[key][i] = mean_value
 
-        # Replace imputed features back into all_batches_features
-        for i, batch in enumerate(all_batches_features):
-            for key in batch.keys():
-                if key in ['sid', 'label', 'is_augmented']:
-                    continue
-                batch[key] = feature_data[key][i]
-
-        print('Imputation complete')
-        return all_batches_features
-
-    def normalize_features(self, all_batches_features):
-        print('Normalizing features...')
-        # Collecting all features for normalization
-        feature_data = {}
+        # Replace scaled and imputed features back into all_batches_features
         for batch in all_batches_features:
-            for key, value in batch.items():
-                if key in ['sid', 'label', 'is_augmented']:
-                    continue
-                if key not in feature_data:
-                    feature_data[key] = []
-                feature_data[key].append(value)
+            for minibatch in batch:
+                for key in minibatch.keys():
+                    if key in ['sid', 'label', 'is_augmented']:
+                        continue
+                    minibatch_length = feature_lengths[key].pop(0)
+                    if minibatch_length == 1:
+                        minibatch[key] = feature_data[key].pop(0)
+                    else:
+                        minibatch[key] = feature_data[key][:minibatch_length]
+                        feature_data[key] = feature_data[key][minibatch_length:]
 
-        # Normalize features
-        for key, data_list in feature_data.items():
-            if all(isinstance(d, pd.DataFrame) for d in data_list):
-                # For DataFrame features
-                combined_df = pd.concat(data_list)
-                scaler = StandardScaler()
-                scaled_values = scaler.fit_transform(combined_df)
-                split_dataframes = np.split(scaled_values, len(data_list))
-                for i, df in enumerate(data_list):
-                    df[:] = split_dataframes[i]
-            else:
-                # For non-DataFrame features
-                combined_array = np.array(data_list)
-                scaler = StandardScaler()
-                scaled_array = scaler.fit_transform(combined_array.reshape(-1, 1)).flatten()
-                for i in range(len(data_list)):
-                    feature_data[key][i] = scaled_array[i]
-
-        # Replace normalized features back into all_batches_features
-        for i, batch in enumerate(all_batches_features):
-            for key in batch.keys():
-                if key in ['sid', 'label', 'is_augmented']:
-                    continue
-                batch[key] = feature_data[key][i]
-        print('Normalization complete')
+        print('Scaling and imputation complete')
         return all_batches_features
 
+    
     def extract_features(self):
         warnings.warn_explicit = warnings.warn = lambda *_, **__: None
         warnings.filterwarnings("ignore")
@@ -212,12 +198,17 @@ class ManualFE:
 
             if i % 100 == 0:
                 print(f"Extracting features from batch {i+1}/{total_batches} | ETA: {eta:.2f} seconds")
-
-            batch_features = self.extract_features_from_batch(batch)
+            
+            batch_features = []
+            for split in batch:
+                split_features = self.extract_features_from_split(split)
+                batch_features.append(split_features)
             all_batches_features.append(batch_features)
 
-        all_batches_features = self.impute_features(all_batches_features)
-        all_batches_features = self.normalize_features(all_batches_features)
+            if i == 2:
+                break
+
+        all_batches_features = self.impute_and_normalize_features(all_batches_features)
 
         # Ensure the directory exists
         dir_name = os.path.dirname(self.save_path)

@@ -180,8 +180,8 @@ class LOSOCVDataLoader:
         dataloaders = {}
         for subject_id in self.subjects:
             subject_id = int(float(subject_id))
-            train_dataset = LOSOCVDataset(datasets_path[subject_id]['train'])
-            val_dataset = LOSOCVDataset(datasets_path[subject_id]['val'])
+            train_dataset = LOSOCVDataset(datasets_path[subject_id]['train'], splits=self.params['num_splits'])
+            val_dataset = LOSOCVDataset(datasets_path[subject_id]['val'], splits=self.params['num_splits'])
 
             train_loader = DataLoader(train_dataset, **self.params)
             val_loader = DataLoader(val_dataset, **self.params)
@@ -191,8 +191,10 @@ class LOSOCVDataLoader:
         return dataloaders
 
 class LOSOCVDataset(Dataset):
-    def __init__(self, features_path):
+    def __init__(self, features_path, splits=None):
         self.features_path = features_path
+        if splits is not None:
+            self.splits = splits
 
         with h5py.File(self.features_path, 'r') as hdf5_file:
             self.data_keys = list(hdf5_file.keys())

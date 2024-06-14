@@ -9,6 +9,7 @@ def save_var(variable, filename):
     variable: The variable to save.
     filename: The name of the file where the variable will be saved.
     """
+    print(f"Saving variable to {filename}")
     # Create parent directories if they don't exist
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     

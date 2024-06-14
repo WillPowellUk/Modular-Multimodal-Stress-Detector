@@ -13,7 +13,7 @@ class DataAugmenter:
             dataframe = pickle.load(file)
         return dataframe
 
-    def segment_data(self, window_size=60, sliding_length=5):
+    def augment_data(self, window_size=60, sliding_length=5):
         print('Segmenting data...')
         segments = []
         grouped = self.dataframe.groupby('sid')
@@ -24,7 +24,7 @@ class DataAugmenter:
             sliding_step = sliding_length * sample_rate
 
             while end_idx <= len(group):
-                segment = group.iloc[start_idx:end_idx].copy()  # Make a copy of the slice
+                segment = group.iloc[start_idx:end_idx].copy()
                 if start_idx % (window_size * sample_rate) == 0:
                     segment.loc[:, 'is_augmented'] = False
                 else:
@@ -35,3 +35,33 @@ class DataAugmenter:
                 end_idx += sliding_step
         print('Segmentation complete.')
         return segments
+
+    def split_segments(self, segments, num_splits):
+        """
+        Splits each segment into a specified number of splits, remaining grouped.
+
+        Args:
+            segments (list of pd.DataFrame): List of segmented data.
+            num_splits (int): Number of splits for each segment.
+
+        Returns:
+            list of pd.DataFrame: List of split segments.
+        """
+        print('Splitting segments...')
+        split_segments = []
+        for segment in segments:
+            segment_length = len(segment)
+            split_length = segment_length // num_splits
+
+            split_segment = []
+            for i in range(num_splits):
+                start_idx = i * split_length
+                end_idx = start_idx + split_length
+
+                # Only include full splits
+                if end_idx <= segment_length:
+                    split = segment.iloc[start_idx:end_idx].copy()
+                    split_segment.append(split)
+            split_segments.append(split_segment)
+        print('Splitting complete.')
+        return split_segments
