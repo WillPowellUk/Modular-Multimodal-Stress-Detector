@@ -54,10 +54,10 @@ class AugmentedDataset(Dataset):
                                             continue
                                         data.append(hdf5_file[subject][aug][label][batch][sensor][feature][:])
                                     
-                            # Save the preprocessed sample
-                            data_label = np.concatenate((np.array(data).flatten(), np.array([float(label)])))
-                            new_hdf5_file.create_dataset(f'data_label_{sample_idx}', data=data_label)
-                            sample_idx += 1
+                                # Save the preprocessed sample
+                                data_label = np.concatenate((np.array(data).flatten(), np.array([float(label)])))
+                                new_hdf5_file.create_dataset(f'data_label_{sample_idx}', data=data_label)
+                                sample_idx += 1
     
     def __len__(self):
         return len(self.data_info)

@@ -180,7 +180,6 @@ class ManualFE:
 
         print('Scaling and imputation complete')
         return all_batches_features
-
     
     def extract_features(self):
         warnings.warn_explicit = warnings.warn = lambda *_, **__: None
