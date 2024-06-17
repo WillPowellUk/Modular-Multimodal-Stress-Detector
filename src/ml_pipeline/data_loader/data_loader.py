@@ -42,8 +42,8 @@ class AugmentedDataset(Dataset):
                         for label in hdf5_file[subject][aug].keys():
                             # if label not in self.labels:
                             #     continue
-                            data = []
                             for batch in hdf5_file[subject][aug][label].keys():
+                                data = []
                                 for sensor in hdf5_file[subject][aug][label][batch].keys():
                                     if sensor not in self.include_sensors:
                                         continue
@@ -53,12 +53,12 @@ class AugmentedDataset(Dataset):
                                             print(f'Feature: {feature} for sensor {sensor} not in include_features list')
                                             continue
                                         data.append(hdf5_file[subject][aug][label][batch][sensor][feature][:])
-                                    
+                                
                                 # Save the preprocessed sample
                                 data_label = np.concatenate((np.array(data).flatten(), np.array([float(label)])))
                                 new_hdf5_file.create_dataset(f'data_label_{sample_idx}', data=data_label)
                                 sample_idx += 1
-    
+
     def __len__(self):
         return len(self.data_info)
 

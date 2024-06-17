@@ -1,5 +1,8 @@
 import pandas as pd
+import concurrent.futures
+from multiprocessing import cpu_count
 import os
+import math
 import time
 import warnings
 import numpy as np
@@ -112,9 +115,7 @@ class ManualFE:
         print('Scaling and imputing missing values...')
         
         # Collecting all features for scaling and imputation
-        feature_data = {}
-        feature_lengths = {}  # To track the lengths of features for each batch
-        
+        feature_data = {}        
         for batch in all_batches_features:
             for minibatch in batch:
                 for key, value in minibatch.items():
@@ -122,9 +123,7 @@ class ManualFE:
                         continue
                     if key not in feature_data:
                         feature_data[key] = []
-                        feature_lengths[key] = []
                     feature_data[key].append(value)
-                    feature_lengths[key].append(len(value) if isinstance(value, (list, np.ndarray, pd.DataFrame)) else 1)
 
         # Scale and then impute missing values
         scaler = StandardScaler()
@@ -148,22 +147,7 @@ class ManualFE:
                     data_list[i].fillna(mean_values, inplace=True)
 
             else:
-                # For non-DataFrame features
-                combined_array = np.array(data_list)
-                
-                # Replace inf and -inf with NaN to handle them uniformly
-                combined_array[np.isinf(combined_array)] = np.nan
-                
-                # Normalize the features
-                combined_array = combined_array.reshape(-1, 1)
-                normalized_array = scaler.fit_transform(combined_array).flatten()
-                feature_data[key] = normalized_array.tolist()
-                
-                # Impute missing values
-                mean_value = np.nanmean(feature_data[key])
-                for i, value in enumerate(feature_data[key]):
-                    if np.isnan(value) or np.isinf(value):
-                        feature_data[key][i] = mean_value
+                raise ValueError(f"Unknown feature data type in {data_list}")
 
         # Replace scaled and imputed features back into all_batches_features
         for batch in all_batches_features:
@@ -171,12 +155,7 @@ class ManualFE:
                 for key in minibatch.keys():
                     if key in ['sid', 'label', 'is_augmented']:
                         continue
-                    minibatch_length = feature_lengths[key].pop(0)
-                    if minibatch_length == 1:
-                        minibatch[key] = feature_data[key].pop(0)
-                    else:
-                        minibatch[key] = feature_data[key][:minibatch_length]
-                        feature_data[key] = feature_data[key][minibatch_length:]
+                    minibatch[key] = feature_data[key].pop(0)
 
         print('Scaling and imputation complete')
         return all_batches_features
@@ -190,13 +169,17 @@ class ManualFE:
         start_time = time.time()
         
         for i, batch in enumerate(self.batches):
-            elapsed_time = time.time() - start_time
-            average_time_per_batch = elapsed_time / (i + 1)
-            remaining_batches = total_batches - (i + 1)
-            eta = average_time_per_batch * remaining_batches
+            if i % 100 == 0 and i!=0:
+                elapsed_time = time.time() - start_time
+                average_time_per_batch = elapsed_time / (i + 1)
+                remaining_batches = total_batches - (i + 1)
+                eta = average_time_per_batch * remaining_batches
+                hours = math.floor(eta / 3600)
+                minutes = math.floor((eta % 3600) / 60)
+                seconds = eta % 60
 
-            if i % 100 == 0:
-                print(f"Extracting features from batch {i+1}/{total_batches} | ETA: {eta:.2f} seconds")
+                # Print the formatted string
+                print(f"Extracting features from batch {i+1}/{total_batches} | ETA: {hours}h {minutes}m {seconds:.2f}s")
             
             batch_features = []
             for split in batch:
@@ -204,7 +187,7 @@ class ManualFE:
                 batch_features.append(split_features)
             all_batches_features.append(batch_features)
 
-            if i == 2:
+            if i == 203:
                 break
 
         all_batches_features = self.impute_and_normalize_features(all_batches_features)
