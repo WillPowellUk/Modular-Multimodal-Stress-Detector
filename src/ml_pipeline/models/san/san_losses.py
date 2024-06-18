@@ -30,16 +30,16 @@ class LossWrapper(nn.Module):
         super().__init__()
         self.reduction = reduction
         self.ecg_loss_func = nn.BCEWithLogitsLoss()
-        self.gsr_loss_func = nn.BCEWithLogitsLoss()
+        self.eda_loss_func = nn.BCEWithLogitsLoss()
         self.both_loss_func = nn.BCEWithLogitsLoss()
 
-    def forward(self, output_ecg, output_gsr, output_both, target, missingFlag_ecg, missingFlag_gsr):
-        both_flag = torch.logical_and(missingFlag_ecg, missingFlag_gsr)
+    def forward(self, output_ecg, output_eda, output_both, target, missingFlag_ecg, missingFlag_eda):
+        both_flag = torch.logical_and(missingFlag_ecg, missingFlag_eda)
         loss_ecg = self.ecg_loss_func(output_ecg, target)
-        loss_gsr = self.ecg_loss_func(output_gsr, target)
+        loss_eda = self.ecg_loss_func(output_eda, target)
         loss_both = self.ecg_loss_func(output_both, target)
 
-        loss = missingFlag_ecg * loss_ecg + missingFlag_gsr * loss_gsr + both_flag * loss_both
+        loss = missingFlag_ecg * loss_ecg + missingFlag_eda * loss_eda + both_flag * loss_both
         return  self._reduce(loss)
 
     def _reduce(self, x):
@@ -50,12 +50,12 @@ class LossWrapper(nn.Module):
         else:
             return x
 
-def modalityFusionLoss(output, target, missingFlag_ecg, missingFlag_gsr):
+def modalityFusionLoss(output, target, missingFlag_ecg, missingFlag_eda):
     """
-    missingFlag for ecg and gsr are the boolean values that 
-    indicate whether the corresponding sample of ecg or gsr is missing
+    missingFlag for ecg and EDA are the boolean values that 
+    indicate whether the corresponding sample of ecg or EDA is missing
     """
-    both_flag = torch.logical_and(missingFlag_ecg, missingFlag_gsr)
+    both_flag = torch.logical_and(missingFlag_ecg, missingFlag_eda)
     loss = nn.BCEWithLogitsLoss()
     loss = torch.mean((output - target)**2)
     return loss

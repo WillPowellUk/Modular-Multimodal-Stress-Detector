@@ -191,61 +191,50 @@ class SelfAttentionAE(nn.Module):
         return output
         
 class ModalityFusionNet(torch.nn.Module):
-    def __init__(self, embed_dim, hidden_dim, output_dim, dropout=0.1):
+    def __init__(self, input_dims, embed_dim, hidden_dim, output_dim, dropout=0.1):
         super(ModalityFusionNet, self).__init__()
-
-        # ECG 
-        self.embedding_ecg = nn.Linear(8, embed_dim)
-        self.pos_enc_ecg = PositionalEncoding(embed_dim)
-        self.enc1_ecg = EncoderLayer(embed_dim, ffn_hidden=128, n_head=4, drop_prob=dropout)
-        self.flatten_ecg = nn.Flatten()
-        self.linear_ecg = nn.Linear(embed_dim * 2, hidden_dim)
-        self.relu_ecg = nn.ReLU()
-        self.dropout_out_ecg = nn.Dropout(p=dropout)
-        self.output_ecg = nn.Linear(hidden_dim, output_dim)
-        # GSR
-        self.embedding_gsr = nn.Linear(8, embed_dim)
-        self.pos_enc_gsr = PositionalEncoding(embed_dim)
-        self.enc1_gsr = EncoderLayer(embed_dim, ffn_hidden=128, n_head=4, drop_prob=dropout)
-        self.flatten_gsr = nn.Flatten()
-        self.linear_gsr = nn.Linear(embed_dim * 2, hidden_dim)
-        self.relu_gsr = nn.ReLU()
-        self.dropout_out_gsr = nn.Dropout(p=dropout)
-        self.output_gsr = nn.Linear(hidden_dim, output_dim)
-
+        
+        self.modalities = nn.ModuleDict()
+        
+        for modality in input_dims:
+            modality_net = nn.ModuleDict({
+                'embedding': nn.Linear(input_dims[modality], embed_dim),
+                'pos_enc': PositionalEncoding(embed_dim),
+                'enc1': EncoderLayer(embed_dim, ffn_hidden=128, n_head=4, drop_prob=dropout),
+                'flatten': nn.Flatten(),
+                'linear': nn.Linear(embed_dim * 2, hidden_dim),
+                'relu': nn.ReLU(),
+                'dropout_out': nn.Dropout(p=dropout),
+                'output': nn.Linear(hidden_dim, output_dim)
+            })
+            self.modalities[modality] = modality_net
+        
         self.relu = nn.ReLU()
         self.dropout_out = nn.Dropout(p=dropout)
-        self.output = nn.Linear(2 * hidden_dim, output_dim)
+        self.output = nn.Linear(len(input_dims) * hidden_dim, output_dim)
 
-    def forward(self, X_ecg, X_gsr):
-        x_emb_ecg, _ = self.embedding_ecg(X_ecg)
-        positional_x_ecg = self.pos_enc_ecg(x_emb_ecg)
-        attn1_ecg = self.enc1_ecg(positional_x_ecg)
-        avg_pool_ecg = torch.mean(attn1_ecg, 1)
-        max_pool_ecg, _ = torch.max(attn1_ecg, 1)
-        concat_ecg = torch.cat((avg_pool_ecg, max_pool_ecg), 1)
-        concat_ecg_ = self.relu(self.linear(concat_ecg))
-        concat_ecg_ = self.dropout_out(concat_ecg_)
-        output_ecg = self.output(concat_ecg_)
-
-        x_emb_gsr, _ = self.embedding_gsr(X_gsr)
-        positional_x_gsr = self.pos_enc_gsr(x_emb_gsr)
-        attn1_gsr = self.enc1_gsr(positional_x_gsr)
-        avg_pool_gsr = torch.mean(attn1_gsr, 1)
-        max_pool_gsr, _ = torch.max(attn1_gsr, 1)
-        concat_gsr = torch.cat((avg_pool_gsr, max_pool_gsr), 1)
-        concat_gsr_ = self.relu(self.linear(concat_gsr))
-        concat_gsr_ = self.dropout_out(concat_gsr_)
-        output_gsr = self.output(concat_gsr_)
-
-        concat = torch.cat((concat_ecg, concat_gsr))
+    def forward(self, **kwargs):
+        modality_outputs = []
+        
+        for modality, x in kwargs.items():
+            x_emb = self.modalities[modality]['embedding'](x)
+            positional_x = self.modalities[modality]['pos_enc'](x_emb)
+            attn1 = self.modalities[modality]['enc1'](positional_x)
+            avg_pool = torch.mean(attn1, 1)
+            max_pool, _ = torch.max(attn1, 1)
+            concat = torch.cat((avg_pool, max_pool), 1)
+            concat_ = self.modalities[modality]['relu'](self.modalities[modality]['linear'](concat))
+            concat_ = self.modalities[modality]['dropout_out'](concat_)
+            modality_output = self.modalities[modality]['output'](concat_)
+            modality_outputs.append(concat_)
+        
+        concat = torch.cat(modality_outputs, dim=1)
         concat = self.relu(self.linear(concat))
         concat = self.dropout_out(concat)
         
         output = self.output(concat)
         
-        return output_ecg, output_gsr, output
-
+        return modality_outputs, output
 
 class LSTM_Model(torch.nn.Module):
     def __init__(self):

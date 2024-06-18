@@ -25,8 +25,8 @@ class PyTorchTrainer:
             self.model.train()
             for s, (batch_x, batch_y) in enumerate(self.train_loader):
                 batch_x, batch_y = batch_x.to(self.device), batch_y.unsqueeze(1).to(self.device)
-                output_ecg, output_gsr, output_both = self.model(batch_x)
-                loss = self.loss_func(output_ecg, output_gsr, output_both, batch_y, atch_missing_gsr) #todo fix this
+                output_ecg, output_eda, output_both = self.model(batch_x)
+                loss = self.loss_func(output_ecg, output_eda, output_both, batch_y, atch_missing_eda) #todo fix this
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()

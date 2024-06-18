@@ -1,6 +1,6 @@
 {
     "LR": 0.001,
     "EPOCH": 50,
-    "SAVE_PATH": "ckpts/san",
+    "SAVE_PATH": "ckpts/san/wrist_manual_fe/60s_5s_10s",
     "BATCH_SIZE": 32
 }
