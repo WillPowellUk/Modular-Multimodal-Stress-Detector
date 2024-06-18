@@ -27,7 +27,6 @@ class LOSOCVSensorDataLoader:
             'include_augmented': include_augmented
         }
         dataset = PerSensorDataset(self.features_path, **config)
-        dataset.print_info()
         dataset.preprocess_and_save(save_path)
     
     def prepare_datasets(self):
@@ -52,17 +51,21 @@ class LOSOCVSensorDataLoader:
             datasets_path = pickle.load(f)
 
         dataloaders = {}
-        for subject_id in self.subjects:
+        input_dims = {}
+        for i, subject_id in enumerate(self.subjects):
             subject_id = int(float(subject_id))
             train_dataset = LOSOCVSesnsorDataset(datasets_path[subject_id]['train'], self.dataset_config['include_sensors'])
             val_dataset = LOSOCVSesnsorDataset(datasets_path[subject_id]['val'], self.dataset_config['include_sensors'])
+
+            if i == 0:
+                input_dims = train_dataset.get_dims()
 
             train_loader = DataLoader(train_dataset, **self.params)
             val_loader = DataLoader(val_dataset, **self.params)
 
             dataloaders[subject_id] = {'train': train_loader, 'val': val_loader}
         
-        return dataloaders
+        return dataloaders, input_dims
 
 class LOSOCVSesnsorDataset(Dataset):
     def __init__(self, features_path, include_sensors):
@@ -71,6 +74,16 @@ class LOSOCVSesnsorDataset(Dataset):
         with h5py.File(self.features_path, 'r') as hdf5_file:
             self.data_keys = list(hdf5_file.keys())
         self.dataset_length = len(self.data_keys)
+
+    def get_dims(self):
+        with h5py.File(self.features_path, 'r') as hdf5_file:
+            for key in hdf5_file.keys():
+                data_dict = {}
+                for sensor in self.include_sensors:
+                    data_dict[sensor] = torch.tensor(hdf5_file[key][sensor]['data_0'][:], dtype=torch.float32)
+                break
+        
+        return {sensor: data_dict[sensor].shape[0] for sensor in self.include_sensors}
 
     def __len__(self):
         return self.dataset_length
