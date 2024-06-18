@@ -213,7 +213,7 @@ class ManualFE:
                 batch_features.append(split_features)
             all_batches_features.append(batch_features)
 
-            if i == 203:
+            if i == 3:
                 break
 
         all_batches_features = self.impute_and_normalize_features(all_batches_features)

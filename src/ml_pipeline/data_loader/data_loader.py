@@ -61,11 +61,11 @@ class AugmentedDataset(Dataset):
                 for subject in hdf5_file.keys():
                     subject_id = int(subject.split('_')[1])
                     
-                    # if self.exclude_subjects and subject_id in self.exclude_subjects:
-                    #     continue
+                    if self.exclude_subjects and subject_id in self.exclude_subjects:
+                        continue
                     
-                    # if self.include_subjects and subject_id not in self.include_subjects:
-                    #     continue
+                    if self.include_subjects and subject_id not in self.include_subjects:
+                        continue
 
                     for aug in hdf5_file[subject].keys():
                         is_augmented = aug.split('_')[1] == 'True'
@@ -122,7 +122,7 @@ class LOSOCVDataLoader:
         dataset.print_info()
         dataset.preprocess_and_save(save_path)
     
-    def prepare_datasets(self, save_path):
+    def prepare_datasets(self):
         datesets_path = {}
         for subject_id in self.subjects:
             subject_id = int(float(subject_id))
@@ -133,11 +133,11 @@ class LOSOCVDataLoader:
             datesets_path[subject_id] = {'train': train_dataset_path, 'val': val_dataset_path}
         
         # save dataset paths as pkl file
-        directory = os.path.dirname(save_path)
-        if not os.path.exists(directory):
-                os.makedirs(directory)
+        save_path = os.path.dirname(self.features_path) + '/losocv_datasets.pkl'
         with open(save_path, 'wb') as f:
             pickle.dump(datesets_path, f)
+        print(f'Datasets saved at: {save_path}')
+        return save_path
 
     def get_data_loaders(self, datasets_path):
         with open(datasets_path, 'rb') as f:
