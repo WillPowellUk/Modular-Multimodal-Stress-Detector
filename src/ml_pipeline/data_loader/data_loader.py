@@ -16,6 +16,40 @@ class AugmentedDataset(Dataset):
         self.include_sensors = kwargs.get('include_sensors', [])
         self.include_features = kwargs.get('include_features', [])
 
+    def print_info(self):
+        with h5py.File(self.features_path, 'r') as hdf5_file:
+            sample_idx = 0
+            for subject in hdf5_file.keys():
+                subject_id = int(subject.split('_')[1])
+
+                for aug in hdf5_file[subject].keys():
+                    is_augmented = aug.split('_')[1] == 'True'
+
+                    if not self.include_augmented and is_augmented:
+                        continue
+
+                    for label in hdf5_file[subject][aug].keys():
+                        if label not in self.labels:
+                            continue
+                        for batch in hdf5_file[subject][aug][label].keys():
+                            data = []
+
+                            for sensor in hdf5_file[subject][aug][label][batch].keys():
+                                if sensor not in self.include_sensors:
+                                    continue
+                                
+                                for feature in hdf5_file[subject][aug][label][batch][sensor].keys():
+                                    if feature not in self.include_features:
+                                        print(f'Feature: {feature} for sensor {sensor} not in include_features list')
+                                        continue
+                                    data.append(hdf5_file[subject][aug][label][batch][sensor][feature][:])
+
+                            # Save the preprocessed sample
+                            data_label = np.concatenate((np.array(data).flatten(), np.array([float(label)])))
+                            if len(data_label) != 427:
+                                continue
+                            sample_idx += 1
+
     def preprocess_and_save(self, output_path):
         directory = os.path.dirname(output_path)
         if not os.path.exists(directory):
@@ -40,8 +74,8 @@ class AugmentedDataset(Dataset):
                             continue
 
                         for label in hdf5_file[subject][aug].keys():
-                            # if label not in self.labels:
-                            #     continue
+                            if label not in self.labels:
+                                continue
                             for batch in hdf5_file[subject][aug][label].keys():
                                 data = []
                                 for sensor in hdf5_file[subject][aug][label][batch].keys():
@@ -85,6 +119,7 @@ class LOSOCVDataLoader:
             'include_augmented': include_augmented
         }
         dataset = AugmentedDataset(self.features_path, **config)
+        dataset.print_info()
         dataset.preprocess_and_save(save_path)
     
     def prepare_datasets(self, save_path):

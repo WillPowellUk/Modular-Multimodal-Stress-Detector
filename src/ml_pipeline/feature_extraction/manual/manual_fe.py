@@ -84,22 +84,42 @@ class ManualFE:
         print(f'Saving features to {self.save_path}...')
         with h5py.File(self.save_path, 'w') as hdf5_file:
             for b, batch in enumerate(all_batches_features):
-                for i, features in enumerate(batch):
-                    sid = str(int(features.pop('sid')))
-                    is_augmented = 'augmented_True' if features.pop('is_augmented') else 'augmented_False'
-                    label = str(features.pop('label'))
+                # Extract the details of the first element
+                first_element = batch[0]
+                expected_sid = first_element['sid']
+                expected_is_augmented = first_element['is_augmented']
+                expected_label = first_element['label']
 
-                    subject_group = hdf5_file.require_group(f'subject_{sid}')
-                    augmented_group = subject_group.require_group(is_augmented)
-                    label_group = augmented_group.require_group(label)
-                    batch_group = label_group.require_group(str(b))
+                # Check if all elements have the same sid, is_augmented, and label
+                for element in batch:
+                    if (element['sid'] != expected_sid or 
+                        element['is_augmented'] != expected_is_augmented or 
+                        element['label'] != expected_label):
+                        print("Not all elements in the batch have the same 'sid', 'is_augmented', and 'label'")
+                        continue
 
-                    for j, (sensor_name, feature_data) in enumerate(features.items()):
+                # Extract and format details of the first element
+                sid = str(int(batch[0]['sid']))
+                is_augmented = 'augmented_True' if batch[0]['is_augmented'] else 'augmented_False'
+                label = str(batch[0]['label'])
+
+                # Remove 'sid', 'is_augmented', and 'label' from all elements in the batch
+                for element in batch:
+                    element.pop('sid')
+                    element.pop('is_augmented')
+                    element.pop('label')
+
+                subject_group = hdf5_file.require_group(f'subject_{sid}')
+                augmented_group = subject_group.require_group(is_augmented)
+                label_group = augmented_group.require_group(label)
+                batch_group = label_group.require_group(str(b))
+                
+                for i, split in enumerate(batch):
+                    for j, (sensor_name, feature_data) in enumerate(split.items()):
                         sensor_group = batch_group.require_group(sensor_name)
 
                         if isinstance(feature_data, pd.DataFrame):
                             for k, column in enumerate(feature_data.columns):
-                                # Concatenate all values for each feature across each batch
                                 if column in sensor_group:
                                     dataset = sensor_group[column]
                                     dataset.resize((dataset.shape[0] + feature_data.shape[0],))
@@ -117,6 +137,8 @@ class ManualFE:
         # Collecting all features for scaling and imputation
         feature_data = {}        
         for batch in all_batches_features:
+            if len(batch) != 6:
+                pass
             for minibatch in batch:
                 for key, value in minibatch.items():
                     if key in ['sid', 'label', 'is_augmented']:
@@ -151,6 +173,8 @@ class ManualFE:
 
         # Replace scaled and imputed features back into all_batches_features
         for batch in all_batches_features:
+            if len(batch) != 6:
+                pass
             for minibatch in batch:
                 for key in minibatch.keys():
                     if key in ['sid', 'label', 'is_augmented']:
@@ -182,6 +206,8 @@ class ManualFE:
                 print(f"Extracting features from batch {i+1}/{total_batches} | ETA: {hours}h {minutes}m {seconds:.2f}s")
             
             batch_features = []
+            if len(batch) != 6:
+                print("Batch size is not 6")
             for split in batch:
                 split_features = self.extract_features_from_split(split)
                 batch_features.append(split_features)
@@ -199,3 +225,110 @@ class ManualFE:
         
         # Save the features to HDF5
         self.save_to_hdf5(all_batches_features)
+
+    def extract_features_concurrently(self):
+        warnings.warn_explicit = warnings.warn = lambda *_, **__: None
+        warnings.filterwarnings("ignore")
+        
+        all_batches_features = []
+        total_batches = len(self.batches)
+        start_time = time.time()
+        
+        def process_batch(i, batch):
+            batch_features = []
+            for split in batch:
+                split_features = self.extract_features_from_split(split)
+                batch_features.append(split_features)
+            return i, batch_features
+        
+        # Limit to the first 201 batches for testing
+        test_batches = self.batches[:201]
+        
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future_to_batch = {executor.submit(process_batch, i, batch): i for i, batch in enumerate(test_batches)}
+            
+            for i, future in enumerate(concurrent.futures.as_completed(future_to_batch)):
+                index, batch_features = future.result()
+                all_batches_features.append((index, batch_features))
+                
+                if i % 100 == 0 and i != 0:
+                    elapsed_time = time.time() - start_time
+                    average_time_per_batch = elapsed_time / (i + 1)
+                    remaining_batches = len(test_batches) - (i + 1)
+                    eta = average_time_per_batch * remaining_batches
+                    hours = math.floor(eta / 3600)
+                    minutes = math.floor((eta % 3600) / 60)
+                    seconds = eta % 60
+
+                    # Print the formatted string
+                    print(f"Extracting features from batch {i+1}/{len(test_batches)} | ETA: {hours}h {minutes}m {seconds:.2f}s")
+                
+        all_batches_features.sort(key=lambda x: x[0])  # Sort by original index
+        all_batches_features = [batch[1] for batch in all_batches_features]  # Remove index
+
+        all_batches_features = self.impute_and_normalize_features(all_batches_features)
+
+        # Ensure the directory exists
+        dir_name = os.path.dirname(self.save_path)
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name, exist_ok=True)
+        
+        # Save the features to HDF5
+        self.save_to_hdf5(all_batches_features)
+
+
+    @staticmethod
+    def process_batch(i, batch, extractor):
+        batch_start_time = time.time()
+        batch_features = []
+        for split in batch:
+            split_features = extractor.extract_features_from_split(split)
+            batch_features.append(split_features)
+        batch_end_time = time.time()
+        print(f"Batch {i} processed in {batch_end_time - batch_start_time:.2f} seconds")
+        return i, batch_features
+
+    def extract_features_parallel(self):
+        warnings.warn_explicit = warnings.warn = lambda *_, **__: None
+        warnings.filterwarnings("ignore")
+        
+        all_batches_features = []
+        total_batches = len(self.batches)
+        start_time = time.time()
+        
+        # Limit to the first 201 batches for testing
+        test_batches = self.batches[:201]
+        
+        with concurrent.futures.ProcessPoolExecutor(max_workers=cpu_count()) as executor:
+            future_to_batch = {executor.submit(ManualFE.process_batch, i, batch, self): i for i, batch in enumerate(test_batches)}
+            
+            for i, future in enumerate(concurrent.futures.as_completed(future_to_batch)):
+                index, batch_features = future.result()
+                all_batches_features.append((index, batch_features))
+                
+                if i % 100 == 0 and i != 0:
+                    elapsed_time = time.time() - start_time
+                    average_time_per_batch = elapsed_time / (i + 1)
+                    remaining_batches = len(test_batches) - (i + 1)
+                    eta = average_time_per_batch * remaining_batches
+                    hours = math.floor(eta / 3600)
+                    minutes = math.floor((eta % 3600) / 60)
+                    seconds = eta % 60
+
+                    # Print the formatted string
+                    print(f"Extracting features from batch {i+1}/{len(test_batches)} | ETA: {hours}h {minutes}m {seconds:.2f}s")
+        
+        all_batches_features.sort(key=lambda x: x[0])  # Sort by original index
+        all_batches_features = [batch[1] for batch in all_batches_features]  # Remove index
+
+        all_batches_features = self.impute_and_normalize_features(all_batches_features)
+
+        # Ensure the directory exists
+        dir_name = os.path.dirname(self.save_path)
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name, exist_ok=True)
+        
+        # Save the features to HDF5
+        self.save_to_hdf5(all_batches_features)
+        total_end_time = time.time()
+        print(f"Total time taken: {total_end_time - start_time:.2f} seconds")

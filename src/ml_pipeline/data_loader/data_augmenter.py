@@ -25,15 +25,12 @@ class DataAugmenter:
 
             while end_idx <= len(group):
                 segment = group.iloc[start_idx:end_idx].copy()
-                if start_idx % (window_size * sample_rate) == 0:
-                    segment.loc[:, 'is_augmented'] = False
-                else:
-                    segment.loc[:, 'is_augmented'] = True
-                if len(segment) == window_size * sample_rate:
-                    segments.append(segment)
+                if segment['label'].nunique() == 1:  # Check if all labels in the segment are the same
+                    segment.loc[:, 'is_augmented'] = False if start_idx % (window_size * sample_rate) == 0 else True
+                    if len(segment) == window_size * sample_rate:
+                        segments.append(segment)
                 start_idx += sliding_step
                 end_idx += sliding_step
-        print('Segmentation complete.')
         return segments
 
     def split_segments(self, segments, num_splits):
