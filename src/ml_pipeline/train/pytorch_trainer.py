@@ -81,7 +81,8 @@ class PyTorchTrainer:
         f1 = f1_score(y_true, y_pred, average='weighted')
         loss = log_loss(y_true, y_pred) if final_output.ndim == 1 else None
 
-        results = {
+        results = {}
+        results[self.model.NAME] = {
             "accuracy": accuracy,
             "confusion_matrix": conf_matrix,
             "precision": precision,

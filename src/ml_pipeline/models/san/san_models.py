@@ -191,6 +191,7 @@ class SelfAttentionAE(nn.Module):
         return output
         
 class ModalityFusionNet(torch.nn.Module):
+    NAME = "ModalityFusionNet"
     def __init__(self, input_dims, embed_dim, hidden_dim, output_dim, dropout=0.1):
         super(ModalityFusionNet, self).__init__()
         
