@@ -1,4 +1,3 @@
-import pandas as pd
 import concurrent.futures
 from multiprocessing import cpu_count
 import os
@@ -6,6 +5,8 @@ import math
 import time
 import warnings
 import numpy as np
+import pandas as pd
+import gc
 import h5py
 from sklearn.preprocessing import StandardScaler
 
@@ -17,6 +18,10 @@ from .ecg_feature_extractor import ECGFeatureExtractor
 from .emg_feature_extractor import EMGFeatureExtractor
 from .resp_feature_extractor import RespFeatureExtractor
 from .temp_feature_extractor import TempFeatureExtractor
+
+def print2(text):
+    with open('output.txt', 'a') as file:
+        file.write(text + '\n')
 
 class ManualFE:
     def __init__(self, batches, save_path: str, config_path: str):
@@ -81,7 +86,7 @@ class ManualFE:
         return features_dict
     
     def save_to_hdf5(self, all_batches_features):
-        print(f'Saving features to {self.save_path}...')
+        print2(f'Saving features to {self.save_path}...')
         with h5py.File(self.save_path, 'w') as hdf5_file:
             for b, batch in enumerate(all_batches_features):
                 # Extract the details of the first element
@@ -95,7 +100,7 @@ class ManualFE:
                     if (element['sid'] != expected_sid or 
                         element['is_augmented'] != expected_is_augmented or 
                         element['label'] != expected_label):
-                        print("Not all elements in the batch have the same 'sid', 'is_augmented', and 'label'")
+                        print2("Not all elements in the batch have the same 'sid', 'is_augmented', and 'label'")
                         continue
 
                 # Extract and format details of the first element
@@ -128,63 +133,69 @@ class ManualFE:
                                     sensor_group.create_dataset(column, data=feature_data[column].values, maxshape=(None,))
                         else:
                             raise ValueError(f"Unknown feature data type: {type(feature_data)}")
-        print('Features saved successfully')
-
+        print2('Features saved successfully')
 
     def impute_and_normalize_features(self, all_batches_features):
-        print('Scaling and imputing missing values...')
+        print2('Scaling and imputing missing values...')
         
         # Collecting all features for scaling and imputation
         feature_data = {}        
-        for batch in all_batches_features:
-            if len(batch) != 6:
-                pass
-            for minibatch in batch:
+        for batch_idx, batch in enumerate(all_batches_features):
+            print2(f'Processing batch {batch_idx + 1} of {len(all_batches_features)}...')
+            for minibatch_idx, minibatch in enumerate(batch):
+                print2(f'Processing minibatch {minibatch_idx + 1} of {len(batch)}...')
                 for key, value in minibatch.items():
                     if key in ['sid', 'label', 'is_augmented']:
                         continue
                     if key not in feature_data:
                         feature_data[key] = []
                     feature_data[key].append(value)
-
-        # Scale and then impute missing values
+        
         scaler = StandardScaler()
         for key, data_list in feature_data.items():
+            print2(f'Scaling and imputing feature: {key}...')
             if all(isinstance(d, pd.DataFrame) for d in data_list):
-                # For DataFrame features
                 combined_df = pd.concat(data_list)
-                
-                # Replace inf and -inf with NaN to handle them uniformly
-                combined_df.replace([np.inf, -np.inf], np.nan, inplace=True)
-                
-                # Normalize the features
-                normalized_df = pd.DataFrame(scaler.fit_transform(combined_df), columns=combined_df.columns)
-                
-                # Impute missing values
-                mean_values = normalized_df.mean()
-                mean_values.fillna(0, inplace=True)  # Handling case where mean itself is NaN
-                
-                for i, df in enumerate(data_list):
-                    data_list[i] = normalized_df.iloc[i * len(df):(i + 1) * len(df)].copy()
-                    data_list[i].fillna(mean_values, inplace=True)
 
+                combined_df.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+                # Normalize and impute features in place
+                normalized_df = pd.DataFrame(scaler.fit_transform(combined_df), columns=combined_df.columns)
+                mean_values = normalized_df.mean()
+                mean_values.fillna(0, inplace=True)
+                
+                del combined_df  # Free up memory
+                gc.collect()  # Explicit garbage collection
+
+                start_idx = 0
+                for i, df in enumerate(data_list):
+                    end_idx = start_idx + len(df)
+                    data_list[i] = normalized_df.iloc[start_idx:end_idx].copy()
+                    data_list[i].fillna(mean_values, inplace=True)
+                    start_idx = end_idx
+                    print2(f'Processed segment {i + 1} of {len(data_list)} for feature: {key}')
+
+                del normalized_df  # Free up memory
+                gc.collect()  # Explicit garbage collection
             else:
                 raise ValueError(f"Unknown feature data type in {data_list}")
-
+        
         # Replace scaled and imputed features back into all_batches_features
-        for batch in all_batches_features:
-            if len(batch) != 6:
-                pass
-            for minibatch in batch:
+        for batch_idx, batch in enumerate(all_batches_features):
+            print2(f'Replacing scaled features in batch {batch_idx + 1} of {len(all_batches_features)}...')
+            for minibatch_idx, minibatch in enumerate(batch):
+                print2(f'Replacing scaled features in minibatch {minibatch_idx + 1} of {len(batch)}...')
                 for key in minibatch.keys():
                     if key in ['sid', 'label', 'is_augmented']:
                         continue
                     minibatch[key] = feature_data[key].pop(0)
 
-        print('Scaling and imputation complete')
+        print2('Scaling and imputation complete')
         return all_batches_features
+
     
     def extract_features(self):
+        print2('Extracting features...')
         warnings.warn_explicit = warnings.warn = lambda *_, **__: None
         warnings.filterwarnings("ignore")
          
@@ -203,18 +214,19 @@ class ManualFE:
                     minutes = math.floor((eta % 3600) / 60)
                     seconds = eta % 60
 
-                    # Print the formatted string
-                    print(f"Extracting features from batch {i+1}/{total_batches} | ETA: {hours}h {minutes}m {seconds:.2f}s")
+                    # print2 the formatted string
+                    print2(f"Extracting features from batch {i+1}/{total_batches} | ETA: {hours}h {minutes}m {seconds:.2f}s")
                 
                 batch_features = []
-                if len(batch) != 6:
-                    print("Batch size is not 6")
                 for split in batch:
                     split_features = self.extract_features_from_split(split)
                     batch_features.append(split_features)
+                all_batches_features.append(batch_features)
             except Exception as e:
-                print(f"Error processing batch {i}. Error: {e}")
-            all_batches_features.append(batch_features)
+                print2(f"Error processing batch {i}. Error: {e}")
+
+            if i == 3:
+                break
 
         all_batches_features = self.impute_and_normalize_features(all_batches_features)
 
@@ -260,8 +272,8 @@ class ManualFE:
                     minutes = math.floor((eta % 3600) / 60)
                     seconds = eta % 60
 
-                    # Print the formatted string
-                    print(f"Extracting features from batch {i+1}/{len(test_batches)} | ETA: {hours}h {minutes}m {seconds:.2f}s")
+                    # print2 the formatted string
+                    print2(f"Extracting features from batch {i+1}/{len(test_batches)} | ETA: {hours}h {minutes}m {seconds:.2f}s")
                 
         all_batches_features.sort(key=lambda x: x[0])  # Sort by original index
         all_batches_features = [batch[1] for batch in all_batches_features]  # Remove index
@@ -285,7 +297,7 @@ class ManualFE:
             split_features = extractor.extract_features_from_split(split)
             batch_features.append(split_features)
         batch_end_time = time.time()
-        print(f"Batch {i} processed in {batch_end_time - batch_start_time:.2f} seconds")
+        print2(f"Batch {i} processed in {batch_end_time - batch_start_time:.2f} seconds")
         return i, batch_features
 
     def extract_features_parallel(self):
@@ -315,8 +327,8 @@ class ManualFE:
                     minutes = math.floor((eta % 3600) / 60)
                     seconds = eta % 60
 
-                    # Print the formatted string
-                    print(f"Extracting features from batch {i+1}/{len(test_batches)} | ETA: {hours}h {minutes}m {seconds:.2f}s")
+                    # print2 the formatted string
+                    print2(f"Extracting features from batch {i+1}/{len(test_batches)} | ETA: {hours}h {minutes}m {seconds:.2f}s")
         
         all_batches_features.sort(key=lambda x: x[0])  # Sort by original index
         all_batches_features = [batch[1] for batch in all_batches_features]  # Remove index
@@ -331,4 +343,4 @@ class ManualFE:
         # Save the features to HDF5
         self.save_to_hdf5(all_batches_features)
         total_end_time = time.time()
-        print(f"Total time taken: {total_end_time - start_time:.2f} seconds")
+        print2(f"Total time taken: {total_end_time - start_time:.2f} seconds")
