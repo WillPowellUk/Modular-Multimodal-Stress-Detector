@@ -1,6 +1,8 @@
 import torch
 import json
+import os
 import numpy as np
+import torch.nn as nn
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score, log_loss
 from src.ml_pipeline.models.san.san_losses import LossWrapper, FocalLoss
 
@@ -12,7 +14,7 @@ class PyTorchTrainer:
         self.device = device
         self.configs = self.load_config(config_path)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.configs['LR'])
-        self.loss_func = FocalLoss()
+        self.loss_func = nn.CrossEntropyLoss()
 
     def load_config(self, config_path):
         with open(config_path, 'r') as f:
@@ -24,9 +26,10 @@ class PyTorchTrainer:
             epoch_loss = 0.0
             self.model.train()
             for s, (batch_x, batch_y) in enumerate(self.train_loader):
-                batch_x, batch_y = batch_x.to(self.device), batch_y.unsqueeze(1).to(self.device)
-                output_ecg, output_eda, output_both = self.model(batch_x)
-                loss = self.loss_func(output_ecg, output_eda, output_both, batch_y, atch_missing_eda) #todo fix this
+                inputs = {key: val.to(self.device) for key, val in batch_x.items()}
+                labels = batch_y.to(self.device)
+                modality_outputs, final_output = self.model(inputs)
+                loss = self.loss_func(final_output, labels)
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
@@ -37,6 +40,9 @@ class PyTorchTrainer:
             
             if (epoch + 1) % 10 == 0:
                 save_path = f'{self.configs["SAVE_PATH"]}/checkpoint_{epoch + 1}.pth'
+                directory = os.path.dirname(save_path)
+                if not os.path.exists(directory):
+                    os.makedirs(directory)
                 torch.save(self.model.state_dict(), save_path)
 
         final_save_path = f'{self.configs["SAVE_PATH"]}/checkpoint_{epoch + 1}.pth'

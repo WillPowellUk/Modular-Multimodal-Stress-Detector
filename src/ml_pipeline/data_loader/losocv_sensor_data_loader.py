@@ -80,7 +80,7 @@ class LOSOCVSesnsorDataset(Dataset):
             for key in hdf5_file.keys():
                 data_dict = {}
                 for sensor in self.include_sensors:
-                    data_dict[sensor] = torch.tensor(hdf5_file[key][sensor]['data_0'][:], dtype=torch.float32)
+                    data_dict[sensor] = torch.tensor(hdf5_file[key][sensor]['data'][:], dtype=torch.float32)
                 break
         
         return {sensor: data_dict[sensor].shape[0] for sensor in self.include_sensors}
@@ -93,7 +93,7 @@ class LOSOCVSesnsorDataset(Dataset):
             sample_key = self.data_keys[idx]
             data_dict = {}
             for sensor in self.include_sensors:
-                data_dict[sensor] = torch.tensor(hdf5_file[sample_key][sensor][:-1], dtype=torch.float32)
-            label = torch.tensor(int(hdf5_file[sample_key][self.include_sensors[0]][-1]), dtype=torch.long)
+                data_dict[sensor] = torch.tensor(hdf5_file[sample_key][sensor][f'data'][:], dtype=torch.float32)
+            label = torch.tensor(int(hdf5_file[sample_key][sensor][f'label'][()]), dtype=torch.long)
         
         return data_dict, label

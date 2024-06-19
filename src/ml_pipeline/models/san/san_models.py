@@ -211,13 +211,17 @@ class ModalityFusionNet(torch.nn.Module):
         
         self.relu = nn.ReLU()
         self.dropout_out = nn.Dropout(p=dropout)
-        self.output = nn.Linear(len(input_dims) * hidden_dim, output_dim)
+        self.output_layer = nn.Linear(len(input_dims) * hidden_dim, output_dim)
 
-    def forward(self, **kwargs):
+    def forward(self, inputs):
         modality_outputs = []
         
-        for modality, x in kwargs.items():
+        for modality, x in inputs.items():
+            batch_size, seq_len, features = x.shape
+            x = x.permute(0, 2, 1)  # Change shape to [batch_size, features, seq_len]
+            x = x.reshape(-1, seq_len)  # Flatten to [batch_size * features, seq_len]
             x_emb = self.modalities[modality]['embedding'](x)
+            x_emb = x_emb.view(batch_size, features, -1)  # Reshape back to [batch_size, features, embed_dim]
             positional_x = self.modalities[modality]['pos_enc'](x_emb)
             attn1 = self.modalities[modality]['enc1'](positional_x)
             avg_pool = torch.mean(attn1, 1)
@@ -229,12 +233,12 @@ class ModalityFusionNet(torch.nn.Module):
             modality_outputs.append(concat_)
         
         concat = torch.cat(modality_outputs, dim=1)
-        concat = self.relu(self.linear(concat))
+        concat = self.relu(concat)
         concat = self.dropout_out(concat)
         
-        output = self.output(concat)
+        final_output = self.output_layer(concat)
         
-        return modality_outputs, output
+        return modality_outputs, final_output
 
 class LSTM_Model(torch.nn.Module):
     def __init__(self):

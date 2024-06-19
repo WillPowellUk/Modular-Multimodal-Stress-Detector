@@ -113,9 +113,9 @@ class PerSensorDataset(Dataset):
                                         data.append(hdf5_file[subject][aug][label][batch][sensor][feature][:])
                                 
                                     # Save the preprocessed sample
-                                    sensor_group.create_dataset(f'data_{sample_idx}', data=np.array(data))
-                                    sensor_group.create_dataset(f'label_{sample_idx}', data=np.array(float(label)))
-                                    sample_idx += 1
+                                    sensor_group.create_dataset(f'data', data=np.array(data))
+                                    sensor_group.create_dataset(f'label', data=float(label))
+                                sample_idx += 1
 
     def __len__(self):
         return len(self.data_info)
