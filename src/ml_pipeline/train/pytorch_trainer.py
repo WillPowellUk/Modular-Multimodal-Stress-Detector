@@ -46,6 +46,9 @@ class PyTorchTrainer:
                 torch.save(self.model.state_dict(), save_path)
 
         final_save_path = f'{self.configs["SAVE_PATH"]}/checkpoint_{epoch + 1}.pth'
+        directory = os.path.dirname(final_save_path)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
         torch.save(self.model.state_dict(), final_save_path)
         return final_save_path
 
@@ -58,25 +61,25 @@ class PyTorchTrainer:
             self.model.load_state_dict(torch.load(ckpt_path))
         
         self.model.eval()
-        all_y_true = []
-        all_y_pred = []
-        with torch.no_grad():
-            for batch_x, batch_y, _, _ in self.val_loader:
-                batch_x, batch_y = batch_x.to(self.device), batch_y.unsqueeze(1).to(self.device)
-                _, _, output_both = self.model(batch_x)
-                y_pred = torch.round(torch.sigmoid(output_both))
-                all_y_true.extend(batch_y.cpu().numpy())
-                all_y_pred.extend(y_pred.cpu().numpy())
+        y_true = []
+        y_pred = []
 
-        y_true = np.array(all_y_true)
-        y_pred = np.array(all_y_pred)
+        with torch.no_grad():
+            for batch_x, batch_y in self.val_loader:
+                inputs = {key: val.to(self.device) for key, val in batch_x.items()}
+                labels = batch_y.to(self.device)
+                modality_outputs, final_output = self.model(inputs)
+                
+                _, preds = torch.max(final_output, 1)
+                y_true.extend(labels.cpu().numpy())
+                y_pred.extend(preds.cpu().numpy())
 
         accuracy = accuracy_score(y_true, y_pred)
         conf_matrix = confusion_matrix(y_true, y_pred)
         precision = precision_score(y_true, y_pred, average='weighted')
         recall = recall_score(y_true, y_pred, average='weighted')
         f1 = f1_score(y_true, y_pred, average='weighted')
-        loss = log_loss(y_true, y_pred) if y_pred.ndim == 1 else None
+        loss = log_loss(y_true, y_pred) if final_output.ndim == 1 else None
 
         results = {
             "accuracy": accuracy,
