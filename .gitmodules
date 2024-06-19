@@ -1,3 +1,3 @@
 [submodule "submodules/pyEDA"]
 	path = submodules/pyEDA
-	url = https://github.com/HealthSciTech/pyEDA
+	url = https://github.com/WillPowellUk/pyEDA
