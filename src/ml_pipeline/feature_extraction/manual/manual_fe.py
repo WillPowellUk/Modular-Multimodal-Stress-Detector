@@ -193,24 +193,27 @@ class ManualFE:
         start_time = time.time()
         
         for i, batch in enumerate(self.batches):
-            if i % 100 == 0 and i!=0:
-                elapsed_time = time.time() - start_time
-                average_time_per_batch = elapsed_time / (i + 1)
-                remaining_batches = total_batches - (i + 1)
-                eta = average_time_per_batch * remaining_batches
-                hours = math.floor(eta / 3600)
-                minutes = math.floor((eta % 3600) / 60)
-                seconds = eta % 60
+            try:
+                if i % 100 == 0 and i!=0:
+                    elapsed_time = time.time() - start_time
+                    average_time_per_batch = elapsed_time / (i + 1)
+                    remaining_batches = total_batches - (i + 1)
+                    eta = average_time_per_batch * remaining_batches
+                    hours = math.floor(eta / 3600)
+                    minutes = math.floor((eta % 3600) / 60)
+                    seconds = eta % 60
 
-                # Print the formatted string
-                print(f"Extracting features from batch {i+1}/{total_batches} | ETA: {hours}h {minutes}m {seconds:.2f}s")
-            
-            batch_features = []
-            if len(batch) != 6:
-                print("Batch size is not 6")
-            for split in batch:
-                split_features = self.extract_features_from_split(split)
-                batch_features.append(split_features)
+                    # Print the formatted string
+                    print(f"Extracting features from batch {i+1}/{total_batches} | ETA: {hours}h {minutes}m {seconds:.2f}s")
+                
+                batch_features = []
+                if len(batch) != 6:
+                    print("Batch size is not 6")
+                for split in batch:
+                    split_features = self.extract_features_from_split(split)
+                    batch_features.append(split_features)
+            except Exception as e:
+                print(f"Error processing batch {i}. Error: {e}")
             all_batches_features.append(batch_features)
 
         all_batches_features = self.impute_and_normalize_features(all_batches_features)

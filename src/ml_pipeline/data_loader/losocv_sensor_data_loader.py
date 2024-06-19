@@ -56,7 +56,7 @@ class LOSOCVSensorDataLoader:
             subject_id = int(float(subject_id))
             train_dataset = LOSOCVSesnsorDataset(datasets_path[subject_id]['train'], self.dataset_config['include_sensors'])
             val_dataset = LOSOCVSesnsorDataset(datasets_path[subject_id]['val'], self.dataset_config['include_sensors'])
-
+            
             if i == 0:
                 input_dims = train_dataset.get_dims()
 
