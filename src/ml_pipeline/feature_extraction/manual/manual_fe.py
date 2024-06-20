@@ -225,9 +225,6 @@ class ManualFE:
             except Exception as e:
                 print2(f"Error processing batch {i}. Error: {e}")
 
-            if i == 3:
-                break
-
         all_batches_features = self.impute_and_normalize_features(all_batches_features)
 
         # Ensure the directory exists
