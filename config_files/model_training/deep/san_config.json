@@ -1,4 +1,8 @@
 {
+    "EMBED_DIM": 128,
+    "HIDDEN_DIM": 256,
+    "N_HEAD_GEN" : 4,
+    "N_HEAD_PER": 1,
     "LR": 0.001,
     "EPOCH": 2,
     "SAVE_PATH": "src/wesad/WESAD/ckpts/san/wrist_manual_fe/60s_5s_10s",

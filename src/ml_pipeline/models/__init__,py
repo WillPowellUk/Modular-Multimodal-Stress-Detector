@@ -1,1 +1,1 @@
-from .san import ModalityFusionNet, LSTM_Model, LossWrapper, FocalLoss
+from .san import ModularModalityFusionNet, LSTM_Model, LossWrapper, FocalLoss

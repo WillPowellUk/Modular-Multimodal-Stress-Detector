@@ -83,11 +83,11 @@ class PerSensorDataset(Dataset):
                 for subject in hdf5_file.keys():
                     subject_id = int(subject.split('_')[1])
                     
-                    # if self.exclude_subjects and subject_id in self.exclude_subjects:
-                    #     continue
+                    if self.exclude_subjects and subject_id in self.exclude_subjects:
+                        continue
                     
-                    # if self.include_subjects and subject_id not in self.include_subjects:
-                    #     continue
+                    if self.include_subjects and subject_id not in self.include_subjects:
+                        continue
 
                     for aug in hdf5_file[subject].keys():
                         is_augmented = aug.split('_')[1] == 'True'
@@ -99,7 +99,7 @@ class PerSensorDataset(Dataset):
                             if label not in self.labels:
                                 continue
 
-                            for batch in hdf5_file[subject][aug][label].keys():
+                            for b, batch in enumerate(hdf5_file[subject][aug][label].keys()):
                                 batch_group = new_hdf5_file.require_group(str(sample_idx))
                                 for sensor in hdf5_file[subject][aug][label][batch].keys():
                                     if sensor not in self.include_sensors:
@@ -116,6 +116,8 @@ class PerSensorDataset(Dataset):
                                     sensor_group.create_dataset(f'data', data=np.array(data))
                                     sensor_group.create_dataset(f'label', data=float(label))
                                 sample_idx += 1
+                                if sample_idx % 100 == 0:
+                                    print(f'Processed batch {b}/{len(hdf5_file[subject][aug][label].keys())} for subject {subject_id} and label {label}')
 
     def __len__(self):
         return len(self.data_info)

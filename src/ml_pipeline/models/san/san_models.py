@@ -190,10 +190,10 @@ class SelfAttentionAE(nn.Module):
         output = self.linear_dec(target)
         return output
         
-class ModalityFusionNet(torch.nn.Module):
-    NAME = "ModalityFusionNet"
-    def __init__(self, input_dims, embed_dim, hidden_dim, output_dim, dropout=0.1):
-        super(ModalityFusionNet, self).__init__()
+class ModularModalityFusionNet(torch.nn.Module):
+    NAME = "ModularModalityFusionNet"
+    def __init__(self, input_dims, embed_dim, hidden_dim, output_dim, n_head=4, dropout=0.1):
+        super(ModularModalityFusionNet, self).__init__()
         
         self.modalities = nn.ModuleDict()
         
@@ -201,7 +201,7 @@ class ModalityFusionNet(torch.nn.Module):
             modality_net = nn.ModuleDict({
                 'embedding': nn.Linear(input_dims[modality], embed_dim),
                 'pos_enc': PositionalEncoding(embed_dim),
-                'enc1': EncoderLayer(embed_dim, ffn_hidden=128, n_head=4, drop_prob=dropout),
+                'enc1': EncoderLayer(embed_dim, ffn_hidden=128, n_head=n_head, drop_prob=dropout),
                 'flatten': nn.Flatten(),
                 'linear': nn.Linear(embed_dim * 2, hidden_dim),
                 'relu': nn.ReLU(),

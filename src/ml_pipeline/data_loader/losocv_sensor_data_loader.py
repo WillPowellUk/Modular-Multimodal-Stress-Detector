@@ -29,22 +29,22 @@ class LOSOCVSensorDataLoader:
         dataset = PerSensorDataset(self.features_path, **config)
         dataset.preprocess_and_save(save_path)
     
-    def prepare_datasets(self):
+    def prepare_datasets(self, save_path):
         datesets_path = {}
         for subject_id in self.subjects:
             subject_id = int(float(subject_id))
-            train_dataset_path = f'{os.path.dirname(self.features_path)}/losocv/train_{subject_id}.hdf5'
-            val_dataset_path = f'{os.path.dirname(self.features_path)}/losocv/val_{subject_id}.hdf5'
+            train_dataset_path = f'{save_path}/losocv/train_{subject_id}.hdf5'
+            val_dataset_path = f'{save_path}/losocv/val_{subject_id}.hdf5'
             self._get_dataset(train_dataset_path, exclude_subjects=[subject_id], include_augmented=True)
             self._get_dataset(val_dataset_path, include_subjects=[subject_id], include_augmented=False)
             datesets_path[subject_id] = {'train': train_dataset_path, 'val': val_dataset_path}
         
         # save dataset paths as pkl file
-        save_path = os.path.dirname(self.features_path) + '/losocv_datasets.pkl'
-        with open(save_path, 'wb') as f:
+        dataset_save_path = f'{save_path}/losocv_datasets.pkl'
+        with open(dataset_save_path, 'wb') as f:
             pickle.dump(datesets_path, f)
-        print(f'Datasets saved at: {save_path}')
-        return save_path
+        print(f'Datasets saved at: {dataset_save_path}')
+        return dataset_save_path
 
     def get_data_loaders(self, datasets_path):
         with open(datasets_path, 'rb') as f:
