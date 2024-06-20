@@ -1,4 +1,9 @@
 {
+    "split": {
+        "train": 0.7,
+        "validation": 0.15,
+        "test": 0.15
+    },
     "sensors": {
         "bvp": true,
         "w_acc": true,

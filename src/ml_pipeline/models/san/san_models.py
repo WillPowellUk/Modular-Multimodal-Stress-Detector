@@ -105,12 +105,11 @@ class ModularModalityFusionNet(torch.nn.Module):
         concat = self.dropout_out(concat)
         
         final_output = self.output_layer(concat)
-        
-        return modality_outputs, final_output
+
 class PersonalizedModalityFusionNet(torch.nn.Module):
     NAME = "PersonalizedModalityFusionNet"
     
-    def __init__(self, input_dims, embed_dim, hidden_dim, output_dim, generalized_model, n_head=4, dropout=0.1):
+    def __init__(self, generalized_model, n_head=1, dropout=0.1):
         super(PersonalizedModalityFusionNet, self).__init__()
         
         self.generalized_modalities = generalized_model.modalities
@@ -120,6 +119,12 @@ class PersonalizedModalityFusionNet(torch.nn.Module):
             param.requires_grad = False
         
         self.personalized_modalities = nn.ModuleDict()
+        
+        # Infer dimensions from generalized model
+        input_dims = {modality: mod['embedding'].in_features for modality, mod in self.generalized_modalities.items()}
+        embed_dim = next(iter(self.generalized_modalities.values()))['embedding'].out_features
+        hidden_dim = next(iter(self.generalized_modalities.values()))['linear'].out_features
+        output_dim = next(iter(self.generalized_modalities.values()))['output'].out_features
         
         for modality in input_dims:
             modality_net = nn.ModuleDict({
@@ -181,5 +186,3 @@ class PersonalizedModalityFusionNet(torch.nn.Module):
         final_output = self.output_layer(concat)
         
         return personalized_modality_outputs, final_output
-
-        

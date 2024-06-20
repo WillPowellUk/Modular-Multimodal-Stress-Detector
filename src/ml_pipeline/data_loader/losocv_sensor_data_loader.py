@@ -5,7 +5,7 @@ import os
 import torch
 from torch.utils.data import Dataset, DataLoader
 from src.ml_pipeline.utils.utils import get_active_key
-from src.ml_pipeline.data_loader.datasets import PerSensorDataset
+from src.ml_pipeline.data_loader.datasets import PerSensorDataset, SensorDataset
 
 class LOSOCVSensorDataLoader:
     def __init__(self, features_path, config_path, **params):
@@ -56,8 +56,8 @@ class LOSOCVSensorDataLoader:
         input_dims = {}
         for i, subject_id in enumerate(self.subjects):
             subject_id = int(float(subject_id))
-            train_dataset = LOSOCVSesnsorDataset(datasets_path[subject_id]['train'], self.dataset_config['include_sensors'])
-            val_dataset = LOSOCVSesnsorDataset(datasets_path[subject_id]['val'], self.dataset_config['include_sensors'])
+            train_dataset = SensorDataset(datasets_path[subject_id]['train'], self.dataset_config['include_sensors'])
+            val_dataset = SensorDataset(datasets_path[subject_id]['val'], self.dataset_config['include_sensors'])
             
             if i == 0:
                 input_dims = train_dataset.get_dims()
@@ -68,34 +68,3 @@ class LOSOCVSensorDataLoader:
             dataloaders[subject_id] = {'train': train_loader, 'val': val_loader}
         
         return dataloaders, input_dims
-
-class LOSOCVSesnsorDataset(Dataset):
-    def __init__(self, features_path, include_sensors):
-        self.features_path = features_path
-        self.include_sensors = include_sensors
-        with h5py.File(self.features_path, 'r') as hdf5_file:
-            self.data_keys = list(hdf5_file.keys())
-        self.dataset_length = len(self.data_keys)
-
-    def get_dims(self):
-        with h5py.File(self.features_path, 'r') as hdf5_file:
-            for key in hdf5_file.keys():
-                data_dict = {}
-                for sensor in self.include_sensors:
-                    data_dict[sensor] = torch.tensor(hdf5_file[key][sensor]['data'][:], dtype=torch.float32)
-                break
-        
-        return {sensor: data_dict[sensor].shape[0] for sensor in self.include_sensors}
-
-    def __len__(self):
-        return self.dataset_length
-
-    def __getitem__(self, idx):
-        with h5py.File(self.features_path, 'r') as hdf5_file:
-            sample_key = self.data_keys[idx]
-            data_dict = {}
-            for sensor in self.include_sensors:
-                data_dict[sensor] = torch.tensor(hdf5_file[sample_key][sensor][f'data'][:], dtype=torch.float32)
-            label = torch.tensor(int(hdf5_file[sample_key][sensor][f'label'][()]), dtype=torch.long)
-        
-        return data_dict, label

@@ -10,6 +10,15 @@ def get_max_sampling_rate(config_path):
     
     return max_sampling_rate
 
+def get_key(config_path, key):
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+
+    return config[key]
+
+def copy_json(src, dst):
+    shutil.copy(src, dst)
+
 def get_active_key(config_path, key, recursive=False):
     with open(config_path, 'r') as f:
         config = json.load(f)
@@ -27,12 +36,8 @@ def get_active_key(config_path, key, recursive=False):
 
     return active_keys
 
-
-def get_key(config_path, key):
+def get_values(config_path, key):
     with open(config_path, 'r') as f:
         config = json.load(f)
 
     return config[key]
-
-def copy_json(src, dst):
-    shutil.copy(src, dst)
