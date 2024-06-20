@@ -3,7 +3,7 @@ import numpy as np
 import os
 import torch
 from torch.utils.data import Dataset
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold
 
 class AugmentedDataset(Dataset):
     def __init__(self, features_path, **kwargs):
@@ -26,11 +26,11 @@ class AugmentedDataset(Dataset):
                 for subject in hdf5_file.keys():
                     subject_id = int(subject.split('_')[1])
                     
-                    # if self.exclude_subjects and subject_id in self.exclude_subjects:
-                    #     continue
+                    if self.exclude_subjects and subject_id in self.exclude_subjects:
+                        continue
                     
-                    # if self.include_subjects and subject_id not in self.include_subjects:
-                    #     continue
+                    if self.include_subjects and subject_id not in self.include_subjects:
+                        continue
 
                     for aug in hdf5_file[subject].keys():
                         is_augmented = aug.split('_')[1] == 'True'
@@ -120,21 +120,10 @@ class PerSensorDataset(Dataset):
                                 sample_idx += 1
                             print(f'Processed batches for subject {subject_id} and label {label} and aug {aug}')
 
-    def preprocess_and_save(self, train_test_val_split, save_paths):
-        # Check if the save paths are valid
-        if len(save_paths) != 3:
-            raise ValueError("Three save paths are required for train, validation, and test datasets.")
-
-        train_split = train_test_val_split['train']
-        val_split = train_test_val_split['val']
-        test_split = train_test_val_split['test']
-        
-        assert train_split + val_split + test_split == 1.0, "The sum of train, validation, and test splits must be 1.0"
-
-        for path in save_paths:
-            directory = os.path.dirname(path)
-            if not os.path.exists(directory):
-                os.makedirs(directory)
+    def preprocess_and_save_cross_validation(self, n_splits, save_paths_template):
+        # Check if the save paths template is valid
+        if not isinstance(save_paths_template, str):
+            raise ValueError("Save paths template should be a string with placeholders for split index and type.")
 
         # Initialize datasets
         all_data = []
@@ -173,30 +162,45 @@ class PerSensorDataset(Dataset):
                             all_data.append(sample)
                         print(f'Processed batches for subject {subject_id} and label {label} and aug {aug}')
 
-        # Split the data
-        train_val_data, test_data = train_test_split(all_data, test_size=test_split, random_state=42)
-        train_data, val_data = train_test_split(train_val_data, test_size=val_split/(train_split + val_split), random_state=42)
+        # Perform K-Fold cross-validation
+        kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+        cross_validation_paths = []
 
-        # Filter the augmented data
-        train_data = [sample for sample in train_data if sample['is_augmented']]
-        val_data = [sample for sample in val_data if not sample['is_augmented']]
-        test_data = [sample for sample in test_data if not sample['is_augmented']]
+        for fold_index, (train_index, val_index) in enumerate(kf.split(all_data)):
+            train_data = [all_data[i] for i in train_index]
+            val_data = [all_data[i] for i in val_index]
 
-        # Save data to hdf5 files
-        for i, (dataset, name) in enumerate(zip([train_data, val_data, test_data], ['train', 'val', 'test'])):
-            sample_idx = 0
-            with h5py.File(save_paths[i], 'w') as new_hdf5_file:
-                for sample in dataset:
-                    batch_group = new_hdf5_file.require_group(str(sample_idx))
-                    for sensor, sensor_data in sample.items():
-                        if sensor == 'is_augmented':
-                            continue
-                        sensor_group = batch_group.require_group(sensor)
-                        sensor_group.create_dataset('data', data=sensor_data['data'])
-                        sensor_group.create_dataset('label', data=sensor_data['label'])
-                    sample_idx += 1
-                print(f'Saved {name} data to {save_paths[i]}')
-    
+            # Filter the augmented data
+            train_data = [sample for sample in train_data if sample['is_augmented']]
+            val_data = [sample for sample in val_data if not sample['is_augmented']]
+
+            save_paths = {
+                'train': save_paths_template.format(split=fold_index, type='train'),
+                'val': save_paths_template.format(split=fold_index, type='val')
+            }
+
+            for path in save_paths.values():
+                directory = os.path.dirname(path)
+                if not os.path.exists(directory):
+                    os.makedirs(directory)
+
+            # Save data to hdf5 files
+            for name, dataset in zip(['train', 'val'], [train_data, val_data]):
+                with h5py.File(save_paths[name], 'w') as new_hdf5_file:
+                    for sample_idx, sample in enumerate(dataset):
+                        batch_group = new_hdf5_file.require_group(str(sample_idx))
+                        for sensor, sensor_data in sample.items():
+                            if sensor == 'is_augmented':
+                                continue
+                            sensor_group = batch_group.require_group(sensor)
+                            sensor_group.create_dataset('data', data=sensor_data['data'])
+                            sensor_group.create_dataset('label', data=sensor_data['label'])
+                    print(f'Saved {name} data to {save_paths[name]}')
+
+            cross_validation_paths.append(save_paths)
+
+        return cross_validation_paths
+
     def __len__(self):
         return len(self.data_info)
 

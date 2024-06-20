@@ -1,5 +1,6 @@
 import json
 import shutil
+import torch
 
 def get_max_sampling_rate(config_path):
     with open(config_path, 'r') as f:
@@ -41,3 +42,9 @@ def get_values(config_path, key):
         config = json.load(f)
 
     return config[key]
+
+def load_generalized_model(generalized_model_path, model_class, *model_args):
+    model = model_class(*model_args)
+    state_dict = torch.load(generalized_model_path)
+    model.load_state_dict(state_dict)
+    return model

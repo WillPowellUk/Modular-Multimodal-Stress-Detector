@@ -1,0 +1,10 @@
+{
+    "NUM_CLASSES": 2,
+    "EMBED_DIM": 128,
+    "HIDDEN_DIM": 256,
+    "N_HEAD_GEN" : 4,
+    "LR": 0.001,
+    "EPOCH": 5,
+    "SAVE_PATH": "src/wesad/WESAD/ckpts/san/wrist_manual_fe/60s_5s_10s/generalized",
+    "BATCH_SIZE": 32
+}

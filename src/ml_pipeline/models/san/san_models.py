@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
+from src.ml_pipeline.utils import load_generalized_model
 
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, dropout=0.1, max_len=5000):
@@ -110,8 +111,11 @@ class ModularModalityFusionNet(torch.nn.Module):
 class PersonalizedModalityFusionNet(torch.nn.Module):
     NAME = "PersonalizedModalityFusionNet"
     
-    def __init__(self, generalized_model, n_head=1, dropout=0.1):
+    def __init__(self, generalized_model_path, model_class, input_dims, embed_dim, hidden_dim, output_dim, n_head_gen=4, n_head_per=1, dropout=0.1):
         super(PersonalizedModalityFusionNet, self).__init__()
+        
+        # Load the generalized model
+        generalized_model = load_generalized_model(generalized_model_path, model_class, input_dims, embed_dim, hidden_dim, output_dim, n_head_gen, dropout)
         
         self.generalized_modalities = generalized_model.modalities
         
@@ -121,17 +125,11 @@ class PersonalizedModalityFusionNet(torch.nn.Module):
         
         self.personalized_modalities = nn.ModuleDict()
         
-        # Infer dimensions from generalized model
-        input_dims = {modality: mod['embedding'].in_features for modality, mod in self.generalized_modalities.items()}
-        embed_dim = next(iter(self.generalized_modalities.values()))['embedding'].out_features
-        hidden_dim = next(iter(self.generalized_modalities.values()))['linear'].out_features
-        output_dim = next(iter(self.generalized_modalities.values()))['output'].out_features
-        
         for modality in input_dims:
             modality_net = nn.ModuleDict({
                 'embedding': nn.Linear(input_dims[modality], embed_dim),
                 'pos_enc': PositionalEncoding(embed_dim),
-                'enc1': EncoderLayer(embed_dim, ffn_hidden=128, n_head=n_head, drop_prob=dropout),
+                'enc1': EncoderLayer(embed_dim, ffn_hidden=128, n_head=n_head_per, drop_prob=dropout),
                 'flatten': nn.Flatten(),
                 'linear': nn.Linear(embed_dim * 2, hidden_dim),
                 'relu': nn.ReLU(),
