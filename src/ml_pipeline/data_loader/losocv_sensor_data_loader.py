@@ -32,12 +32,14 @@ class LOSOCVSensorDataLoader:
     def prepare_datasets(self, save_path):
         datesets_path = {}
         for subject_id in self.subjects:
+            print(f'\nPreparing dataset for subject: {subject_id}')
             subject_id = int(float(subject_id))
             train_dataset_path = f'{save_path}/losocv/train_{subject_id}.hdf5'
             val_dataset_path = f'{save_path}/losocv/val_{subject_id}.hdf5'
             self._get_dataset(train_dataset_path, exclude_subjects=[subject_id], include_augmented=True)
             self._get_dataset(val_dataset_path, include_subjects=[subject_id], include_augmented=False)
             datesets_path[subject_id] = {'train': train_dataset_path, 'val': val_dataset_path}
+            print(f'Dataset prepared for subject: {subject_id}\n')
         
         # save dataset paths as pkl file
         dataset_save_path = f'{save_path}/losocv_datasets.pkl'

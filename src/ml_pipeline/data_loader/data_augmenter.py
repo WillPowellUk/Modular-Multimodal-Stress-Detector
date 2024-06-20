@@ -1,12 +1,13 @@
 import pandas as pd
 import numpy as np
 import pickle
-from src.ml_pipeline.utils.utils import get_max_sampling_rate
+from src.ml_pipeline.utils.utils import get_max_sampling_rate, get_active_key
 
 class DataAugmenter:
     def __init__(self, dataframe_path, config_path):
         self.dataframe = self.load_dataframe(dataframe_path)
         self.sampling_rate = get_max_sampling_rate(config_path)
+        self.labels = get_active_key(config_path, 'labels')
         
     def load_dataframe(self, dataframe_path):
         with open(dataframe_path, 'rb') as file:
@@ -25,10 +26,11 @@ class DataAugmenter:
 
             while end_idx <= len(group):
                 segment = group.iloc[start_idx:end_idx].copy()
-                if segment['label'].nunique() == 1:  # Check if all labels in the segment are the same
-                    segment.loc[:, 'is_augmented'] = False if start_idx % (window_size * sample_rate) == 0 else True
-                    if len(segment) == window_size * sample_rate:
-                        segments.append(segment)
+                if segment['label'] in self.labels:
+                    if segment['label'].nunique() == 1:
+                        segment.loc[:, 'is_augmented'] = False if start_idx % (window_size * sample_rate) == 0 else True
+                        if len(segment) == window_size * sample_rate:
+                            segments.append(segment)
                 start_idx += sliding_step
                 end_idx += sliding_step
         return segments

@@ -116,8 +116,7 @@ class PerSensorDataset(Dataset):
                                     sensor_group.create_dataset(f'data', data=np.array(data))
                                     sensor_group.create_dataset(f'label', data=float(label))
                                 sample_idx += 1
-                                if sample_idx % 100 == 0:
-                                    print(f'Processed batch {b}/{len(hdf5_file[subject][aug][label].keys())} for subject {subject_id} and label {label}')
+                            print(f'Processed batches for subject {subject_id} and label {label} and aug {aug}')
 
     def __len__(self):
         return len(self.data_info)
