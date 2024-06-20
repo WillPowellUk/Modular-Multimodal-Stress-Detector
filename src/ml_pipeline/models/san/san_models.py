@@ -105,6 +105,7 @@ class ModularModalityFusionNet(torch.nn.Module):
         concat = self.dropout_out(concat)
         
         final_output = self.output_layer(concat)
+        return modality_outputs, final_output
 
 class PersonalizedModalityFusionNet(torch.nn.Module):
     NAME = "PersonalizedModalityFusionNet"

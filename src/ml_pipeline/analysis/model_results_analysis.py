@@ -81,11 +81,6 @@ class ModelResultsAnalysis:
             num_of_labels = len(all_cm)
             self.plot_confusion_matrix(num_of_labels, cm=all_cm)
 
-        for model_name, metrics in collective_metrics.items():
-            all_cm = np.sum([subject_results[model_name]['confusion_matrix'] for subject_results in self.results], axis=0)
-            num_of_labels = len(all_cm)
-            self.plot_confusion_matrix(num_of_labels, cm=all_cm)
-
     def plot_confusion_matrix(self, num_labels, cm):
         plt.figure(figsize=(10, 7))
         ax = plt.gca()

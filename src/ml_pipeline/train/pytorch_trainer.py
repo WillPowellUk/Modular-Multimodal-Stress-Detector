@@ -5,6 +5,7 @@ import numpy as np
 import torch.nn as nn
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score, log_loss
 from src.ml_pipeline.models.san.san_losses import LossWrapper, FocalLoss
+from tqdm import tqdm
 
 class PyTorchTrainer:
     def __init__(self, model, train_loader, val_loader, config_path, device):
@@ -14,7 +15,9 @@ class PyTorchTrainer:
         self.device = device
         self.configs = self.load_config(config_path)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.configs['LR'])
-        self.loss_func = nn.CrossEntropyLoss()
+        # self.loss_func = nn.CrossEntropyLoss()
+        self.loss_func = nn.BCEWithLogitsLoss()
+        self.num_classes = self.configs['NUM_CLASSES']
 
     def load_config(self, config_path):
         with open(config_path, 'r') as f:
@@ -25,15 +28,20 @@ class PyTorchTrainer:
         for epoch in range(self.configs['EPOCH']):
             epoch_loss = 0.0
             self.model.train()
-            for s, (batch_x, batch_y) in enumerate(self.train_loader):
+            progress_bar = tqdm(enumerate(self.train_loader), total=len(self.train_loader), desc=f'Epoch {epoch+1}/{self.configs["EPOCH"]}')
+            
+            for s, (batch_x, batch_y) in progress_bar:
                 inputs = {key: val.to(self.device) for key, val in batch_x.items()}
                 labels = batch_y.to(self.device)
                 modality_outputs, final_output = self.model(inputs)
-                loss = self.loss_func(final_output, labels)
+                one_hot_labels = torch.nn.functional.one_hot(labels - 1, num_classes=self.num_classes).float()
+                loss = self.loss_func(final_output, one_hot_labels)
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
                 epoch_loss += loss.item()
+
+                progress_bar.set_postfix(loss=loss.item())
             
             avg_loss = epoch_loss / len(self.train_loader)
             print(f'Epoch: {epoch}, | training loss: {avg_loss:.4f}')
@@ -73,7 +81,8 @@ class PyTorchTrainer:
                 _, preds = torch.max(final_output, 1)
                 y_true.extend(labels.cpu().numpy())
                 y_pred.extend(preds.cpu().numpy())
-
+        y_pred = np.array(y_pred)
+        y_true = np.array(y_true) - 1
         accuracy = accuracy_score(y_true, y_pred)
         conf_matrix = confusion_matrix(y_true, y_pred)
         precision = precision_score(y_true, y_pred, average='weighted')
