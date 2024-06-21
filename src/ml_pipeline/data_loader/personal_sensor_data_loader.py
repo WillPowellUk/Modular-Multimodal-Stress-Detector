@@ -35,7 +35,7 @@ class PersonalSensorDataLoader:
         print(f'Dataset prepared\n')
         
         # save dataset paths as pkl file
-        dataset_save_path = f'{save_path}/personal_datasets.pkl'
+        dataset_save_path = f'{save_path}/subject_{subject_id}/personal_dataset.pkl'
         with open(dataset_save_path, 'wb') as f:
             pickle.dump(datesets_path, f)
         print(f'Datasets saved at: {dataset_save_path}')

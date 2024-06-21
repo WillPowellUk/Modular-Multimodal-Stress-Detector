@@ -18,6 +18,7 @@ class PyTorchTrainer:
         # self.loss_func = nn.CrossEntropyLoss()
         self.loss_func = nn.BCEWithLogitsLoss()
         self.num_classes = self.configs['num_classes']
+        self.save_path = self.configs['save_path']
 
     def load_config(self, config_path):
         with open(config_path, 'r') as f:
@@ -47,13 +48,13 @@ class PyTorchTrainer:
             print(f'Epoch: {epoch}, | training loss: {avg_loss:.4f}')
             
             if (epoch + 1) % 10 == 0:
-                save_path = f'{self.configs["save_path"]}/checkpoint_{epoch + 1}.pth'
+                save_path = f'{self.save_path}/checkpoint_{epoch + 1}.pth'
                 directory = os.path.dirname(save_path)
                 if not os.path.exists(directory):
                     os.makedirs(directory)
                 torch.save(self.model.state_dict(), save_path)
 
-        final_save_path = f'{self.configs["save_path"]}/checkpoint_{epoch + 1}.pth'
+        final_save_path = f'{self.save_path}/checkpoint_{epoch + 1}.pth'
         directory = os.path.dirname(final_save_path)
         if not os.path.exists(directory):
             os.makedirs(directory)
