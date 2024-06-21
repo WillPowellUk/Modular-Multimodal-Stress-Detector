@@ -20,6 +20,9 @@ class AugmentedDataset(Dataset):
         if not os.path.exists(directory):
                 os.makedirs(directory)
 
+        warned_sensors = set()
+        warned_features = set()
+
         with h5py.File(self.features_path, 'r') as hdf5_file:
             with h5py.File(output_path, 'w') as new_hdf5_file:
                 sample_idx = 0
@@ -45,11 +48,16 @@ class AugmentedDataset(Dataset):
                                 data = []
                                 for sensor in hdf5_file[subject][aug][label][batch].keys():
                                     if sensor not in self.include_sensors:
+                                        if sensor not in warned_sensors:
+                                            warned_sensors.add(sensor)
+                                            print(f"Sensor '{sensor}' is not being used.")
                                         continue
                                     
                                     for feature in hdf5_file[subject][aug][label][batch][sensor].keys():
                                         if feature not in self.include_features:
-                                            print(f'Feature: {feature} for sensor {sensor} not in include_features list')
+                                            if feature not in warned_features:
+                                                warned_features.add(feature)
+                                                print(f'Feature: {feature} for sensor {sensor} not in include_features list')
                                             continue
                                         data.append(hdf5_file[subject][aug][label][batch][sensor][feature][:])
                                 
@@ -79,6 +87,8 @@ class PerSensorDataset(Dataset):
         if not os.path.exists(directory):
                 os.makedirs(directory)
 
+        warned_sensors = set()
+        warned_features = set()
         sample_idx = 0
         with h5py.File(self.features_path, 'r') as hdf5_file:
             with h5py.File(output_path, 'w') as new_hdf5_file:
@@ -105,12 +115,17 @@ class PerSensorDataset(Dataset):
                                 batch_group = new_hdf5_file.require_group(str(sample_idx))
                                 for sensor in hdf5_file[subject][aug][label][batch].keys():
                                     if sensor not in self.include_sensors:
+                                        if sensor not in warned_sensors:
+                                            warned_sensors.add(sensor)
+                                            print(f"Sensor '{sensor}' is not being used.")
                                         continue
                                     sensor_group = batch_group.require_group(sensor)
                                     data = []
                                     for feature in hdf5_file[subject][aug][label][batch][sensor].keys():
                                         if feature not in self.include_features:
-                                            print(f'Feature: {feature} for sensor {sensor} not in include_features list')
+                                            if feature not in warned_features:
+                                                warned_features.add(feature)
+                                                print(f'Feature: {feature} for sensor {sensor} not in include_features list')
                                             continue
                                         data.append(hdf5_file[subject][aug][label][batch][sensor][feature][:])
                                 
@@ -127,6 +142,9 @@ class PerSensorDataset(Dataset):
 
         # Initialize datasets
         all_data = []
+        
+        warned_sensors = set()
+        warned_features = set()
 
         with h5py.File(self.features_path, 'r') as hdf5_file:
             for subject in hdf5_file.keys():
@@ -149,11 +167,16 @@ class PerSensorDataset(Dataset):
                             sample = {'is_augmented': is_augmented}
                             for sensor in hdf5_file[subject][aug][label][batch].keys():
                                 if sensor not in self.include_sensors:
+                                    if sensor not in warned_sensors:
+                                        warned_sensors.add(sensor)
+                                        print(f"Sensor '{sensor}' is not being used.")
                                     continue
                                 data = []
                                 for feature in hdf5_file[subject][aug][label][batch][sensor].keys():
                                     if feature not in self.include_features:
-                                        print(f'Feature: {feature} for sensor {sensor} not in include_features list')
+                                        if feature not in warned_features:
+                                            warned_features.add(feature)
+                                            print(f'Feature: {feature} for sensor {sensor} not in include_features list')
                                         continue
                                     data.append(hdf5_file[subject][aug][label][batch][sensor][feature][:])
                                 
