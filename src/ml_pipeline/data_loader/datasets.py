@@ -163,15 +163,14 @@ class PerSensorDataset(Dataset):
                         print(f'Processed batches for subject {subject_id} and label {label} and aug {aug}')
 
         # Perform K-Fold cross-validation
-        kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+        kf = KFold(n_splits=n_splits, shuffle=True, random_state=42069)
         cross_validation_paths = []
 
         for fold_index, (train_index, val_index) in enumerate(kf.split(all_data)):
             train_data = [all_data[i] for i in train_index]
             val_data = [all_data[i] for i in val_index]
 
-            # Filter the augmented data
-            train_data = [sample for sample in train_data if sample['is_augmented']]
+            # Filter the augmented data for validation set
             val_data = [sample for sample in val_data if not sample['is_augmented']]
 
             save_paths = {

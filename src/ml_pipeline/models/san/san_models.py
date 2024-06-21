@@ -142,7 +142,7 @@ class PersonalizedModalityFusionNet(nn.Module):
         self.dropout = kwargs['dropout']
         
         # Load the generalized model
-        generalized_model = load_generalized_model(generalized_model_path, model_class, self.input_dims, self.embed_dim, self.hidden_dim, self.output_dim, self.n_head_gen, self.dropout)
+        generalized_model = load_generalized_model(generalized_model_path, model_class, **kwargs)
         
         self.generalized_modalities = generalized_model.modalities
         

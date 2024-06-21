@@ -82,9 +82,9 @@ class PyTorchTrainer:
                 y_true.extend(labels.cpu().numpy())
                 y_pred.extend(preds.cpu().numpy())
         y_pred = np.array(y_pred)
-        y_true = np.array(y_true) - 1
+        y_true = np.array(y_true) - 1 # correct for labelling starting from index `1`
         accuracy = accuracy_score(y_true, y_pred)
-        conf_matrix = confusion_matrix(y_true, y_pred)
+        conf_matrix = confusion_matrix(y_true, y_pred, labels=[i for i in range(self.num_classes)])
         precision = precision_score(y_true, y_pred, average='weighted')
         recall = recall_score(y_true, y_pred, average='weighted')
         f1 = f1_score(y_true, y_pred, average='weighted')
