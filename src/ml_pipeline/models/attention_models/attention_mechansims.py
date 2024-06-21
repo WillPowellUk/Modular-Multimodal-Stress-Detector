@@ -57,32 +57,14 @@ class EncoderLayer(nn.Module):
         x = self.dropout2(x)
         return x
 
-class BCSAMechanism(nn.Module):
+class CrossAttentionBlock(nn.Module):
     def __init__(self, embed_dim, n_head, dropout):
-        super(BCSAMechanism, self).__init__()
+        super(CrossAttentionBlock, self).__init__()
         self.cross_attn = nn.MultiheadAttention(embed_dim, n_head, dropout)
-        self.self_attn = nn.MultiheadAttention(embed_dim, n_head, dropout)
-        self.norm1 = nn.LayerNorm(embed_dim)
-        self.norm2 = nn.LayerNorm(embed_dim)
-        self.dropout1 = nn.Dropout(dropout)
-        self.dropout2 = nn.Dropout(dropout)
+        self.norm = nn.LayerNorm(embed_dim)
+        self.dropout = nn.Dropout(dropout)
         
-    def forward(self, x, y):
-        # Bidirectional cross-attention
-        x2, _ = self.cross_attn(x, y, y)
-        y2, _ = self.cross_attn(y, x, x)
-        x = x + self.dropout1(x2)
-        y = y + self.dropout1(y2)
-        x = self.norm1(x)
-        y = self.norm1(y)
-        
-        # Self-attention
-        x2, _ = self.self_attn(x, x, x)
-        y2, _ = self.self_attn(y, y, y)
-        x = x + self.dropout2(x2)
-        y = y + self.dropout2(y2)
-        x = self.norm2(x)
-        y = y.norm2(y)
-        
-        return x, y
-    
+    def forward(self, query, key, value):
+        attn_output, _ = self.cross_attn(query, key, value)
+        attn_output = self.dropout(attn_output)
+        return self.norm(attn_output + query)

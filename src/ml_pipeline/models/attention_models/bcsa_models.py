@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from src.ml_pipeline.models.attention_models.attention_mechansims import PositionalEncoding, BCSAMechanism, EncoderLayer
+from src.ml_pipeline.models.attention_models.attention_mechansims import PositionalEncoding, CrossAttentionBlock, EncoderLayer
 
 class ModularBCSA(nn.Module):
     NAME = "ModularBCSA"
@@ -23,12 +23,12 @@ class ModularBCSA(nn.Module):
         super(ModularBCSA, self).__init__()
         
         self.modalities = nn.ModuleDict()
+        self.cross_attention_blocks = nn.ModuleDict()
         
         for modality in self.input_dims:
             modality_net = nn.ModuleDict({
                 'embedding': nn.Linear(self.input_dims[modality], self.embed_dim),
                 'pos_enc': PositionalEncoding(self.embed_dim),
-                'bcsas': nn.ModuleList([BCSAMechanism(self.embed_dim, self.n_head, self.dropout) for _ in range(self.n_bcsa)]),
                 'enc1': EncoderLayer(self.embed_dim, ffn_hidden=128, n_head=self.n_head, drop_prob=self.dropout),
                 'flatten': nn.Flatten(),
                 'linear': nn.Linear(self.embed_dim * 2, self.hidden_dim),
@@ -37,13 +37,21 @@ class ModularBCSA(nn.Module):
                 'output': nn.Linear(self.hidden_dim, self.output_dim)
             })
             self.modalities[modality] = modality_net
+
+        modalities = list(self.input_dims.keys())
+        for i, modality1 in enumerate(modalities):
+            for j, modality2 in enumerate(modalities):
+                if i != j:
+                    self.cross_attention_blocks[f"{modality1}_to_{modality2}"] = nn.ModuleList(
+                        [CrossAttentionBlock(self.embed_dim, self.n_head, self.dropout) for _ in range(self.n_bcsa)]
+                    )
         
         self.relu = nn.ReLU()
         self.dropout_out = nn.Dropout(p=self.dropout)
         self.output_layer = nn.Linear(len(self.input_dims) * self.hidden_dim, self.output_dim)
 
     def forward(self, inputs):
-        modality_outputs = []
+        modality_outputs = {modality: [] for modality in self.input_dims}
         
         for modality, x in inputs.items():
             batch_size, seq_len, features = x.shape
@@ -52,23 +60,33 @@ class ModularBCSA(nn.Module):
             x_emb = self.modalities[modality]['embedding'](x)
             x_emb = x_emb.view(batch_size, features, -1)  # Reshape back to [batch_size, features, embed_dim]
             positional_x = self.modalities[modality]['pos_enc'](x_emb)
-            
-            # Apply multiple BCSA blocks in series
-            for bcsa in self.modalities[modality]['bcsas']:
-                positional_x, _ = bcsa(positional_x, positional_x)
-                
-            attn1 = self.modalities[modality]['enc1'](positional_x)
+            modality_outputs[modality] = positional_x
+        
+        for _ in range(self.n_bcsa):
+            updated_outputs = {}
+            for modality1 in modality_outputs:
+                x1 = modality_outputs[modality1]
+                for modality2 in modality_outputs:
+                    if modality1 != modality2:
+                        x2 = modality_outputs[modality2]
+                        x1 = self.cross_attention_blocks[f"{modality2}_to_{modality1}"][_](x1, x2, x2)
+                updated_outputs[modality1] = x1
+            modality_outputs = updated_outputs
+
+        final_modality_outputs = []
+        for modality, x in modality_outputs.items():
+            attn1 = self.modalities[modality]['enc1'](x)
             avg_pool = torch.mean(attn1, 1)
             max_pool, _ = torch.max(attn1, 1)
             concat = torch.cat((avg_pool, max_pool), 1)
             concat_ = self.modalities[modality]['relu'](self.modalities[modality]['linear'](concat))
             concat_ = self.modalities[modality]['dropout_out'](concat_)
             modality_output = self.modalities[modality]['output'](concat_)
-            modality_outputs.append(concat_)
+            final_modality_outputs.append(concat_)
         
-        concat = torch.cat(modality_outputs, dim=1)
+        concat = torch.cat(final_modality_outputs, dim=1)
         concat = self.relu(concat)
         concat = self.dropout_out(concat)
         
         final_output = self.output_layer(concat)
-        return modality_outputs, final_output
+        return final_modality_outputs, final_output
