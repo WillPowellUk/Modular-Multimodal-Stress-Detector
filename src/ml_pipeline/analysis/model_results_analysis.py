@@ -89,12 +89,17 @@ class ModelResultsAnalysis:
         cm_percentage = cm / cm_sum.astype(float) * 100
 
         labels = np.asarray([f"{value}\n{percentage:.2f}%" for value, percentage in zip(cm.flatten(), cm_percentage.flatten())]).reshape(cm.shape)
-
+        # labels = np.asarray([f"{percentage:.2f}%" for value, percentage in zip(cm.flatten(), cm_percentage.flatten())]).reshape(cm.shape)
         sns.heatmap(cm, annot=labels, fmt='', cmap='Blues', cbar=True, ax=ax, annot_kws={"size": 14})
 
         ax.set_xlabel('Predicted labels', fontsize=16)
         ax.set_ylabel('True labels', fontsize=16)
-        # ax.set_title('Confusion Matrix', fontsize=20)
-        plt.xticks(fontsize=14)
-        plt.yticks(fontsize=14)
+
+        if num_labels == 2:
+            ax.set_xticklabels(['Non-Stressed', 'Stressed'], fontsize=14)
+            ax.set_yticklabels(['Non-Stressed', 'Stressed'], fontsize=14)
+        else:
+            plt.xticks(fontsize=14)
+            plt.yticks(fontsize=14)
+
         plt.show()
