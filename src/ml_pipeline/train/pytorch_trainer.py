@@ -4,7 +4,7 @@ import os
 import numpy as np
 import torch.nn as nn
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score, log_loss
-from src.ml_pipeline.models.san.san_losses import LossWrapper, FocalLoss
+from src.ml_pipeline.models.attention_models.san_losses import LossWrapper, FocalLoss
 from tqdm import tqdm
 
 class PyTorchTrainer:

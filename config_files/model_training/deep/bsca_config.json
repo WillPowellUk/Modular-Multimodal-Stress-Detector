@@ -1,0 +1,14 @@
+{
+    "num_classes": 2,
+    "n_bcsa": 1,
+    "embed_dim": 128,
+    "hidden_dim": 256,
+    "output_dim": 2,
+    "n_head_gen": 4,
+    "n_head_per": 1,
+    "dropout": 0.1,
+    "learning_rate": 0.001,
+    "epoch": 5,
+    "batch_size": 32,
+    "save_path": "src/wesad/WESAD/ckpts/san/wrist_manual_fe/60s_5s_10s/mmfn/generalized/fold_{fold}"
+}
