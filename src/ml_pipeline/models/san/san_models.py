@@ -60,27 +60,40 @@ class EncoderLayer(nn.Module):
 
 class ModularModalityFusionNet(torch.nn.Module):
     NAME = "ModularModalityFusionNet"
-    def __init__(self, input_dims, embed_dim, hidden_dim, output_dim, n_head=4, dropout=0.1):
+    def __init__(self, **kwargs):
+        required_params = ['input_dims', 'embed_dim', 'hidden_dim', 'output_dim', 'n_head_gen', 'dropout']
+        
+        for param in required_params:
+            if param not in kwargs:
+                raise ValueError(f'Missing required parameter: {param}')
+        
+        self.input_dims = kwargs['input_dims']
+        self.embed_dim = kwargs['embed_dim']
+        self.hidden_dim = kwargs['hidden_dim']
+        self.output_dim = kwargs['output_dim']
+        self.n_head = kwargs['n_head_gen']
+        self.dropout = kwargs['dropout']
+
         super(ModularModalityFusionNet, self).__init__()
         
         self.modalities = nn.ModuleDict()
         
-        for modality in input_dims:
+        for modality in self.input_dims:
             modality_net = nn.ModuleDict({
-                'embedding': nn.Linear(input_dims[modality], embed_dim),
-                'pos_enc': PositionalEncoding(embed_dim),
-                'enc1': EncoderLayer(embed_dim, ffn_hidden=128, n_head=n_head, drop_prob=dropout),
+                'embedding': nn.Linear(self.input_dims[modality], self.embed_dim),
+                'pos_enc': PositionalEncoding(self.embed_dim),
+                'enc1': EncoderLayer(self.embed_dim, ffn_hidden=128, n_head=self.n_head, drop_prob=self.dropout),
                 'flatten': nn.Flatten(),
-                'linear': nn.Linear(embed_dim * 2, hidden_dim),
+                'linear': nn.Linear(self.embed_dim * 2, self.hidden_dim),
                 'relu': nn.ReLU(),
-                'dropout_out': nn.Dropout(p=dropout),
-                'output': nn.Linear(hidden_dim, output_dim)
+                'dropout_out': nn.Dropout(p=self.dropout),
+                'output': nn.Linear(self.hidden_dim, self.output_dim)
             })
             self.modalities[modality] = modality_net
         
         self.relu = nn.ReLU()
-        self.dropout_out = nn.Dropout(p=dropout)
-        self.output_layer = nn.Linear(len(input_dims) * hidden_dim, output_dim)
+        self.dropout_out = nn.Dropout(p=self.dropout)
+        self.output_layer = nn.Linear(len(self.input_dims) * self.hidden_dim, self.output_dim)
 
     def forward(self, inputs):
         modality_outputs = []
@@ -108,14 +121,28 @@ class ModularModalityFusionNet(torch.nn.Module):
         final_output = self.output_layer(concat)
         return modality_outputs, final_output
 
-class PersonalizedModalityFusionNet(torch.nn.Module):
+class PersonalizedModalityFusionNet(nn.Module):
     NAME = "PersonalizedModalityFusionNet"
     
-    def __init__(self, generalized_model_path, model_class, input_dims, embed_dim, hidden_dim, output_dim, n_head_gen=4, n_head_per=1, dropout=0.1):
+    def __init__(self, generalized_model_path, model_class, **kwargs):
         super(PersonalizedModalityFusionNet, self).__init__()
+
+        required_params = ['input_dims', 'embed_dim', 'hidden_dim', 'output_dim', 'n_head_gen', 'n_head_per', 'dropout']
+        
+        for param in required_params:
+            if param not in kwargs:
+                raise ValueError(f'Missing required parameter: {param}')
+        
+        self.input_dims = kwargs['input_dims']
+        self.embed_dim = kwargs['embed_dim']
+        self.hidden_dim = kwargs['hidden_dim']
+        self.output_dim = kwargs['output_dim']
+        self.n_head_gen = kwargs['n_head_gen']
+        self.n_head_per = kwargs['n_head_per']
+        self.dropout = kwargs['dropout']
         
         # Load the generalized model
-        generalized_model = load_generalized_model(generalized_model_path, model_class, input_dims, embed_dim, hidden_dim, output_dim, n_head_gen, dropout)
+        generalized_model = load_generalized_model(generalized_model_path, model_class, self.input_dims, self.embed_dim, self.hidden_dim, self.output_dim, self.n_head_gen, self.dropout)
         
         self.generalized_modalities = generalized_model.modalities
         
@@ -125,22 +152,22 @@ class PersonalizedModalityFusionNet(torch.nn.Module):
         
         self.personalized_modalities = nn.ModuleDict()
         
-        for modality in input_dims:
+        for modality in self.input_dims:
             modality_net = nn.ModuleDict({
-                'embedding': nn.Linear(input_dims[modality], embed_dim),
-                'pos_enc': PositionalEncoding(embed_dim),
-                'enc1': EncoderLayer(embed_dim, ffn_hidden=128, n_head=n_head_per, drop_prob=dropout),
+                'embedding': nn.Linear(self.input_dims[modality], self.embed_dim),
+                'pos_enc': PositionalEncoding(self.embed_dim),
+                'enc1': EncoderLayer(self.embed_dim, ffn_hidden=128, n_head=self.n_head_per, drop_prob=self.dropout),
                 'flatten': nn.Flatten(),
-                'linear': nn.Linear(embed_dim * 2, hidden_dim),
+                'linear': nn.Linear(self.embed_dim * 2, self.hidden_dim),
                 'relu': nn.ReLU(),
-                'dropout_out': nn.Dropout(p=dropout),
-                'output': nn.Linear(hidden_dim, output_dim)
+                'dropout_out': nn.Dropout(p=self.dropout),
+                'output': nn.Linear(self.hidden_dim, self.output_dim)
             })
             self.personalized_modalities[modality] = modality_net
         
         self.relu = nn.ReLU()
-        self.dropout_out = nn.Dropout(p=dropout)
-        self.output_layer = nn.Linear(len(input_dims) * hidden_dim * 2, output_dim)  # Adjusted for concatenation of both generalized and personalized outputs
+        self.dropout_out = nn.Dropout(p=self.dropout)
+        self.output_layer = nn.Linear(len(self.input_dims) * self.hidden_dim * 2, self.output_dim)
 
     def forward(self, inputs):
         generalized_modality_outputs = []

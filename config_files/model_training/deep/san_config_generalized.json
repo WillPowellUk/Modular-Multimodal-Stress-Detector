@@ -1,10 +1,14 @@
 {
-    "NUM_CLASSES": 2,
-    "EMBED_DIM": 128,
-    "HIDDEN_DIM": 256,
-    "N_HEAD_GEN" : 4,
-    "LR": 0.001,
-    "EPOCH": 5,
-    "SAVE_PATH": "src/wesad/WESAD/ckpts/san/wrist_manual_fe/60s_5s_10s/generalized",
-    "BATCH_SIZE": 32
+    "input_dims": 128,
+
+    "embed_dim": 128,
+    "hidden_dim": 256,
+    "output_dim": 2,
+    "n_head_gen": 4,
+    "n_head_per": 1,
+    "dropout": 0.1,
+    "learning_rate": 0.001,
+    "epoch": 5,
+    "batch_size": 32,
+    "save_path": "src/wesad/WESAD/ckpts/san/wrist_manual_fe/60s_5s_10s/generalized"
 }

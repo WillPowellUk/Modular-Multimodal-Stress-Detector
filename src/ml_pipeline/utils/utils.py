@@ -48,3 +48,9 @@ def load_generalized_model(generalized_model_path, model_class, *model_args):
     state_dict = torch.load(generalized_model_path)
     model.load_state_dict(state_dict)
     return model
+
+def load_json(config_path):
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+
+    return config

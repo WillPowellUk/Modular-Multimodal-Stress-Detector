@@ -14,10 +14,10 @@ class PyTorchTrainer:
         self.val_loader = val_loader
         self.device = device
         self.configs = self.load_config(config_path)
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.configs['LR'])
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.configs['learning_rate'])
         # self.loss_func = nn.CrossEntropyLoss()
         self.loss_func = nn.BCEWithLogitsLoss()
-        self.num_classes = self.configs['NUM_CLASSES']
+        self.num_classes = self.configs['num_classes']
 
     def load_config(self, config_path):
         with open(config_path, 'r') as f:
@@ -25,10 +25,10 @@ class PyTorchTrainer:
         return configs
 
     def train(self):
-        for epoch in range(self.configs['EPOCH']):
+        for epoch in range(self.configs['epoch']):
             epoch_loss = 0.0
             self.model.train()
-            progress_bar = tqdm(enumerate(self.train_loader), total=len(self.train_loader), desc=f'Epoch {epoch+1}/{self.configs["EPOCH"]}')
+            progress_bar = tqdm(enumerate(self.train_loader), total=len(self.train_loader), desc=f'Epoch {epoch+1}/{self.configs["epoch"]}')
             
             for s, (batch_x, batch_y) in progress_bar:
                 inputs = {key: val.to(self.device) for key, val in batch_x.items()}
@@ -47,13 +47,13 @@ class PyTorchTrainer:
             print(f'Epoch: {epoch}, | training loss: {avg_loss:.4f}')
             
             if (epoch + 1) % 10 == 0:
-                save_path = f'{self.configs["SAVE_PATH"]}/checkpoint_{epoch + 1}.pth'
+                save_path = f'{self.configs["save_path"]}/checkpoint_{epoch + 1}.pth'
                 directory = os.path.dirname(save_path)
                 if not os.path.exists(directory):
                     os.makedirs(directory)
                 torch.save(self.model.state_dict(), save_path)
 
-        final_save_path = f'{self.configs["SAVE_PATH"]}/checkpoint_{epoch + 1}.pth'
+        final_save_path = f'{self.configs["save_path"]}/checkpoint_{epoch + 1}.pth'
         directory = os.path.dirname(final_save_path)
         if not os.path.exists(directory):
             os.makedirs(directory)
