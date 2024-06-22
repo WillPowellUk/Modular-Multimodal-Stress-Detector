@@ -32,6 +32,7 @@ class ModelResultsAnalysis:
             print(f"  Precision: {metric['precision']:.5f}")
             print(f"  Recall: {metric['recall']:.5f}")
             print(f"  F1 Score: {metric['f1_score']:.5f}")
+            print(f"  Inference Time (ms): {metric['inference_time_ms']:.5f}")
 
     def analyze_subject(self, subject_id):
         if subject_id < 0 or subject_id >= len(self.results):
@@ -52,6 +53,7 @@ class ModelResultsAnalysis:
             precisions = []
             recalls = []
             f1_scores = []
+            inference_times = []
             for subject_results in self.results:
                 accuracies.append(subject_results[model_name]['accuracy'])
                 if subject_results[model_name]['loss'] is not None:
@@ -59,19 +61,22 @@ class ModelResultsAnalysis:
                 precisions.append(subject_results[model_name]['precision'])
                 recalls.append(subject_results[model_name]['recall'])
                 f1_scores.append(subject_results[model_name]['f1_score'])
+                inference_times.append(subject_results[model_name]['inference_time_ms'])
             
             avg_accuracy = np.mean(accuracies)
             avg_loss = np.mean(losses) if losses else None
             avg_precision = np.mean(precisions)
             avg_recall = np.mean(recalls)
             avg_f1_score = np.mean(f1_scores)
+            avg_inference_time = np.mean(inference_times)
             
             collective_metrics[model_name] = {
                 'accuracy': avg_accuracy,
                 'loss': avg_loss,
                 'precision': avg_precision,
                 'recall': avg_recall,
-                'f1_score': avg_f1_score
+                'f1_score': avg_f1_score,
+                'inference_time_ms': avg_inference_time
             }
 
         self.print_metrics(collective_metrics)

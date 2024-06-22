@@ -132,7 +132,7 @@ class PyTorchTrainer:
             "recall": recall,
             "f1_score": f1,
             "loss": loss,
-            "average_inference_time_ms": avg_inference_time,
+            "inference_time_ms": avg_inference_time,
             "device": str(self.device)
         }
 
