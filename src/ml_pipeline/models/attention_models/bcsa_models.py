@@ -6,7 +6,7 @@ class ModularBCSA(nn.Module):
     NAME = "ModularBCSA"
     
     def __init__(self, **kwargs):
-        required_params = ['input_dims', 'embed_dim', 'hidden_dim', 'output_dim', 'n_head_gen', 'dropout', 'n_bcsa']
+        required_params = ['input_dims', 'embed_dim', 'hidden_dim', 'output_dim', 'n_head_gen', 'dropout', 'n_bcsa', 'batch_size']
         
         for param in required_params:
             if param not in kwargs:
@@ -19,6 +19,7 @@ class ModularBCSA(nn.Module):
         self.n_head = kwargs['n_head_gen']
         self.dropout = kwargs['dropout']
         self.n_bcsa = kwargs['n_bcsa']
+        self.batch_size = kwargs['batch_size']
 
         super(ModularBCSA, self).__init__()
         
@@ -90,3 +91,26 @@ class ModularBCSA(nn.Module):
         
         final_output = self.output_layer(concat)
         return final_modality_outputs, final_output
+    
+    def summary(self, input_shape):
+        buffer = io.StringIO()
+        summary(self, input_shape, device="cpu", print_fn=lambda x: buffer.write(x + "\n"))
+        summary_str = buffer.getvalue()
+        buffer.close()
+
+        # Convert the summary string to LaTeX table format
+        latex_str = "\\begin{table}[H]\n\\centering\n\\begin{tabular}{|l|l|}\n\\hline\n"
+        latex_str += "Layer & Output Shape \\\\\n\\hline\n"
+        
+        for line in summary_str.split("\n"):
+            if line.startswith(" "):
+                line = line.strip()
+                parts = line.split()
+                if len(parts) >= 2:
+                    layer_name = " ".join(parts[:-1])
+                    output_shape = parts[-1]
+                    latex_str += f"{layer_name} & {output_shape} \\\\\n\\hline\n"
+        
+        latex_str += "\\end{tabular}\n\\caption{Model Summary}\n\\end{table}"
+        
+        print(latex_str)

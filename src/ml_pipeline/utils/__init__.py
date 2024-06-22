@@ -4,5 +4,6 @@ from .utils import (
     get_key,
     copy_json,
     load_generalized_model,
-    load_json
+    load_json,
+    print_model_summary
 )

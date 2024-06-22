@@ -1,12 +1,13 @@
-import torch
-import json
 import os
+import json
 import numpy as np
+import torch
 import torch.nn as nn
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score, log_loss
 from src.ml_pipeline.models.attention_models.san_losses import LossWrapper, FocalLoss
+from src.ml_pipeline.utils import print_model_summary
 
 class PyTorchTrainer:
     def __init__(self, model, train_loader, val_loader, config_path, device):
@@ -25,6 +26,9 @@ class PyTorchTrainer:
         with open(config_path, 'r') as f:
             configs = json.load(f)
         return configs
+
+    def print_model_summary(self):
+        print_model_summary(self.model, self.model.input_dims, batch_size=self.train_loader.batch_size, device=self.device.type)
 
     def train(self):
         self.writer = SummaryWriter(log_dir=f'{self.save_path}/tensorboard')  # TensorBoard writer
