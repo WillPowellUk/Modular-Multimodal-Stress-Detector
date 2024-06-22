@@ -58,6 +58,7 @@ def load_json(config_path):
 
     return config
 
+
 def print_model_summary(model, input_dims, batch_size=-1, device="cuda"):
     def register_hook(module):
         def hook(module, input, output):
@@ -129,7 +130,7 @@ def print_model_summary(model, input_dims, batch_size=-1, device="cuda"):
         h.remove()
 
     print("----------------------------------------------------------------")
-    line_new = "{:>20}  {:>25} {:>15}".format("Layer (type)", "Output Shape", "Param #")
+    line_new = "{:>30}  {:>40} {:>20}".format("Layer (type)", "Output Shape", "Param #")
     print(line_new)
     print("================================================================")
     total_params = 0
@@ -137,7 +138,7 @@ def print_model_summary(model, input_dims, batch_size=-1, device="cuda"):
     trainable_params = 0
     for layer in summary:
         # input_shape, output_shape, trainable, nb_params
-        line_new = "{:>20}  {:>25} {:>15}".format(
+        line_new = "{:>30}  {:>40} {:>20}".format(
             layer,
             str(summary[layer]["output_shape"]),
             "{0:,}".format(summary[layer]["nb_params"]),
