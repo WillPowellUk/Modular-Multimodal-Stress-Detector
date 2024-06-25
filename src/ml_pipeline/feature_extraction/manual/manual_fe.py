@@ -193,7 +193,6 @@ class ManualFE:
 
         print2(LOG_FILE_PATH, 'Scaling and imputation complete')
         return all_batches_features
-
     
     def extract_features(self):
         print(f'Extracting Features. Writing to log file: {LOG_FILE_PATH}...')
