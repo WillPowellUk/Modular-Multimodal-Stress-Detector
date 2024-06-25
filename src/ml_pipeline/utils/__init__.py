@@ -5,5 +5,6 @@ from .utils import (
     copy_json,
     load_generalized_model,
     load_json,
-    print_model_summary
+    print_model_summary,
+    print2
 )

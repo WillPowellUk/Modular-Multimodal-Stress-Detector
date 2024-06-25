@@ -25,8 +25,8 @@ class DataAugmenter:
             sliding_step = sliding_length * sample_rate
 
             while end_idx <= len(group):
-                segment = group.iloc[start_idx:end_idx].copy()
-                if segment['label'] in self.labels:
+                segment = group.iloc[start_idx:end_idx].copy().reset_index(drop=True)
+                if str(segment['label'][0]) in self.labels:
                     if segment['label'].nunique() == 1:
                         segment.loc[:, 'is_augmented'] = False if start_idx % (window_size * sample_rate) == 0 else True
                         if len(segment) == window_size * sample_rate:

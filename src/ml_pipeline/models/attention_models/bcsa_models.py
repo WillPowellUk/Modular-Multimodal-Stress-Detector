@@ -96,7 +96,7 @@ class MARCONet(nn.Module):
     NAME = "MARCONet"
     
     def __init__(self, **kwargs):
-        required_params = ['input_dims', 'embed_dim', 'hidden_dim', 'output_dim', 'n_head_gen', 'dropout', 'n_bcsa', 'batch_size']
+        required_params = ['input_dims', 'embed_dim', 'hidden_dim', 'output_dim', 'n_head_gen', 'dropout', 'n_bcsa', 'batch_size', 'max_segments']
         
         for param in required_params:
             if param not in kwargs:
@@ -110,8 +110,9 @@ class MARCONet(nn.Module):
         self.dropout = kwargs['dropout']
         self.n_bcsa = kwargs['n_bcsa']
         self.batch_size = kwargs['batch_size']
+        self.max_segments = kwargs['max_segments']
 
-        super(ModularBCSA, self).__init__()
+        super(MARCONet, self).__init__()
         
         self.modalities = nn.ModuleDict()
         self.cross_attention_blocks = nn.ModuleDict()
@@ -120,7 +121,7 @@ class MARCONet(nn.Module):
             modality_net = nn.ModuleDict({
                 'embedding': nn.Linear(self.input_dims[modality], self.embed_dim),
                 'pos_enc': PositionalEncoding(self.embed_dim),
-                'enc1': EncoderLayer(self.embed_dim, ffn_hidden=128, n_head=self.n_head, drop_prob=self.dropout),
+                'enc1': EncoderLayer(self.embed_dim, ffn_hidden=128, n_head=self.n_head, drop_prob=self.dropout, max_segments=self.max_segments),
                 'flatten': nn.Flatten(),
                 'linear': nn.Linear(self.embed_dim * 2, self.hidden_dim),
                 'relu': nn.ReLU(),
@@ -134,7 +135,7 @@ class MARCONet(nn.Module):
             for j, modality2 in enumerate(modalities):
                 if i != j:
                     self.cross_attention_blocks[f"{modality1}_to_{modality2}"] = nn.ModuleList(
-                        [CrossAttentionBlock(self.embed_dim, self.n_head, self.dropout) for _ in range(self.n_bcsa)]
+                        [CrossAttentionBlock(self.embed_dim, self.n_head, self.dropout, max_segments=self.max_segments) for _ in range(self.n_bcsa)]
                     )
         
         self.relu = nn.ReLU()

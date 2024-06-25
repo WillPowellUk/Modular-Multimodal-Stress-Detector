@@ -1,0 +1,19 @@
+Extracting features...
+Scaling and imputing missing values...
+Scaling and imputation complete
+Saving features to src/wesad/WESAD/manual_fe/wrist_manual_fe/60s_60s_60s/wrist_features.hdf5...
+Features saved successfully
+Extracting features...
+Extracting features from batch 101/434 | ETA: 0h 4m 18.99s
+Extracting features from batch 201/434 | ETA: 0h 3m 7.97s
+Extracting features...
+Extracting features from batch 101/2725 | ETA: 0h 30m 1.56s
+Extracting features from batch 201/2725 | ETA: 0h 25m 44.80s
+Extracting features from batch 301/2725 | ETA: 0h 19m 30.29s
+Extracting features from batch 401/2725 | ETA: 0h 15m 58.32s
+Extracting features from batch 501/2725 | ETA: 0h 13m 40.54s
+Extracting features from batch 601/2725 | ETA: 0h 12m 7.33s
+Extracting features from batch 701/2725 | ETA: 0h 11m 0.01s
+Extracting features from batch 801/2725 | ETA: 0h 9m 55.94s
+Extracting features from batch 901/2725 | ETA: 0h 9m 2.46s
+Extracting features from batch 1001/2725 | ETA: 0h 8m 14.07s

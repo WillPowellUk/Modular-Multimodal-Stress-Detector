@@ -1,5 +1,6 @@
 {
     "num_classes": 2,
+    "max_segments": 5,
     "embed_dim": 128,
     "hidden_dim": 256,
     "output_dim": 2,

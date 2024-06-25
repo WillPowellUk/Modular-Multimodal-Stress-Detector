@@ -167,3 +167,7 @@ def print_model_summary(model, input_dims, batch_size=-1, device="cuda"):
     print("Estimated Total Size (MB): %0.2f" % total_size)
     print("----------------------------------------------------------------")
     # return summary
+
+def print2(filename, text):
+    with open(filename, 'a') as file:
+        file.write(text + '\n')

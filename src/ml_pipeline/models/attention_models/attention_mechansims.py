@@ -91,8 +91,11 @@ class BidirectionalCrossAttentionBlock(nn.Module):
         
         return output_A, output_B
 
+import torch
+import torch.nn as nn
+
 class EncoderLayer(nn.Module):
-    def __init__(self, d_model, ffn_hidden, n_head, drop_prob):
+    def __init__(self, d_model, ffn_hidden, n_head, drop_prob, max_segments):
         super(EncoderLayer, self).__init__()
         self.attention = nn.MultiheadAttention(d_model, n_head)
         self.norm1 = nn.LayerNorm(d_model)
@@ -100,33 +103,39 @@ class EncoderLayer(nn.Module):
         self.ffn = PositionwiseFeedForward(d_model=d_model, hidden=ffn_hidden, drop_prob=drop_prob)
         self.norm2 = nn.LayerNorm(d_model)
         self.dropout2 = nn.Dropout(drop_prob)
+        self.max_segments = max_segments
         self.cache = {'keys': [], 'queries': [], 'values': []}
 
     def forward(self, x, use_cache=True):
-        # Update cache with new inputs
+        # Compute key, query, and value for the new segment
+        new_key, new_query, new_value = self.attention.in_proj_q(x), self.attention.in_proj_k(x), self.attention.in_proj_v(x)
+        
         if use_cache:
-            new_key, new_query, new_value = self.attention.in_proj_q(x), self.attention.in_proj_k(x), self.attention.in_proj_v(x)
+            # Append new tensors to cache
             self.cache['keys'].append(new_key)
             self.cache['queries'].append(new_query)
             self.cache['values'].append(new_value)
-            # Ensure cache size does not exceed the sequence length
+            # Ensure cache size does not exceed the maximum number of segments
             if len(self.cache['keys']) > self.max_segments:
                 self.cache['keys'].pop(0)
                 self.cache['queries'].pop(0)
                 self.cache['values'].pop(0)
         else:
-            self.cache = {'keys': [self.attention.in_proj_q(x)], 'queries': [self.attention.in_proj_k(x)], 'values': [self.attention.in_proj_v(x)]}
+            # Reset cache with new tensors
+            self.cache = {'keys': [new_key], 'queries': [new_query], 'values': [new_value]}
 
         # Concatenate cached keys, queries, values
-        keys = torch.cat(self.cache['keys'], dim=0)
-        queries = torch.cat(self.cache['queries'], dim=0)
-        values = torch.cat(self.cache['values'], dim=0)
+        keys = torch.cat(self.cache['keys'], dim=1)
+        queries = torch.cat(self.cache['queries'], dim=1)
+        values = torch.cat(self.cache['values'], dim=1)
 
+        # Compute self-attention using cached and new tensors
         _x = x
         x, _ = self.attention(queries, keys, values)
         x = self.norm1(x + _x)
         x = self.dropout1(x)
 
+        # Feed forward
         _x = x
         x = self.ffn(x)
         x = self.norm2(x + _x)
@@ -134,31 +143,38 @@ class EncoderLayer(nn.Module):
         return x
 
 class CrossAttentionBlock(nn.Module):
-    def __init__(self, embed_dim, n_head, dropout):
+    def __init__(self, embed_dim, n_head, dropout, max_segments):
         super(CrossAttentionBlock, self).__init__()
         self.cross_attn = nn.MultiheadAttention(embed_dim, n_head, dropout)
         self.norm = nn.LayerNorm(embed_dim)
         self.dropout = nn.Dropout(dropout)
+        self.max_segments = max_segments
         self.cache = {'keys': [], 'queries': [], 'values': []}
 
     def forward(self, query, key, value, use_cache=True):
+        # Compute key, query, and value for the new segment
+        new_key, new_query, new_value = self.cross_attn.in_proj_k(key), self.cross_attn.in_proj_q(query), self.cross_attn.in_proj_v(value)
+
         if use_cache:
-            new_key, new_query, new_value = self.cross_attn.in_proj_k(key), self.cross_attn.in_proj_q(query), self.cross_attn.in_proj_v(value)
+            # Append new tensors to cache
             self.cache['keys'].append(new_key)
             self.cache['queries'].append(new_query)
             self.cache['values'].append(new_value)
-            # Ensure cache size does not exceed the sequence length
+            # Ensure cache size does not exceed the maximum number of segments
             if len(self.cache['keys']) > self.max_segments:
                 self.cache['keys'].pop(0)
                 self.cache['queries'].pop(0)
                 self.cache['values'].pop(0)
         else:
-            self.cache = {'keys': [self.cross_attn.in_proj_k(key)], 'queries': [self.cross_attn.in_proj_q(query)], 'values': [self.cross_attn.in_proj_v(value)]}
+            # Reset cache with new tensors
+            self.cache = {'keys': [new_key], 'queries': [new_query], 'values': [new_value]}
 
-        keys = torch.cat(self.cache['keys'], dim=0)
-        queries = torch.cat(self.cache['queries'], dim=0)
-        values = torch.cat(self.cache['values'], dim=0)
+        # Concatenate cached keys, queries, values
+        keys = torch.cat(self.cache['keys'], dim=1)
+        queries = torch.cat(self.cache['queries'], dim=1)
+        values = torch.cat(self.cache['values'], dim=1)
 
+        # Compute cross-attention using cached and new tensors
         attn_output, _ = self.cross_attn(queries, keys, values)
         attn_output = self.dropout(attn_output)
         return self.norm(attn_output + query)
