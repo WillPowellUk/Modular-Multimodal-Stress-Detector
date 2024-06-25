@@ -2,6 +2,7 @@ from .attention_models import (
     ModularModalityFusionNet,
     PersonalizedModalityFusionNet,
     ModularBCSA,
+    MARCONet,
     LossWrapper, 
     FocalLoss,
     PositionalEncoding, 
