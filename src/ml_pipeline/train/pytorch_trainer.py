@@ -29,8 +29,10 @@ class PyTorchTrainer:
         return configs
 
     def print_model_summary(self):
+        self.model_copy = self.model
         print_model_summary(self.model, self.model.input_dims, batch_size=self.train_loader.batch_size, device=self.device.type)
-
+        self.model = self.model_copy
+        
     def train(self):
         self.writer = SummaryWriter(log_dir=f'{self.save_path}/tensorboard')  # TensorBoard writer
         print(f"Storing tensorboard log to: {self.writer.log_dir}")

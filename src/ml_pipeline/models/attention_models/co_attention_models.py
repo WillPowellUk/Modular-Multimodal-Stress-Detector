@@ -121,6 +121,7 @@ class MARCONet(nn.Module):
             modality_net = nn.ModuleDict({
                 'embedding': nn.Linear(self.input_dims[modality], self.embed_dim),
                 'pos_enc': PositionalEncoding(self.embed_dim),
+                # 'enc1': EncoderLayer(self.embed_dim, ffn_hidden=128, n_head=self.n_head, drop_prob=self.dropout),
                 'enc1': CachedEncoderLayer(self.embed_dim, ffn_hidden=128, n_head=self.n_head, drop_prob=self.dropout, token_length=self.token_length),
                 'flatten': nn.Flatten(),
                 'linear': nn.Linear(self.embed_dim * 2, self.hidden_dim),
