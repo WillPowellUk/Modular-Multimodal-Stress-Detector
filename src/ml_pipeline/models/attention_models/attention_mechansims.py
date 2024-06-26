@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn import MultiheadAttention
 import math
 
 class PositionalEncoding(nn.Module):
@@ -35,40 +36,74 @@ class PositionwiseFeedForward(nn.Module):
         x = self.linear2(x)
         return x
 
-# class EncoderLayer(nn.Module):
-#     def __init__(self, d_model, ffn_hidden, n_head, drop_prob):
-#         super(EncoderLayer, self).__init__()
-#         self.attention = nn.MultiheadAttention(d_model, n_head)
-#         self.norm1 = nn.LayerNorm(d_model)
-#         self.dropout1 = nn.Dropout(drop_prob)
-#         self.ffn = PositionwiseFeedForward(d_model=d_model, hidden=ffn_hidden, drop_prob=drop_prob)
-#         self.norm2 = nn.LayerNorm(d_model)
-#         self.dropout2 = nn.Dropout(drop_prob)
+class EncoderLayer(nn.Module):
+    def __init__(self, d_model, ffn_hidden, n_head, drop_prob):
+        super(EncoderLayer, self).__init__()
+        self.attention = nn.MultiheadAttention(d_model, n_head)
+        self.norm1 = nn.LayerNorm(d_model)
+        self.dropout1 = nn.Dropout(drop_prob)
+        self.ffn = PositionwiseFeedForward(d_model=d_model, hidden=ffn_hidden, drop_prob=drop_prob)
+        self.norm2 = nn.LayerNorm(d_model)
+        self.dropout2 = nn.Dropout(drop_prob)
 
-#     def forward(self, x):
-#         _x = x
-#         x, _ = self.attention(x, x, x)
-#         x = self.norm1(x + _x)
-#         x = self.dropout1(x)
+    def forward(self, x):
+        _x = x
+        x, _ = self.attention(x, x, x)
+        x = self.norm1(x + _x)
+        x = self.dropout1(x)
 
-#         _x = x
-#         x = self.ffn(x)
-#         x = self.norm2(x + _x)
-#         x = self.dropout2(x)
-#         return x
+        _x = x
+        x = self.ffn(x)
+        x = self.norm2(x + _x)
+        x = self.dropout2(x)
+        return x
+    
+class CachedEncoderLayer(nn.Module):
+    def __init__(self, d_model, ffn_hidden, n_head, drop_prob, token_length):
+        super(CachedEncoderLayer, self).__init__()
+        self.attention = CachedMultiheadAttention(d_model, n_head, token_length)
+        self.norm1 = nn.LayerNorm(d_model)
+        self.dropout1 = nn.Dropout(drop_prob)
+        self.ffn = PositionwiseFeedForward(d_model=d_model, hidden=ffn_hidden, drop_prob=drop_prob)
+        self.norm2 = nn.LayerNorm(d_model)
+        self.dropout2 = nn.Dropout(drop_prob)
 
-# class CrossAttentionBlock(nn.Module):
-#     def __init__(self, embed_dim, n_head, dropout):
-#         super(CrossAttentionBlock, self).__init__()
-#         self.cross_attn = nn.MultiheadAttention(embed_dim, n_head, dropout)
-#         self.norm = nn.LayerNorm(embed_dim)
-#         self.dropout = nn.Dropout(dropout)
+    def forward(self, x):
+        _x = x
+        x, _ = self.attention(x, x, x)
+        x = self.norm1(x + _x)
+        x = self.dropout1(x)
+
+        _x = x
+        x = self.ffn(x)
+        x = self.norm2(x + _x)
+        x = self.dropout2(x)
+        return x
+    
+class CachedCrossAttentionBlock(nn.Module):
+    def __init__(self, embed_dim, n_head, dropout, token_length):
+        super(CachedCrossAttentionBlock, self).__init__()
+        self.cross_attn = CachedMultiheadAttention(embed_dim, n_head, token_length)
+        self.norm = nn.LayerNorm(embed_dim)
+        self.dropout = nn.Dropout(dropout)
         
-#     def forward(self, query, key, value):
-#         attn_output, _ = self.cross_attn(query, key, value)
-#         attn_output = self.dropout(attn_output)
-#         return self.norm(attn_output + query)
+    def forward(self, query, key, value):
+        attn_output, _ = self.cross_attn(query, key, value)
+        attn_output = self.dropout(attn_output)
+        return self.norm(attn_output + query)
 
+class CrossAttentionBlock(nn.Module):
+    def __init__(self, embed_dim, n_head, dropout):
+        super(CrossAttentionBlock, self).__init__()
+        self.cross_attn = nn.MultiheadAttention(embed_dim, n_head, dropout)
+        self.norm = nn.LayerNorm(embed_dim)
+        self.dropout = nn.Dropout(dropout)
+        
+    def forward(self, query, key, value):
+        attn_output, _ = self.cross_attn(query, key, value)
+        attn_output = self.dropout(attn_output)
+        return self.norm(attn_output + query)
+    
 class BidirectionalCrossAttentionBlock(nn.Module):
     def __init__(self, embed_dim, n_head, dropout):
         super(BidirectionalCrossAttentionBlock, self).__init__()
@@ -90,91 +125,72 @@ class BidirectionalCrossAttentionBlock(nn.Module):
         output_B = self.norm_B(attn_output_B_to_A + B)
         
         return output_A, output_B
+    
+class CachedMultiheadAttention(MultiheadAttention):
+    def __init__(self, embed_dim, num_heads, token_length, batch_first=True, **kwargs):
+        super(CachedMultiheadAttention, self).__init__(embed_dim, num_heads, batch_first=batch_first, **kwargs)
+        self.token_length = token_length
+        self.batch_first = batch_first
+        self.key_cache = None
+        self.value_cache = None
+        self.cache_size = 0
 
-import torch
-import torch.nn as nn
+    def update_cache(self, key, value):
+        if self.key_cache is None:
+            self.key_cache = key
+            self.value_cache = value
+        else:
+            # Append new keys and values and remove the oldest if necessary
+            self.key_cache = torch.cat((self.key_cache, key), dim=1)
+            self.value_cache = torch.cat((self.value_cache, value), dim=1)
+            if self.key_cache.size(1) > self.token_length:
+                self.key_cache = self.key_cache[:, 1:]
+                self.value_cache = self.value_cache[:, 1:]
 
-class EncoderLayer(nn.Module):
-    def __init__(self, d_model, ffn_hidden, n_head, drop_prob, max_segments):
-        super(EncoderLayer, self).__init__()
-        self.attention = nn.MultiheadAttention(d_model, n_head)
-        self.norm1 = nn.LayerNorm(d_model)
-        self.dropout1 = nn.Dropout(drop_prob)
-        self.ffn = PositionwiseFeedForward(d_model=d_model, hidden=ffn_hidden, drop_prob=drop_prob)
-        self.norm2 = nn.LayerNorm(d_model)
-        self.dropout2 = nn.Dropout(drop_prob)
-        self.max_segments = max_segments
-        self.cache = {'keys': [], 'queries': [], 'values': []}
+        self.cache_size = self.key_cache.size(1)
 
-    def forward(self, x, use_cache=True):
-        # Compute key, query, and value for the new segment
-        new_key, new_query, new_value = self.attention.in_proj_q(x), self.attention.in_proj_k(x), self.attention.in_proj_v(x)
+    def forward(self, query, key, value, key_padding_mask=None, need_weights=True, attn_mask=None):
+        if self.batch_first:
+            query = query.transpose(0, 1)
+            key = key.transpose(0, 1)
+            value = value.transpose(0, 1)
+
+        # Update the cache with the latest key and value
+        self.update_cache(key, value)
+
+        # Use the cached keys and values
+        k = self.key_cache
+        v = self.value_cache
+
+        scaling = float(self.head_dim) ** -0.5
+        q = query * scaling
+
+        attn_output, attn_output_weights = self._scaled_dot_product_attention(q, k, v, attn_mask, key_padding_mask)
+
+        attn_output = attn_output.transpose(0, 1).contiguous().view(-1, self.embed_dim)
+        attn_output = self.out_proj(attn_output)
+        attn_output = attn_output.view(query.size(1), -1, self.embed_dim).transpose(0, 1)
+
+        if self.batch_first:
+            attn_output = attn_output.transpose(0, 1)
+
+        if need_weights:
+            return attn_output, attn_output_weights
+        else:
+            return attn_output, None
+
+    def _scaled_dot_product_attention(self, q, k, v, attn_mask=None, key_padding_mask=None):
+        attn_weights = torch.bmm(q, k.transpose(1, 2))
+        if attn_mask is not None:
+            attn_weights += attn_mask
+        if key_padding_mask is not None:
+            attn_weights = attn_weights.view(-1, self.num_heads, self.cache_size, self.cache_size)
+            attn_weights = attn_weights.masked_fill(
+                key_padding_mask.unsqueeze(1).unsqueeze(2),
+                float('-inf'),
+            )
+            attn_weights = attn_weights.view(-1, self.cache_size, self.cache_size)
         
-        if use_cache:
-            # Append new tensors to cache
-            self.cache['keys'].append(new_key)
-            self.cache['queries'].append(new_query)
-            self.cache['values'].append(new_value)
-            # Ensure cache size does not exceed the maximum number of segments
-            if len(self.cache['keys']) > self.max_segments:
-                self.cache['keys'].pop(0)
-                self.cache['queries'].pop(0)
-                self.cache['values'].pop(0)
-        else:
-            # Reset cache with new tensors
-            self.cache = {'keys': [new_key], 'queries': [new_query], 'values': [new_value]}
-
-        # Concatenate cached keys, queries, values
-        keys = torch.cat(self.cache['keys'], dim=1)
-        queries = torch.cat(self.cache['queries'], dim=1)
-        values = torch.cat(self.cache['values'], dim=1)
-
-        # Compute self-attention using cached and new tensors
-        _x = x
-        x, _ = self.attention(queries, keys, values)
-        x = self.norm1(x + _x)
-        x = self.dropout1(x)
-
-        # Feed forward
-        _x = x
-        x = self.ffn(x)
-        x = self.norm2(x + _x)
-        x = self.dropout2(x)
-        return x
-
-class CrossAttentionBlock(nn.Module):
-    def __init__(self, embed_dim, n_head, dropout, max_segments):
-        super(CrossAttentionBlock, self).__init__()
-        self.cross_attn = nn.MultiheadAttention(embed_dim, n_head, dropout)
-        self.norm = nn.LayerNorm(embed_dim)
-        self.dropout = nn.Dropout(dropout)
-        self.max_segments = max_segments
-        self.cache = {'keys': [], 'queries': [], 'values': []}
-
-    def forward(self, query, key, value, use_cache=True):
-        # Compute key, query, and value for the new segment
-        new_key, new_query, new_value = self.cross_attn.in_proj_k(key), self.cross_attn.in_proj_q(query), self.cross_attn.in_proj_v(value)
-
-        if use_cache:
-            # Append new tensors to cache
-            self.cache['keys'].append(new_key)
-            self.cache['queries'].append(new_query)
-            self.cache['values'].append(new_value)
-            # Ensure cache size does not exceed the maximum number of segments
-            if len(self.cache['keys']) > self.max_segments:
-                self.cache['keys'].pop(0)
-                self.cache['queries'].pop(0)
-                self.cache['values'].pop(0)
-        else:
-            # Reset cache with new tensors
-            self.cache = {'keys': [new_key], 'queries': [new_query], 'values': [new_value]}
-
-        # Concatenate cached keys, queries, values
-        keys = torch.cat(self.cache['keys'], dim=1)
-        queries = torch.cat(self.cache['queries'], dim=1)
-        values = torch.cat(self.cache['values'], dim=1)
-
-        # Compute cross-attention using cached and new tensors
-        attn_output, _ = self.cross_attn(queries, keys, values)
-        attn_output = self.dropout(attn_output)
-        return self.norm(attn_output + query)
+        attn_weights = F.softmax(attn_weights, dim=-1)
+        attn_output = torch.bmm(attn_weights, v)
+        return attn_output, attn_weights

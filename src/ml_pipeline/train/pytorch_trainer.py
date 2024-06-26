@@ -7,7 +7,7 @@ import torch.nn as nn
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score, log_loss
-from src.ml_pipeline.models.attention_models.san_losses import LossWrapper, FocalLoss
+from src.ml_pipeline.models.attention_models.loss_functions import LossWrapper, FocalLoss
 from src.ml_pipeline.utils import print_model_summary
 
 class PyTorchTrainer:
@@ -36,11 +36,12 @@ class PyTorchTrainer:
         print(f"Storing tensorboard log to: {self.writer.log_dir}")
         for epoch in range(self.configs['epoch']):
             epoch_loss = 0.0
-            self.model.train()
             progress_bar = tqdm(enumerate(self.train_loader), total=len(self.train_loader), desc=f'Epoch {epoch+1}/{self.configs["epoch"]}')
             
             for s, (batch_x, batch_y) in progress_bar:
                 inputs = {key: val.to(self.device) for key, val in batch_x.items()}
+                if inputs['bvp'].shape[0] != self.train_loader.batch_size:
+                    continue
                 labels = batch_y.to(self.device)
                 modality_outputs, final_output = self.model(inputs)
                 one_hot_labels = torch.nn.functional.one_hot(labels - 1, num_classes=self.num_classes).float()
@@ -70,6 +71,8 @@ class PyTorchTrainer:
                 if not os.path.exists(directory):
                     os.makedirs(directory)
                 torch.save(self.model.state_dict(), save_path)
+            
+            print(self.model.bobos)
 
         final_save_path = f'{self.save_path}/checkpoint_{epoch + 1}.pth'
         directory = os.path.dirname(final_save_path)
