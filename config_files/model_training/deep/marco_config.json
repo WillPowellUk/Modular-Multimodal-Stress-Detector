@@ -1,6 +1,6 @@
 {
     "num_classes": 2,
-    "token_length": 5,
+    "token_length": 10,
     "n_bcsa": 1,
     "embed_dim": 128,
     "hidden_dim": 256,
