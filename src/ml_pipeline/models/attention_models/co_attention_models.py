@@ -145,11 +145,9 @@ class MARCONet(nn.Module):
         modality_outputs = {modality: [] for modality in self.input_dims}
         
         for modality, x in inputs.items():
-            batch_size, seq_len, features = x.shape
-            x = x.permute(0, 2, 1)  # Change shape to [batch_size, features, seq_len]
-            x = x.reshape(-1, seq_len)  # Flatten to [batch_size * features, seq_len]
+            batch_size, features, seq_len = x.shape # shape is [batch_size, features, seq_len]
+            x = x.permute(0, 2, 1)  # Change shape to [batch_size, seq_len, features]
             x_emb = self.modalities[modality]['embedding'](x)
-            x_emb = x_emb.view(batch_size, features, -1)  # Reshape back to [batch_size, features, embed_dim]
             positional_x = self.modalities[modality]['pos_enc'](x_emb)
             modality_outputs[modality] = positional_x
         

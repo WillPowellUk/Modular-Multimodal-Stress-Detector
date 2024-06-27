@@ -46,11 +46,8 @@ class ModularModalityFusionNet(torch.nn.Module):
         modality_outputs = []
         
         for modality, x in inputs.items():
-            batch_size, seq_len, features = x.shape
-            x = x.permute(0, 2, 1)  # Change shape to [batch_size, features, seq_len]
-            x = x.reshape(-1, seq_len)  # Flatten to [batch_size * features, seq_len]
+            x = x.permute(0, 2, 1)  # Change shape to [batch_size, seq_len, features] from [batch_size, features, seq_len]
             x_emb = self.modalities[modality]['embedding'](x)
-            x_emb = x_emb.view(batch_size, features, -1)  # Reshape back to [batch_size, features, embed_dim]
             positional_x = self.modalities[modality]['pos_enc'](x_emb)
             attn1 = self.modalities[modality]['enc1'](positional_x)
             avg_pool = torch.mean(attn1, 1)
@@ -121,8 +118,7 @@ class PersonalizedModalityFusionNet(nn.Module):
         personalized_modality_outputs = []
         
         for modality, x in inputs.items():
-            batch_size, features, seq_len = x.shape # shape is [batch_size, features, seq_len]
-            x = x.permute(0, 2, 1)  # Change shape to [batch_size, seq_len, features]
+            x = x.permute(0, 2, 1)  # Change shape to [batch_size, seq_len, features] from [batch_size, features, seq_len]
 
             # Generalized path
             x_emb_gen = self.modalities[modality]['embedding'](x)
