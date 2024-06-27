@@ -7,7 +7,7 @@ from .attention_mechansims import (
     EncoderLayer,
     CrossAttentionBlock,
     BidirectionalCrossAttentionBlock,
-    CachedMultiheadAttention,
+    CachedLocalMultiheadAttention,
     CachedEncoderLayer,
     CachedCrossAttentionBlock
 )

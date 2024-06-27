@@ -73,8 +73,6 @@ class PyTorchTrainer:
                 if not os.path.exists(directory):
                     os.makedirs(directory)
                 torch.save(self.model.state_dict(), save_path)
-            
-            print(self.model.bobos)
 
         final_save_path = f'{self.save_path}/checkpoint_{epoch + 1}.pth'
         directory = os.path.dirname(final_save_path)

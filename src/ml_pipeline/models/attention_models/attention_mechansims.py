@@ -61,7 +61,7 @@ class EncoderLayer(nn.Module):
 class CachedEncoderLayer(nn.Module):
     def __init__(self, d_model, ffn_hidden, n_head, drop_prob, token_length):
         super(CachedEncoderLayer, self).__init__()
-        self.attention = CachedMultiheadAttention(d_model, n_head, token_length)
+        self.attention = CachedLocalMultiheadAttention(d_model, n_head, token_length)
         self.norm1 = nn.LayerNorm(d_model)
         self.dropout1 = nn.Dropout(drop_prob)
         self.ffn = PositionwiseFeedForward(d_model=d_model, hidden=ffn_hidden, drop_prob=drop_prob)
@@ -83,7 +83,7 @@ class CachedEncoderLayer(nn.Module):
 class CachedCrossAttentionBlock(nn.Module):
     def __init__(self, embed_dim, n_head, dropout, token_length):
         super(CachedCrossAttentionBlock, self).__init__()
-        self.cross_attn = CachedMultiheadAttention(embed_dim, n_head, token_length)
+        self.cross_attn = CachedLocalMultiheadAttention(embed_dim, n_head, token_length)
         self.norm = nn.LayerNorm(embed_dim)
         self.dropout = nn.Dropout(dropout)
         
@@ -126,83 +126,171 @@ class BidirectionalCrossAttentionBlock(nn.Module):
         
         return output_A, output_B
 
-class CachedMultiheadAttention(MultiheadAttention):
-    def __init__(self, embed_dim, num_heads, token_length, batch_first=True, **kwargs):
-        super(CachedMultiheadAttention, self).__init__(embed_dim, num_heads, batch_first=batch_first, **kwargs)
-        self.token_length = token_length
-        self.batch_first = batch_first
-        self.key_cache = None
-        self.value_cache = None
-        self.query_cache = None
-        self.cache_size = 0
+# class CachedLocalMultiheadAttention(MultiheadAttention):
+#     def __init__(self, embed_dim, num_heads, token_length, batch_first=True, **kwargs):
+#         super(CachedLocalMultiheadAttention, self).__init__(embed_dim, num_heads, batch_first=batch_first, **kwargs)
+#         self.token_length = token_length
+#         self.batch_first = batch_first
+#         self.key_cache = None
+#         self.value_cache = None
+#         self.query_cache = None
+#         self.cache_size = 0
 
-    def update_cache(self, query, key, value):
-        query = query.detach()
-        key = key.detach()
-        value = value.detach()
+#     def update_cache(self, query, key, value):
+#         query = query.detach()
+#         key = key.detach()
+#         value = value.detach()
         
-        if self.key_cache is None:
-            self.key_cache = key
-            self.value_cache = value
-            self.query_cache = query
-        else:
-            # Append new keys, values, and queries
-            self.key_cache = torch.cat((self.key_cache, key), dim=0).detach()
-            self.value_cache = torch.cat((self.value_cache, value), dim=0).detach()
-            self.query_cache = torch.cat((self.query_cache, query), dim=0).detach()
+#         if self.key_cache is None:
+#             self.key_cache = key
+#             self.value_cache = value
+#             self.query_cache = query
+#         else:
+#             # Append new keys, values, and queries
+#             self.key_cache = torch.cat((self.key_cache, key), dim=0).detach()
+#             self.value_cache = torch.cat((self.value_cache, value), dim=0).detach()
+#             self.query_cache = torch.cat((self.query_cache, query), dim=0).detach()
             
-            # Remove the oldest key, value, and query if necessary
-            if self.key_cache.size(0) > self.token_length:
-                self.key_cache = self.key_cache[1:].detach()
-                self.value_cache = self.value_cache[1:].detach()
-                self.query_cache = self.query_cache[1:].detach()
+#             # Remove the oldest key, value, and query if the cache buffer is full (full context size)
+#             if self.key_cache.size(0) > self.token_length:
+#                 self.key_cache = self.key_cache[1:].detach()
+#                 self.value_cache = self.value_cache[1:].detach()
+#                 self.query_cache = self.query_cache[1:].detach()
 
-        self.cache_size = self.key_cache.size(0)
-        return True
+#         self.cache_size = self.key_cache.size(0)
+#         return True
 
-    def forward(self, query, key, value, key_padding_mask=None, need_weights=True, attn_mask=None):
-        if self.batch_first:
-            query = query.transpose(0, 1)
-            key = key.transpose(0, 1)
-            value = value.transpose(0, 1)
+#     def forward(self, query, key, value, key_padding_mask=None, need_weights=True, attn_mask=None):
+#         if self.batch_first:
+#             query = query.transpose(0, 1)
+#             key = key.transpose(0, 1)
+#             value = value.transpose(0, 1)
 
-        # Update the cache with the latest query, key, and value and only proceed if the cache buffer is full
-        if (self.update_cache(query, key, value)):
+#         # Update the cache with the latest query, key, and value and only proceed if the cache buffer is full
+#         if (self.update_cache(query, key, value)):
 
-            # Use the cached keys, values, and queries
-            q = self.query_cache
-            k = self.key_cache
-            v = self.value_cache
+#             # Use the cached keys, values, and queries
+#             q = self.query_cache
+#             k = self.key_cache
+#             v = self.value_cache
 
-            scaling = float(self.head_dim) ** -0.5
-            q = q * scaling
+#             scaling = float(self.head_dim) ** -0.5
+#             q = q * scaling
 
-            attn_output, attn_output_weights = self._scaled_dot_product_attention(q, k, v, attn_mask, key_padding_mask)
+#             attn_output, attn_output_weights = self._scaled_dot_product_attention(q, k, v, attn_mask, key_padding_mask)
 
-            attn_output = attn_output.transpose(0, 1).contiguous().view(-1, self.embed_dim)
-            attn_output = self.out_proj(attn_output)
-            attn_output = attn_output.view(query.size(1), -1, self.embed_dim).transpose(0, 1)
+#             attn_output = attn_output.transpose(0, 1).contiguous().view(-1, self.embed_dim)
+#             attn_output = self.out_proj(attn_output)
+#             attn_output = attn_output.view(query.size(1), -1, self.embed_dim).transpose(0, 1)
 
-            if self.batch_first:
-                attn_output = attn_output.transpose(0, 1)
+#             if self.batch_first:
+#                 attn_output = attn_output.transpose(0, 1)
 
-            if need_weights:
-                return attn_output, attn_output_weights
-            else:
-                return attn_output, None
+#             if need_weights:
+#                 return attn_output, attn_output_weights
+#             else:
+#                 return attn_output, None
 
-    def _scaled_dot_product_attention(self, q, k, v, attn_mask=None, key_padding_mask=None):
-        attn_weights = torch.bmm(q, k.transpose(1, 2))
-        if attn_mask is not None:
-            attn_weights += attn_mask
-        if key_padding_mask is not None:
-            attn_weights = attn_weights.view(-1, self.num_heads, self.cache_size, self.cache_size)
-            attn_weights = attn_weights.masked_fill(
-                key_padding_mask.unsqueeze(1).unsqueeze(2),
-                float('-inf'),
-            )
-            attn_weights = attn_weights.view(-1, self.cache_size, self.cache_size)
+#     def _scaled_dot_product_attention(self, q, k, v, attn_mask=None, key_padding_mask=None):
+#         attn_weights = torch.bmm(q, k.transpose(1, 2))
+#         if attn_mask is not None:
+#             attn_weights += attn_mask
+#         if key_padding_mask is not None:
+#             attn_weights = attn_weights.view(-1, self.num_heads, self.cache_size, self.cache_size)
+#             attn_weights = attn_weights.masked_fill(
+#                 key_padding_mask.unsqueeze(1).unsqueeze(2),
+#                 float('-inf'),
+#             )
+#             attn_weights = attn_weights.view(-1, self.cache_size, self.cache_size)
         
-        attn_weights = F.softmax(attn_weights, dim=-1)
-        attn_output = torch.bmm(attn_weights, v)
-        return attn_output, attn_weights
+#         attn_weights = F.softmax(attn_weights, dim=-1)
+#         attn_output = torch.bmm(attn_weights, v)
+#         return attn_output, attn_weights
+
+class CachedLocalMultiheadAttention(MultiheadAttention):
+    def __init__(self, embed_dim, num_heads, token_length, dropout=0.0, bias=True, add_bias_kv=False, add_zero_attn=False, kdim=None, vdim=None, batch_first=False):
+        super().__init__(embed_dim, num_heads, dropout, bias, add_bias_kv, add_zero_attn, kdim, vdim, batch_first)
+        self.token_length = token_length
+        self.previous_key = None
+        self.previous_value = None
+        self.buffer_filled = False
+
+    def scaled_dot_product_attention(self, query, key, value, attn_mask=None, dropout_p=0.0, is_causal=False, scale=None):
+        L, S = query.size(-2), key.size(-2)
+        scale_factor = 1 / math.sqrt(query.size(-1)) if scale is None else scale
+        attn_bias = torch.zeros(L, S, dtype=query.dtype)
+        
+        if is_causal:
+            assert attn_mask is None
+            temp_mask = torch.ones(L, S, dtype=torch.bool).tril(diagonal=0)
+            attn_bias.masked_fill_(temp_mask.logical_not(), float("-inf"))
+            attn_bias = attn_bias.to(query.dtype)
+
+        if attn_mask is not None:
+            if attn_mask.dtype == torch.bool:
+                attn_bias.masked_fill_(attn_mask.logical_not(), float("-inf"))
+            else:
+                attn_bias += attn_mask
+        
+        if self.previous_key is not None and self.previous_value is not None:
+            if self.buffer_filled:
+                # Buffer is full, use all previous keys and values
+                old_key = self.previous_key[:, :-1, :]
+                old_value = self.previous_value[:, :-1, :]
+            else:
+                # Buffer is not yet full, use available previous keys and values
+                old_key = self.previous_key
+                old_value = self.previous_value
+
+            # Compute attention weights for old key-query pairs
+            attn_weight_old = (query @ old_key.transpose(-2, -1)) * scale_factor
+            # Compute attention weights for new key-query pair
+            new_key = key[:, -1:, :]
+            new_value = value[:, -1:, :]
+            attn_weight_new = (query @ new_key.transpose(-2, -1)) * scale_factor
+            attn_weight_new += attn_bias[:, -1:, :]
+
+            # Concatenate old and new attention weights
+            attn_weight = torch.cat((attn_weight_old, attn_weight_new), dim=-1)
+        else:
+            # Compute the attention weights from scratch if no previous key and value
+            attn_weight = (query @ key.transpose(-2, -1)) * scale_factor
+            attn_weight += attn_bias
+
+        attn_weight = F.softmax(attn_weight, dim=-1)
+        attn_weight = F.dropout(attn_weight, p=dropout_p, training=self.training)
+
+        # Compute the attention output
+        output = attn_weight @ value
+        return output, attn_weight
+
+    def forward(self, query, key, value, key_padding_mask=None, need_weights=True, attn_mask=None, average_attn_weights=True, is_causal=False):
+        if self.previous_key is None:
+            # Initialize buffers if they are not yet initialized
+            self.previous_key = key
+            self.previous_value = value
+        else:
+            if self.buffer_filled:
+                # Buffer is full, discard the oldest and append the new key and value
+                self.previous_key = torch.cat((self.previous_key[:, 1:, :], key[:, -1:, :]), dim=1)
+                self.previous_value = torch.cat((self.previous_value[:, 1:, :], value[:, -1:, :]), dim=1)
+            else:
+                # Buffer is not full, append the new key and value
+                self.previous_key = torch.cat((self.previous_key, key[:, -1:, :]), dim=1)
+                self.previous_value = torch.cat((self.previous_value, value[:, -1:, :]), dim=1)
+
+                # Check if buffer has reached the token_length
+                if self.previous_key.size(1) >= self.token_length:
+                    self.buffer_filled = True
+                    self.previous_key = self.previous_key[:, -self.token_length:, :]
+                    self.previous_value = self.previous_value[:, -self.token_length:, :]
+
+        # Call the overridden scaled_dot_product_attention method
+        attn_output, attn_output_weights = self.scaled_dot_product_attention(query, self.previous_key, self.previous_value, attn_mask=attn_mask, dropout_p=self.dropout, is_causal=is_causal, scale=self.head_dim ** -0.5)
+
+        if need_weights:
+            if average_attn_weights:
+                attn_output_weights = attn_output_weights.mean(dim=1)
+            return attn_output, attn_output_weights
+        else:
+            return attn_output, None
