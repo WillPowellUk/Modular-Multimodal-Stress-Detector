@@ -34,7 +34,7 @@ class PyTorchTrainer:
         self.model_copy = self.model
         print_model_summary(self.model, self.model.input_dims, batch_size=self.train_loader.batch_size, device=self.device.type)
         self.model = self.model_copy
-        
+
     def train(self):
         # Create the TensorBoard writer
         self.writer = SummaryWriter(log_dir=f'{self.save_path}/tensorboard')
@@ -44,6 +44,7 @@ class PyTorchTrainer:
         log_dir = self.writer.log_dir
         tensorboard_command = ["tensorboard", "--logdir", log_dir, "--host", "localhost", "--port", "6006"]
         subprocess.Popen(tensorboard_command)
+        time.sleep(2)
 
         # Open TensorBoard in the default web browser
         url = "http://localhost:6006"
@@ -51,8 +52,8 @@ class PyTorchTrainer:
 
         for epoch in range(self.configs['epoch']):
             epoch_loss = 0.0
-            correct_predictions = 0
-            total_predictions = 0
+            epoch_correct = 0
+            epoch_total = 0
             progress_bar = tqdm(enumerate(self.train_loader), total=len(self.train_loader), desc=f'Epoch {epoch+1}/{self.configs["epoch"]}')
             
             for s, (batch_x, batch_y) in progress_bar:
@@ -60,7 +61,7 @@ class PyTorchTrainer:
                 if inputs['bvp'].shape[0] != self.train_loader.batch_size:
                     continue
                 labels = batch_y.to(self.device)
-                modality_outputs, final_output = self.model(inputs)
+                final_output = self.model(inputs)
                 one_hot_labels = torch.nn.functional.one_hot(labels - 1, num_classes=self.num_classes).float()
                 loss = self.loss_func(final_output, one_hot_labels)
                 self.optimizer.zero_grad()
@@ -69,27 +70,38 @@ class PyTorchTrainer:
                 epoch_loss += loss.item()
 
                 _, preds = torch.max(final_output, 1)
-                correct_predictions += torch.sum(preds == labels).item()
-                total_predictions += labels.size(0)
-
-                if (s + 1) % (len(self.train_loader) // 10) == 0:
-                    self.log_intermediate_metrics(epoch, s, epoch_loss, correct_predictions, total_predictions)
+                epoch_correct += (preds == (labels - 1)).sum().item()
+                epoch_total += labels.size(0)
 
                 progress_bar.set_postfix(loss=loss.item())
             
-            avg_loss = epoch_loss / len(self.train_loader)
-            train_accuracy = correct_predictions / total_predictions
-            print(f'Epoch: {epoch}, | training loss: {avg_loss:.4f}, | training accuracy: {train_accuracy:.4f}')
+                if s % (len(self.train_loader) // 10) == 0:
+                    val_metrics = self.validate()
+                    train_acc = epoch_correct / epoch_total
+                    train_loss = epoch_loss / (s + 1)
+
+                    # Log intermediate training and validation metrics to TensorBoard
+                    step = epoch * len(self.train_loader) + s
+                    self.writer.add_scalars('Loss', {'Train': train_loss, 'Validation': val_metrics[self.model.NAME]['loss']}, step)
+                    self.writer.add_scalars('Accuracy', {'Train': train_acc, 'Validation': val_metrics[self.model.NAME]['accuracy']}, step)
+
+                # # break at 1/5th of the data
+                # if s!=0 and s % (len(self.train_loader) // 5) == 0:
+                #     break
             
-            # Log training loss and accuracy to TensorBoard
-            self.writer.add_scalar('Loss/Train', avg_loss, epoch)
-            self.writer.add_scalar('Accuracy/Train', train_accuracy, epoch)
+            avg_loss = epoch_loss / len(self.train_loader)
+            avg_acc = epoch_correct / epoch_total
+            print(f'Epoch: {epoch}, | training loss: {avg_loss:.4f}, | training accuracy: {avg_acc:.4f}')
+            
+            # Log end of epoch training loss and accuracy to TensorBoard
+            self.writer.add_scalars('Loss', {'Train': avg_loss}, epoch)
+            self.writer.add_scalars('Accuracy', {'Train': avg_acc}, epoch)
 
             # Validate and log validation loss and accuracy
             val_metrics = self.validate()
-            self.writer.add_scalar('Loss/Validation', val_metrics[self.model.NAME]['loss'], epoch)
+            self.writer.add_scalars('Loss', {'Validation': val_metrics[self.model.NAME]['loss']}, epoch)
             if 'accuracy' in val_metrics[self.model.NAME]:
-                self.writer.add_scalar('Accuracy/Validation', val_metrics[self.model.NAME]['accuracy'], epoch)
+                self.writer.add_scalars('Accuracy', {'Validation': val_metrics[self.model.NAME]['accuracy']}, epoch)
 
             if (epoch + 1) % 10 == 0:
                 save_path = f'{self.save_path}/checkpoint_{epoch + 1}.pth'
@@ -106,35 +118,20 @@ class PyTorchTrainer:
         self.writer.close()
         return final_save_path
 
-    def log_intermediate_metrics(self, epoch, step, epoch_loss, correct_predictions, total_predictions):
-        avg_loss = epoch_loss / (step + 1)
-        train_accuracy = correct_predictions / total_predictions
-
-        # Validate
-        val_metrics = self.validate()
-        val_loss = val_metrics[self.model.NAME]['loss']
-        val_accuracy = val_metrics[self.model.NAME].get('accuracy', 0)
-
-        # Log metrics
-        self.writer.add_scalar('Loss/Train_Step', avg_loss, epoch * len(self.train_loader) + step)
-        self.writer.add_scalar('Accuracy/Train_Step', train_accuracy, epoch * len(self.train_loader) + step)
-        self.writer.add_scalar('Loss/Validation_Step', val_loss, epoch * len(self.train_loader) + step)
-        self.writer.add_scalar('Accuracy/Validation_Step', val_accuracy, epoch * len(self.train_loader) + step)
-
     def validate(self, ckpt_path=None):
         if self.val_loader is None:
             raise ValueError("Validation data loader is not provided")
 
         # Load model from checkpoint if provided
-        if ckpt_path is not None:
+        if (ckpt_path is not None):
             self.model.load_state_dict(torch.load(ckpt_path))
 
         self.model.eval()
         y_true = []
         y_pred = []
-        total_loss = 0.0
 
         inference_times = []
+        epoch_loss = 0.0
 
         with torch.no_grad():
             for batch_x, batch_y in self.val_loader:
@@ -143,14 +140,13 @@ class PyTorchTrainer:
 
                 # Measure inference time for each batch
                 start_time = time.time()
-                modality_outputs, final_output = self.model(inputs)
+                final_output = self.model(inputs)
                 end_time = time.time()
 
                 inference_times.append((end_time - start_time) * 1000)  # Convert to milliseconds
 
-                one_hot_labels = torch.nn.functional.one_hot(labels - 1, num_classes=self.num_classes).float()
-                loss = self.loss_func(final_output, one_hot_labels)
-                total_loss += loss.item()
+                loss = self.loss_func(final_output, torch.nn.functional.one_hot(labels - 1, num_classes=self.num_classes).float())
+                epoch_loss += loss.item()
 
                 _, preds = torch.max(final_output, 1)
                 y_true.extend(labels.cpu().numpy())
@@ -158,6 +154,7 @@ class PyTorchTrainer:
 
         # Calculate average inference time in milliseconds
         avg_inference_time = np.mean(inference_times)
+        avg_loss = epoch_loss / len(self.val_loader)
 
         y_pred = np.array(y_pred)
         y_true = np.array(y_true) - 1  # correct for labelling starting from index `1`
@@ -169,7 +166,7 @@ class PyTorchTrainer:
 
         results = {}
         results[self.model.NAME] = {
-            "loss": total_loss / len(self.val_loader),
+            "loss": avg_loss,
             "accuracy": accuracy,
             "confusion_matrix": conf_matrix,
             "precision": precision,

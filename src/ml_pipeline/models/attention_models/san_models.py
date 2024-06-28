@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 from src.ml_pipeline.utils import load_generalized_model
-from src.ml_pipeline.models.attention_models.attention_mechansims import PositionalEncoding, EncoderLayer
+from src.ml_pipeline.models.attention_models.attention_mechansims import PositionalEncoding, SelfAttentionEncoder
 
 class ModularModalityFusionNet(torch.nn.Module):
     NAME = "ModularModalityFusionNet"
@@ -29,7 +29,7 @@ class ModularModalityFusionNet(torch.nn.Module):
             modality_net = nn.ModuleDict({
                 'embedding': nn.Linear(self.input_dims[modality], self.embed_dim),
                 'pos_enc': PositionalEncoding(self.embed_dim),
-                'enc1': EncoderLayer(self.embed_dim, ffn_hidden=128, n_head=self.n_head, drop_prob=self.dropout),
+                'enc1': SelfAttentionEncoder(self.embed_dim, ffn_hidden=128, n_head=self.n_head, drop_prob=self.dropout),
                 'flatten': nn.Flatten(),
                 'linear': nn.Linear(self.embed_dim * 2, self.hidden_dim),
                 'relu': nn.ReLU(),
@@ -100,7 +100,7 @@ class PersonalizedModalityFusionNet(nn.Module):
             modality_net = nn.ModuleDict({
                 'embedding': nn.Linear(self.input_dims[modality], self.embed_dim),
                 'pos_enc': PositionalEncoding(self.embed_dim),
-                'enc1': EncoderLayer(self.embed_dim, ffn_hidden=128, n_head=self.n_head_per, drop_prob=self.dropout),
+                'enc1': SelfAttentionEncoder(self.embed_dim, ffn_hidden=128, n_head=self.n_head_per, drop_prob=self.dropout),
                 'flatten': nn.Flatten(),
                 'linear': nn.Linear(self.embed_dim * 2, self.hidden_dim),
                 'relu': nn.ReLU(),

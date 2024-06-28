@@ -7,5 +7,9 @@ from .attention_models import (
     FocalLoss,
     PositionalEncoding, 
     PositionwiseFeedForward, 
-    EncoderLayer
+    SelfAttentionEncoder,
+)
+
+from .late_fusion_models import (
+    ModularAvgPool
 )
