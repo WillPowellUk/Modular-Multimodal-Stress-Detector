@@ -45,6 +45,7 @@ class PyTorchTrainer:
         tensorboard_command = ["tensorboard", "--logdir", log_dir, "--host", "localhost", "--port", "6006"]
         subprocess.Popen(tensorboard_command)
         time.sleep(2)
+        print()
 
         # Open TensorBoard in the default web browser
         url = "http://localhost:6006"
@@ -74,8 +75,9 @@ class PyTorchTrainer:
                 epoch_total += labels.size(0)
 
                 progress_bar.set_postfix(loss=loss.item())
-            
-                if s % (len(self.train_loader) // 10) == 0:
+
+                # Log intermediate training metrics to TensorBoard
+                if s % (len(self.train_loader) // 5) == 0:
                     val_metrics = self.validate()
                     train_acc = epoch_correct / epoch_total
                     train_loss = epoch_loss / (s + 1)

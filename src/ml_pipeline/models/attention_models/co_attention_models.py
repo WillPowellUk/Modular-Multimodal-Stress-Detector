@@ -166,12 +166,9 @@ class MARCONet(nn.Module):
                 sa_block = self.self_attention_blocks[modality][i]
                 modality_features[modality] = sa_block(modality_features[modality])
 
-        # Step 3: Predictor and averaging
-        predictions = []
-        for modality, net in self.modalities.items():
-            pred = net['predictor'](modality_features[modality])
-            predictions.append(pred)
+        # Step 3: Merge branches into one tensor and call Predictor
+        concatenated_features = torch.cat(list(modality_features.values()), dim=1)
+        concatenated_features = concatenated_features.permute(0, 2, 1) # Tr# Transpose to get the shape (batch_size, embed_dim, n_branches)anspose to get the shape (batch_size, embed_dim, n_branches)
+        final_output = net['predictor'](concatenated_features)
 
-        # Averaging predictions
-        final_output = torch.mean(torch.stack(predictions, dim=0), dim=0)
         return final_output

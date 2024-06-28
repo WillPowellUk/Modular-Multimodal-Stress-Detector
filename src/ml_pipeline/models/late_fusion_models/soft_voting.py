@@ -23,9 +23,7 @@ class ModularAvgPool(nn.Module):
         self.dropout_layer = nn.Dropout(dropout)
 
     def forward(self, x):
-        # Assuming x is of shape (batch_size, variable_length, embed_dim)
-        # Transpose to (batch_size, embed_dim, variable_length) for avg pooling
-        x = x.transpose(1, 2)
+        # Expects the shape (batch_size, embed_dim, n_branches) 
         
         # Apply average pooling
         x = self.avg_pool(x)
