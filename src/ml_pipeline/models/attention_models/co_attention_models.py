@@ -156,20 +156,19 @@ class MARCONet(nn.Module):
 
         # Step 2: Cross-Attention and Self-Attention Blocks
         for i in range(self.n_bcsa):
-            for modality1 in modality_features:
-                for modality2 in modality_features:
-                    if modality1 != modality2:
-                        ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
-                        modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2])
+            # for modality1 in modality_features:
+            #     for modality2 in modality_features:
+            #         if modality1 != modality2:
+            #             ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
+            #             modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2])
                         
             for modality, net in self.modalities.items():
                 sa_block = self.self_attention_blocks[modality][i]
                 modality_features[modality] = sa_block(modality_features[modality])
 
-        # # Step 3: Merge branches into one tensor and call Predictor
-        # concatenated_features = torch.cat(list(modality_features.values()), dim=1)
-        # concatenated_features = concatenated_features.permute(0, 2, 1) # Transpose to get the shape (batch_size, embed_dim, n_branches)
-        # final_output = net['predictor'](concatenated_features)
-        
+        # Step 3: Merge branches into one tensor and call Predictor
+        concatenated_features = torch.cat(list(modality_features.values()), dim=1)
+        concatenated_features = concatenated_features.permute(0, 2, 1) # change to shape (batch_size, embed_dim, n_branches)
+        final_output = net['predictor'](concatenated_features)
 
         return final_output

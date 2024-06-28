@@ -77,7 +77,7 @@ class PyTorchTrainer:
                 progress_bar.set_postfix(loss=loss.item())
 
                 # Log intermediate training metrics to TensorBoard
-                if s % (len(self.train_loader) // 5) == 0:
+                if s % (len(self.train_loader) // 20) == 0:
                     val_metrics = self.validate()
                     train_acc = epoch_correct / epoch_total
                     train_loss = epoch_loss / (s + 1)
