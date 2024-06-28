@@ -166,9 +166,10 @@ class MARCONet(nn.Module):
                 sa_block = self.self_attention_blocks[modality][i]
                 modality_features[modality] = sa_block(modality_features[modality])
 
-        # Step 3: Merge branches into one tensor and call Predictor
-        concatenated_features = torch.cat(list(modality_features.values()), dim=1)
-        concatenated_features = concatenated_features.permute(0, 2, 1) # Tr# Transpose to get the shape (batch_size, embed_dim, n_branches)anspose to get the shape (batch_size, embed_dim, n_branches)
-        final_output = net['predictor'](concatenated_features)
+        # # Step 3: Merge branches into one tensor and call Predictor
+        # concatenated_features = torch.cat(list(modality_features.values()), dim=1)
+        # concatenated_features = concatenated_features.permute(0, 2, 1) # Transpose to get the shape (batch_size, embed_dim, n_branches)
+        # final_output = net['predictor'](concatenated_features)
+        
 
         return final_output
