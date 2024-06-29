@@ -137,7 +137,7 @@ class ModelResultsAnalysis:
             bar1 = plt.bar(model_data['subject_id'], model_data['accuracy'], color='darkslategray')
             for i, bar in enumerate(bar1):
                 yval = bar.get_height()
-                plt.text(bar.get_x() + bar.get_width()/2.0, yval, round(yval, 2), va='top', ha='center', fontsize=24)
+                plt.text(bar.get_x() + bar.get_width()/2.0, yval, round(yval, 2), va='bottom', ha='center', fontsize=18)
             # plt.title(f'Validation Accuracy for {model_name}')
             plt.xlabel('Subject ID', fontsize=24)
             plt.ylabel('Validation Accuracy', fontsize=24)
