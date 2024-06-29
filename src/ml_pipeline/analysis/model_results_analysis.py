@@ -11,20 +11,6 @@ class ModelResultsAnalysis:
     def __init__(self, results):
         self.results = results
 
-    def plot_confusion_matrix(self, num_of_labels, cm=0, y_test=None, y_pred=None):
-        display_labels = ['Low', 'High'] if num_of_labels == 2 else ['Low', 'Medium', 'High']
-        default_font_size = plt.rcParams['font.size']
-        plt.rcParams.update({'font.size': default_font_size * 1.4})
-        
-        if isinstance(cm, int):
-            ConfusionMatrixDisplay.from_predictions(y_test, y_pred, display_labels=display_labels, normalize='true')
-        else:
-            disp = ConfusionMatrixDisplay(cm, display_labels=display_labels)
-            disp.plot(values_format='.2f')
-            plt.show()
-        
-        plt.rcParams.update({'font.size': default_font_size})
-
     def print_metrics(self, metrics):
         for model, metric in metrics.items():
             print(f"{model}:")
@@ -48,7 +34,7 @@ class ModelResultsAnalysis:
             self.plot_confusion_matrix(num_of_labels, cm=metrics['confusion_matrix'])
 
     def plot_confusion_matrix(self, num_labels, cm):
-        plt.figure(figsize=(10, 7))
+        fig = plt.figure(figsize=(10, 7))
         ax = plt.gca()
         
         cm_sum = np.sum(cm, axis=1, keepdims=True)
@@ -56,19 +42,20 @@ class ModelResultsAnalysis:
 
         labels = np.asarray([f"{value}\n{percentage:.2f}%" for value, percentage in zip(cm.flatten(), cm_percentage.flatten())]).reshape(cm.shape)
         # labels = np.asarray([f"{percentage:.2f}%" for value, percentage in zip(cm.flatten(), cm_percentage.flatten())]).reshape(cm.shape)
-        sns.heatmap(cm, annot=labels, fmt='', cmap='Blues', cbar=True, ax=ax, annot_kws={"size": 14})
+        sns.heatmap(cm, annot=labels, fmt='', cmap='Blues', cbar=True, ax=ax, annot_kws={"size": 18})
 
-        ax.set_xlabel('Predicted labels', fontsize=16)
-        ax.set_ylabel('True labels', fontsize=16)
+        ax.set_xlabel('Predicted labels', fontsize=20)
+        ax.set_ylabel('True labels', fontsize=20)
 
         if num_labels == 2:
-            ax.set_xticklabels(['Non-Stressed', 'Stressed'], fontsize=14)
-            ax.set_yticklabels(['Non-Stressed', 'Stressed'], fontsize=14)
+            ax.set_xticklabels(['Non-Stressed', 'Stressed'], fontsize=18)
+            ax.set_yticklabels(['Non-Stressed', 'Stressed'], fontsize=18)
         else:
-            plt.xticks(fontsize=14)
-            plt.yticks(fontsize=14)
+            plt.xticks(fontsize=18)
+            plt.yticks(fontsize=18)
 
         plt.show()
+        return fig
 
     def analyze_collective(self, save_dir):
         if not os.path.exists(save_dir):
@@ -129,17 +116,17 @@ class ModelResultsAnalysis:
             latex_file_path = os.path.join(save_dir, f'{model_name}_results_table.tex')
             with open(latex_file_path, 'w') as f:
                 f.write(latex_table)
-            print(f'LaTeX Table for {model_name} saved to {latex_file_path}')
+            print(f'LaTeX Table for {model_name} saved to {latex_file_path}\n')
 
+        print(f'Collective metrics:')
         self.print_metrics(collective_metrics)
 
         for model_name, metrics in collective_metrics.items():
             all_cm = np.sum([subject_results[model_name]['confusion_matrix'] for subject_results in self.results], axis=0)
             num_of_labels = len(all_cm)
-            fig, ax = plt.subplots()
-            self.plot_confusion_matrix(num_of_labels, cm=all_cm, ax=ax)
+            fig = self.plot_confusion_matrix(num_of_labels, cm=all_cm)
             confusion_matrix_path = os.path.join(save_dir, f'{model_name}_confusion_matrix.png')
-            fig.savefig(confusion_matrix_path)
+            fig.savefig(confusion_matrix_path, dpi=300, format='png', bbox_inches='tight')
             plt.close(fig)
             print(f'Confusion matrix for {model_name} saved to {confusion_matrix_path}')
 
@@ -149,13 +136,16 @@ class ModelResultsAnalysis:
             plt.figure(figsize=(10, 6))
             bar1 = plt.bar(model_data['subject_id'], model_data['accuracy'], color='darkslategray')
             for i, bar in enumerate(bar1):
-                            yval = bar.get_height()
-                            plt.text(bar.get_x() + bar.get_width()/2.0, yval, round(yval, 2), va='top', ha='center', fontsize=24)
+                yval = bar.get_height()
+                plt.text(bar.get_x() + bar.get_width()/2.0, yval, round(yval, 2), va='top', ha='center', fontsize=24)
             # plt.title(f'Validation Accuracy for {model_name}')
-            plt.xlabel('Subject ID')
-            plt.ylabel('Validation Accuracy')
-            plt.ylim(0, 1)
+            plt.xlabel('Subject ID', fontsize=24)
+            plt.ylabel('Validation Accuracy', fontsize=24)
+            plt.ylim((0, 1))  # Adjusting the y-limit to accommodate runtime text
+            plt.xticks(fontsize=18)
+            plt.yticks(fontsize=18)
+            plt.show()
             bar_chart_path = os.path.join(save_dir, f'{model_name}_validation_accuracy.png')
-            plt.savefig(bar_chart_path)
+            plt.savefig(bar_chart_path, dpi=300, format='png', bbox_inches='tight')
             plt.close()
             print(f'Validation accuracy bar chart for {model_name} saved to {bar_chart_path}')

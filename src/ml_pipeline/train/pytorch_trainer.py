@@ -87,9 +87,9 @@ class PyTorchTrainer:
                     self.writer.add_scalars('Loss', {'Train': train_loss, 'Validation': val_metrics[self.model.NAME]['loss']}, step)
                     self.writer.add_scalars('Accuracy', {'Train': train_acc, 'Validation': val_metrics[self.model.NAME]['accuracy']}, step)
 
-                # # break at 1/5th of the data
-                # if s!=0 and s % (len(self.train_loader) // 5) == 0:
-                #     break
+                # break at 1/5th of the data
+                if s!=0 and s % (len(self.train_loader) // 20) == 0:
+                    break
             
             avg_loss = epoch_loss / len(self.train_loader)
             avg_acc = epoch_correct / epoch_total
