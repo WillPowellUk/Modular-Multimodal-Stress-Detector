@@ -8,5 +8,6 @@ module load anaconda3/personal
 source activate RCS_TEST_TF2
  
 ## Verify install:
-python wesad_fe_30s.py
+# python wesad_fe_30s.py
 # python marco.py
+python losocv.py
