@@ -43,13 +43,13 @@ class PyTorchTrainer:
         # Launch TensorBoard
         log_dir = self.writer.log_dir
         tensorboard_command = ["tensorboard", "--logdir", log_dir, "--host", "localhost", "--port", "6006"]
-        subprocess.Popen(tensorboard_command)
-        time.sleep(2)
-        print()
+        # subprocess.Popen(tensorboard_command)
+        # time.sleep(2)
+        # print()
 
-        # Open TensorBoard in the default web browser
-        url = "http://localhost:6006"
-        webbrowser.open(url)
+        # # Open TensorBoard in the default web browser
+        # url = "http://localhost:6006"
+        # webbrowser.open(url)
 
         for epoch in range(self.configs['epoch']):
             epoch_loss = 0.0
@@ -120,7 +120,7 @@ class PyTorchTrainer:
         self.writer.close()
         return final_save_path
 
-    def validate(self, ckpt_path=None):
+    def validate(self, ckpt_path=None, subject_id=None):
         if self.val_loader is None:
             raise ValueError("Validation data loader is not provided")
 
@@ -168,6 +168,7 @@ class PyTorchTrainer:
 
         results = {}
         results[self.model.NAME] = {
+            "subject_id": subject_id,
             "loss": avg_loss,
             "accuracy": accuracy,
             "confusion_matrix": conf_matrix,

@@ -1,8 +1,11 @@
 import json
 import numpy as np
 import seaborn as sns
+import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.metrics import ConfusionMatrixDisplay
+import sys
+from IPython.display import display, Latex
 
 class ModelResultsAnalysis:
     def __init__(self, results):
@@ -25,6 +28,7 @@ class ModelResultsAnalysis:
     def print_metrics(self, metrics):
         for model, metric in metrics.items():
             print(f"{model}:")
+            print(f"  Subject ID: {metric['subject_id']}")
             print(f"  Accuracy: {metric['accuracy']:.5f}")
             print(f"  Precision: {metric['precision']:.5f}")
             print(f"  Recall: {metric['recall']:.5f}")
@@ -44,18 +48,32 @@ class ModelResultsAnalysis:
 
     def analyze_collective(self):
         collective_metrics = {}
+        all_results = []
+
         for model_name in self.results[0].keys():
             accuracies = []
             precisions = []
             recalls = []
             f1_scores = []
             inference_times = []
+            
             for subject_results in self.results:
+                subject_id = subject_results['subject_id']
                 accuracies.append(subject_results[model_name]['accuracy'])
                 precisions.append(subject_results[model_name]['precision'])
                 recalls.append(subject_results[model_name]['recall'])
                 f1_scores.append(subject_results[model_name]['f1_score'])
                 inference_times.append(subject_results[model_name]['inference_time_ms'])
+
+                all_results.append({
+                    'subject_id': subject_id,
+                    'model_name': model_name,
+                    'accuracy': subject_results[model_name]['accuracy'],
+                    'precision': subject_results[model_name]['precision'],
+                    'recall': subject_results[model_name]['recall'],
+                    'f1_score': subject_results[model_name]['f1_score'],
+                    'inference_time_ms': subject_results[model_name]['inference_time_ms']
+                })
             
             avg_accuracy = np.mean(accuracies)
             avg_precision = np.mean(precisions)
@@ -71,12 +89,31 @@ class ModelResultsAnalysis:
                 'inference_time_ms': avg_inference_time
             }
 
+        # Convert results to DataFrame
+        results_df = pd.DataFrame(all_results)
+        display(results_df)
+
+        # Convert DataFrame to LaTeX and print
+        latex_table = results_df.to_latex(index=False)
+        print(latex_table)
+
         self.print_metrics(collective_metrics)
 
         for model_name, metrics in collective_metrics.items():
             all_cm = np.sum([subject_results[model_name]['confusion_matrix'] for subject_results in self.results], axis=0)
             num_of_labels = len(all_cm)
             self.plot_confusion_matrix(num_of_labels, cm=all_cm)
+
+        # Plot bar chart for each model's validation accuracy for each subject ID
+        for model_name in results_df['model_name'].unique():
+            model_data = results_df[results_df['model_name'] == model_name]
+            plt.figure(figsize=(10, 6))
+            plt.bar(model_data['subject_id'], model_data['accuracy'])
+            plt.title(f'Validation Accuracy for {model_name}')
+            plt.xlabel('Subject ID')
+            plt.ylabel('Validation Accuracy')
+            plt.ylim(0, 1)
+            plt.show()
 
     def plot_confusion_matrix(self, num_labels, cm):
         plt.figure(figsize=(10, 7))

@@ -1,0 +1,159 @@
+Using device: cuda
+
+Subject: 2
+Train: 12762
+Val: 174
+
+Storing tensorboard log to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_2/tensorboard
+Open TensorBoard in your browser to monitor training progress.
+Epoch: 0, | training loss: 0.1558, | training accuracy: 0.9470
+Model checkpoint saved to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_2/checkpoint_1.pth
+
+
+Subject: 3
+Train: 12751
+Val: 176
+
+Storing tensorboard log to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_3/tensorboard
+Open TensorBoard in your browser to monitor training progress.
+Epoch: 0, | training loss: 0.1103, | training accuracy: 0.9635
+Model checkpoint saved to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_3/checkpoint_1.pth
+
+
+Subject: 4
+Train: 12744
+Val: 177
+
+Storing tensorboard log to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_4/tensorboard
+Open TensorBoard in your browser to monitor training progress.
+Epoch: 0, | training loss: 0.1590, | training accuracy: 0.9524
+Model checkpoint saved to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_4/checkpoint_1.pth
+
+
+Subject: 5
+Train: 12721
+Val: 182
+
+Storing tensorboard log to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_5/tensorboard
+Open TensorBoard in your browser to monitor training progress.
+Epoch: 0, | training loss: 0.1480, | training accuracy: 0.9580
+Model checkpoint saved to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_5/checkpoint_1.pth
+
+
+Subject: 6
+Train: 12726
+Val: 181
+
+Storing tensorboard log to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_6/tensorboard
+Open TensorBoard in your browser to monitor training progress.
+Epoch: 0, | training loss: 0.1304, | training accuracy: 0.9609
+Model checkpoint saved to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_6/checkpoint_1.pth
+
+
+Subject: 7
+Train: 12728
+Val: 180
+
+Storing tensorboard log to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_7/tensorboard
+Open TensorBoard in your browser to monitor training progress.
+Epoch: 0, | training loss: 0.1771, | training accuracy: 0.9391
+Model checkpoint saved to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_7/checkpoint_1.pth
+
+
+Subject: 8
+Train: 12722
+Val: 182
+
+Storing tensorboard log to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_8/tensorboard
+Open TensorBoard in your browser to monitor training progress.
+Epoch: 0, | training loss: 0.1221, | training accuracy: 0.9637
+Model checkpoint saved to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_8/checkpoint_1.pth
+
+
+Subject: 9
+Train: 12729
+Val: 180
+
+Storing tensorboard log to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_9/tensorboard
+Open TensorBoard in your browser to monitor training progress.
+Epoch: 0, | training loss: 0.1384, | training accuracy: 0.9558
+Model checkpoint saved to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_9/checkpoint_1.pth
+
+
+Subject: 10
+Train: 12689
+Val: 188
+
+Storing tensorboard log to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_10/tensorboard
+Open TensorBoard in your browser to monitor training progress.
+Epoch: 0, | training loss: 0.1372, | training accuracy: 0.9581
+Model checkpoint saved to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_10/checkpoint_1.pth
+
+
+Subject: 11
+Train: 12711
+Val: 184
+
+Storing tensorboard log to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_11/tensorboard
+Open TensorBoard in your browser to monitor training progress.
+Epoch: 0, | training loss: 0.1762, | training accuracy: 0.9454
+Model checkpoint saved to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_11/checkpoint_1.pth
+
+
+Subject: 13
+Train: 12719
+Val: 182
+
+Storing tensorboard log to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_13/tensorboard
+Open TensorBoard in your browser to monitor training progress.
+Epoch: 0, | training loss: 0.1237, | training accuracy: 0.9625
+Model checkpoint saved to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_13/checkpoint_1.pth
+
+
+Subject: 14
+Train: 12714
+Val: 183
+
+Storing tensorboard log to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_14/tensorboard
+Open TensorBoard in your browser to monitor training progress.
+Epoch: 0, | training loss: 0.1456, | training accuracy: 0.9569
+Model checkpoint saved to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_14/checkpoint_1.pth
+
+
+Subject: 15
+Train: 12713
+Val: 182
+
+Storing tensorboard log to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_15/tensorboard
+Open TensorBoard in your browser to monitor training progress.
+Epoch: 0, | training loss: 0.1147, | training accuracy: 0.9677
+Model checkpoint saved to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_15/checkpoint_1.pth
+
+
+Subject: 16
+Train: 12715
+Val: 184
+
+Storing tensorboard log to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_16/tensorboard
+Open TensorBoard in your browser to monitor training progress.
+Epoch: 0, | training loss: 0.1387, | training accuracy: 0.9635
+Model checkpoint saved to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_16/checkpoint_1.pth
+
+
+Subject: 17
+Train: 12690
+Val: 188
+
+Storing tensorboard log to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_17/tensorboard
+Open TensorBoard in your browser to monitor training progress.
+Epoch: 0, | training loss: 0.1357, | training accuracy: 0.9601
+Model checkpoint saved to: src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/subject_17/checkpoint_1.pth
+
+Variable 'Results' saved to src/wesad/WESAD/results/san/wrist_results/10s_2s_10s/2024_06_28_23_51_12/generalized/results.pkl
+Variable loaded from src/wesad/WESAD/results/san/wrist_results/10s_2s_10s/2024_06_28_23_51_12/generalized/results.pkl
+MARCONet:
+  Accuracy: 0.69310
+  Precision: 0.70054
+  Recall: 0.69310
+  F1 Score: 0.64175
+  Inference Time (ms): 1.73426
