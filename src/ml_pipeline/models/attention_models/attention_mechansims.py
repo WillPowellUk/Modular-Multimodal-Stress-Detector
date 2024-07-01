@@ -94,7 +94,7 @@ class CachedSlidngSelfAttentionEncoder(nn.Module):
         self.dropout2 = nn.Dropout(drop_prob)
 
         # Initialize KV cache
-        self.cache_buffer_size = token_length
+        token_length = token_length
         self.kv_cache = None
 
     def forward(self, x, use_cache=False):
@@ -110,9 +110,9 @@ class CachedSlidngSelfAttentionEncoder(nn.Module):
             values = torch.cat([value_cache, x], dim=1)
 
             # Maintain the sliding window of cache
-            if keys.size(1) > self.cache_buffer_size:
-                keys = keys[:, -self.cache_buffer_size:, :]
-                values = values[:, -self.cache_buffer_size:, :]
+            if keys.size(1) > token_length:
+                keys = keys[:, -token_length:, :]
+                values = values[:, -token_length:, :]
         else:
             keys, values = x, x
 
@@ -136,7 +136,7 @@ class CachedSlidngSelfAttentionEncoder(nn.Module):
         self.kv_cache = None
 
 class CachedSlidingCrossAttentionEncoder(nn.Module):
-    def __init__(self, d_model, ffn_hidden, n_head, drop_prob, token_length):
+    def __init__(self, d_model, ffn_hidden, n_head, drop_prob):
         super(CachedSlidingCrossAttentionEncoder, self).__init__()
         self.attention = MultiheadAttention(d_model, n_head, batch_first=True)
         self.norm1 = nn.LayerNorm(d_model)
@@ -146,10 +146,9 @@ class CachedSlidingCrossAttentionEncoder(nn.Module):
         self.dropout2 = nn.Dropout(drop_prob)
 
         # Initialize KV cache
-        self.cache_buffer_size = token_length
         self.kv_cache = None
 
-    def forward(self, query, key_value, use_cache=False):
+    def forward(self, query, key_value, token_length, use_cache=False):
         if use_cache and self.kv_cache is not None:
             key_cache, value_cache = self.kv_cache
         else:
@@ -162,9 +161,9 @@ class CachedSlidingCrossAttentionEncoder(nn.Module):
             values = torch.cat([value_cache, key_value], dim=1)
 
             # Maintain the sliding window of cache
-            if keys.size(1) > self.cache_buffer_size:
-                keys = keys[:, -self.cache_buffer_size:, :]
-                values = values[:, -self.cache_buffer_size:, :]
+            if keys.size(1) > token_length:
+                keys = keys[:, -token_length:, :]
+                values = values[:, -token_length:, :]
         else:
             keys, values = key_value, key_value
 

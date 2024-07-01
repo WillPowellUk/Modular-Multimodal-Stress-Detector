@@ -31,9 +31,9 @@ class PyTorchTrainer:
         return configs
 
     def print_model_summary(self):
-        self.model_copy = self.model
+        model_copy = self.model
         print_model_summary(self.model, self.model.input_dims, batch_size=self.train_loader.batch_size, device=self.device.type)
-        self.model = self.model_copy
+        self.model = model_copy
 
     def train(self):
         # Create the TensorBoard writer
@@ -43,13 +43,13 @@ class PyTorchTrainer:
         # Launch TensorBoard
         log_dir = self.writer.log_dir
         tensorboard_command = ["tensorboard", "--logdir", log_dir, "--host", "localhost", "--port", "6006"]
-        # subprocess.Popen(tensorboard_command)
-        # time.sleep(2)
-        # print()
+        subprocess.Popen(tensorboard_command)
+        time.sleep(2)
+        print()
 
-        # # Open TensorBoard in the default web browser
-        # url = "http://localhost:6006"
-        # webbrowser.open(url)
+        # Open TensorBoard in the default web browser
+        url = "http://localhost:6006"
+        webbrowser.open(url)
 
         for epoch in range(self.configs['epoch']):
             epoch_loss = 0.0
@@ -120,8 +120,13 @@ class PyTorchTrainer:
         self.writer.close()
         return final_save_path
 
-    def validate(self, ckpt_path=None, subject_id=None):
-        if self.val_loader is None:
+    def validate(self, ckpt_path=None, subject_id=None, val_loader=None):
+        # Use provided validation data loader if available or use the default one
+        if val_loader is not None:
+            val_loader = val_loader
+        elif self.val_loader is not None:
+            val_loader = self.val_loader
+        else:
             raise ValueError("Validation data loader is not provided")
 
         # Load model from checkpoint if provided
@@ -136,7 +141,7 @@ class PyTorchTrainer:
         epoch_loss = 0.0
 
         with torch.no_grad():
-            for batch_x, batch_y in self.val_loader:
+            for batch_x, batch_y in val_loader:
                 inputs = {key: val.to(self.device) for key, val in batch_x.items()}
                 labels = batch_y.to(self.device)
 
@@ -156,7 +161,7 @@ class PyTorchTrainer:
 
         # Calculate average inference time in milliseconds
         avg_inference_time = np.mean(inference_times)
-        avg_loss = epoch_loss / len(self.val_loader)
+        avg_loss = epoch_loss / len(val_loader)
 
         y_pred = np.array(y_pred)
         y_true = np.array(y_true) - 1  # correct for labelling starting from index `1`

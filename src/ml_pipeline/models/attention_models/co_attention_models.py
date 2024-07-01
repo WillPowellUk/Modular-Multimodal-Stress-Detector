@@ -112,6 +112,9 @@ class MARCONet(nn.Module):
         self.batch_size = kwargs['batch_size']
         self.token_length = kwargs['token_length']
 
+        # If val_model is set to True, the model will use cache for the sliding co-attention
+        self.val_model = kwargs.get('val_model', False)
+
         super(MARCONet, self).__init__()
         
         self.modalities = nn.ModuleDict()
@@ -126,7 +129,7 @@ class MARCONet(nn.Module):
             })
             self.modalities[modality] = modality_net
             self.self_attention_blocks[modality] = nn.ModuleList([
-                CachedSlidngSelfAttentionEncoder(self.embed_dim, self.hidden_dim, self.n_head, self.dropout, self.token_length)
+                CachedSlidngSelfAttentionEncoder(self.embed_dim, self.hidden_dim, self.n_head, self.dropout)
                 for _ in range(self.n_bcsa)
             ])
 
@@ -140,7 +143,6 @@ class MARCONet(nn.Module):
                             ffn_hidden=self.hidden_dim,
                             n_head=self.n_head,
                             drop_prob=self.dropout,
-                            token_length=self.token_length,
                         ) for _ in range(self.n_bcsa)
                     ])
 
@@ -160,11 +162,11 @@ class MARCONet(nn.Module):
             #     for modality2 in modality_features:
             #         if modality1 != modality2:
             #             ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
-            #             modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2])
+            #             modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], self.token_length, use_cache=self.val_model)
                         
             for modality, net in self.modalities.items():
                 sa_block = self.self_attention_blocks[modality][i]
-                modality_features[modality] = sa_block(modality_features[modality])
+                modality_features[modality] = sa_block(modality_features[modality], self.token_length, use_cache=self.val_model)
 
         # Step 3: Merge branches into one tensor and call Predictor
         concatenated_features = torch.cat(list(modality_features.values()), dim=1)

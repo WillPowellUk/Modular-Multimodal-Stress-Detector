@@ -48,7 +48,7 @@ class LOSOCVSensorDataLoader:
         print(f'Datasets saved at: {dataset_save_path}')
         return dataset_save_path
 
-    def get_data_loaders(self, datasets_path):
+    def get_data_loaders(self, datasets_path, train_only=False, val_only=False):
         with open(datasets_path, 'rb') as f:
             datasets_path = pickle.load(f)
 
@@ -56,15 +56,25 @@ class LOSOCVSensorDataLoader:
         input_dims = {}
         for i, subject_id in enumerate(self.subjects):
             subject_id = int(float(subject_id))
-            train_dataset = SensorDataset(datasets_path[subject_id]['train'], self.dataset_config['include_sensors'])
-            val_dataset = SensorDataset(datasets_path[subject_id]['val'], self.dataset_config['include_sensors'])
-            
-            if i == 0:
-                input_dims = train_dataset.get_dims()
-
-            train_loader = DataLoader(train_dataset, **self.params)
-            val_loader = DataLoader(val_dataset, **self.params)
-
-            dataloaders[subject_id] = {'train': train_loader, 'val': val_loader}
+            if train_only:
+                train_dataset = SensorDataset(datasets_path[subject_id]['train'], self.dataset_config['include_sensors'])
+                train_loader = DataLoader(train_dataset, **self.params)
+                dataloaders[subject_id] = {'train': train_loader}
+                if i == 0:
+                    input_dims = train_dataset.get_dims()
+            elif val_only:
+                val_dataset = SensorDataset(datasets_path[subject_id]['val'], self.dataset_config['include_sensors'])
+                val_loader = DataLoader(val_dataset, **self.params)
+                dataloaders[subject_id] = {'val': val_loader}
+                if i == 0:
+                    input_dims = val_dataset.get_dims()
+            else:
+                train_dataset = SensorDataset(datasets_path[subject_id]['train'], self.dataset_config['include_sensors'])
+                val_dataset = SensorDataset(datasets_path[subject_id]['val'], self.dataset_config['include_sensors'])
+                train_loader = DataLoader(train_dataset, **self.params)
+                val_loader = DataLoader(val_dataset, **self.params)
+                dataloaders[subject_id] = {'train': train_loader, 'val': val_loader}            
+                if i == 0:
+                    input_dims = train_dataset.get_dims()
         
         return dataloaders, input_dims
