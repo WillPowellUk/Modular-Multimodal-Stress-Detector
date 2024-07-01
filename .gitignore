@@ -1,3 +1,4 @@
 src/wesad/WESAD
 *.pyc
 **/__pycache__/
+wandb

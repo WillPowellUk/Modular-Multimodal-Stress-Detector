@@ -84,7 +84,7 @@ class CrossAttentionEncoder(nn.Module):
         return x
 
 class CachedSlidngSelfAttentionEncoder(nn.Module):
-    def __init__(self, d_model, ffn_hidden, n_head, drop_prob, token_length):
+    def __init__(self, d_model, ffn_hidden, n_head, drop_prob):
         super(CachedSlidngSelfAttentionEncoder, self).__init__()
         self.attention = MultiheadAttention(d_model, n_head, batch_first=True)
         self.norm1 = nn.LayerNorm(d_model)
@@ -94,10 +94,9 @@ class CachedSlidngSelfAttentionEncoder(nn.Module):
         self.dropout2 = nn.Dropout(drop_prob)
 
         # Initialize KV cache
-        token_length = token_length
         self.kv_cache = None
 
-    def forward(self, x, use_cache=False):
+    def forward(self, x, token_length, use_cache=False):
         if use_cache and self.kv_cache is not None:
             key_cache, value_cache = self.kv_cache
         else:

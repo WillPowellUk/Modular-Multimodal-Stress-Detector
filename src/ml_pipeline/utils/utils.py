@@ -123,7 +123,8 @@ def print_model_summary(model, input_dims, batch_size=-1, device="cuda"):
     model.apply(register_hook)
 
     # make a forward pass
-    model(x)
+    with torch.no_grad():
+        model(x)
 
     # remove these hooks
     for h in hooks:
