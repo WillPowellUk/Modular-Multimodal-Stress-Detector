@@ -99,6 +99,7 @@ for idx, ((subject_id, train_loader), (_, val_loader)) in enumerate(zip(train_da
     # Now validate using the sliding co-attention buffer  
     trainer.model.token_length = get_values(MARCO_CONFIG, 'token_length')
     result = trainer.validate(trained_model_ckpt, subject_id, val_loader=val_loader)
+    del trainer # delete the trainer object and finish wandb
     results.append(result)
 
     if idx+1 == 2:

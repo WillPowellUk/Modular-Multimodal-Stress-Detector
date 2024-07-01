@@ -21,6 +21,10 @@ class PyTorchTrainer:
         self.num_classes = self.configs['num_classes']
         self.save_path = self.configs['save_path']
 
+    def __del__(self):
+        if wandb.run is not None:
+            wandb.finish()
+
     def load_config(self, config_path):
         with open(config_path, 'r') as f:
             configs = json.load(f)
@@ -166,7 +170,7 @@ class PyTorchTrainer:
         y_true = np.array(y_true) - 1  # correct for labelling starting from index `1`
         accuracy = accuracy_score(y_true, y_pred)
         conf_matrix = confusion_matrix(y_true, y_pred, labels=[i for i in range(self.num_classes)])
-        precision = precision_score(y_true, y_pred, average='weighted')
+        precision = precision_score(y_true, y_pred, average='weighted', zero_division=0)
         recall = recall_score(y_true, y_pred, average='weighted')
         f1 = f1_score(y_true, y_pred, average='weighted')
 
