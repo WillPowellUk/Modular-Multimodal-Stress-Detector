@@ -1,15 +1,19 @@
 {
     "num_classes": 2,
-    "token_length": 10,
+    "token_length": 6,
     "n_bcsa": 1,
-    "embed_dim": 80,
-    "hidden_dim": 128,
+    "embed_dim": 8,
+    "hidden_dim": 64,
     "output_dim": 2,
     "n_head_gen": 4,
     "n_head_per": 1,
-    "dropout": 0.1,
+    "dropout": 0.5,
     "learning_rate": 0.001,
-    "epoch": 1,
-    "batch_size": 1,
+    "epoch": 2,
+    "batch_size": 16,
+    "loss_fns": {
+        "bce": true,
+        "focal": false
+    },
     "save_path": "src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/{fold}"
 }

@@ -2,15 +2,16 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class LSTM_Model(torch.nn.Module):
     def __init__(self):
         super(LSTM_Model, self).__init__()
-        
+
         self.lstm0 = nn.LSTM(
-            input_size = 24,
-            hidden_size = 64,
-            num_layers = 3,
-            batch_first = True,
+            input_size=24,
+            hidden_size=64,
+            num_layers=3,
+            batch_first=True,
         )
         self.bn1 = nn.BatchNorm1d(64)
         self.fc = nn.Linear(64, 256)

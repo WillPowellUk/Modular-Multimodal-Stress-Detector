@@ -1,1 +1,1 @@
-from.ecg_feature_extractor import ECGFeatureExtractor
+from .ecg_feature_extractor import ECGFeatureExtractor

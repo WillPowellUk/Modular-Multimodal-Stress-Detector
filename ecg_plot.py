@@ -31,9 +31,18 @@
 from src.ml_pipeline.preprocessing import SignalPreprocessor
 
 # preprocess the chest data
-signal_preprocessor = SignalPreprocessor('src/wesad/WESAD/raw/merged_chest.pkl', 'src/wesad/WESAD/cleaned/chest_preprocessed.pkl', 'src/wesad/wesad_configuration.json')
+signal_preprocessor = SignalPreprocessor(
+    "src/wesad/WESAD/raw/merged_chest.pkl",
+    "src/wesad/WESAD/cleaned/chest_preprocessed.pkl",
+    "src/wesad/wesad_configuration.json",
+)
 signal_preprocessor.preprocess_signals()
 
 # preprocess the wrist data
-signal_preprocessor = SignalPreprocessor('src/wesad/WESAD/raw/merged_wrist.pkl', 'src/wesad/WESAD/cleaned/wrist_preprocessed.pkl', 'src/wesad/wesad_configuration.json', wrist=True)
+signal_preprocessor = SignalPreprocessor(
+    "src/wesad/WESAD/raw/merged_wrist.pkl",
+    "src/wesad/WESAD/cleaned/wrist_preprocessed.pkl",
+    "src/wesad/wesad_configuration.json",
+    wrist=True,
+)
 signal_preprocessor.preprocess_signals()

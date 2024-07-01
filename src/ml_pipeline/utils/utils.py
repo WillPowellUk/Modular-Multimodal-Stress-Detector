@@ -5,26 +5,30 @@ import torch.nn as nn
 from collections import OrderedDict
 import numpy as np
 
+
 def get_max_sampling_rate(config_path):
-    with open(config_path, 'r') as f:
+    with open(config_path, "r") as f:
         config = json.load(f)
-    
+
     sampling_rates = config["sampling rate"]
     max_sampling_rate = max(sampling_rates.values())
-    
+
     return max_sampling_rate
 
+
 def get_key(config_path, key):
-    with open(config_path, 'r') as f:
+    with open(config_path, "r") as f:
         config = json.load(f)
 
     return config[key]
 
+
 def copy_json(src, dst):
     shutil.copy(src, dst)
 
+
 def get_active_key(config_path, key, recursive=False):
-    with open(config_path, 'r') as f:
+    with open(config_path, "r") as f:
         config = json.load(f)
 
     if recursive:
@@ -40,11 +44,13 @@ def get_active_key(config_path, key, recursive=False):
 
     return active_keys
 
+
 def get_values(config_path, key):
-    with open(config_path, 'r') as f:
+    with open(config_path, "r") as f:
         config = json.load(f)
 
     return config[key]
+
 
 def load_generalized_model(generalized_model_path, model_class, **model_args):
     model = model_class(**model_args)
@@ -52,8 +58,9 @@ def load_generalized_model(generalized_model_path, model_class, **model_args):
     model.load_state_dict(state_dict)
     return model
 
+
 def load_json(config_path):
-    with open(config_path, 'r') as f:
+    with open(config_path, "r") as f:
         config = json.load(f)
 
     return config
@@ -66,7 +73,7 @@ def print_model_summary(model, input_dims, batch_size=-1, device="cuda"):
             module_idx = len(summary)
             m_key = "%s-%i" % (class_name, module_idx + 1)
             summary[m_key] = OrderedDict()
-            
+
             input_shapes = []
             for inp in input:
                 if isinstance(inp, dict):
@@ -74,11 +81,11 @@ def print_model_summary(model, input_dims, batch_size=-1, device="cuda"):
                         input_shapes.append(list(inp[key].size()))
                 else:
                     input_shapes.append(list(inp.size()))
-            
+
             summary[m_key]["input_shape"] = input_shapes
             for inp_shape in summary[m_key]["input_shape"]:
                 inp_shape[0] = batch_size
-            
+
             if isinstance(output, (list, tuple)):
                 summary[m_key]["output_shape"] = [
                     [-1] + list(o.size())[1:] for o in output
@@ -103,7 +110,10 @@ def print_model_summary(model, input_dims, batch_size=-1, device="cuda"):
             hooks.append(module.register_forward_hook(hook))
 
     device = device.lower()
-    assert device in ["cuda", "cpu"], "Input device is not valid, please specify 'cuda' or 'cpu'"
+    assert device in [
+        "cuda",
+        "cpu",
+    ], "Input device is not valid, please specify 'cuda' or 'cpu'"
 
     if device == "cuda" and torch.cuda.is_available():
         dtype = torch.cuda.FloatTensor
@@ -123,7 +133,8 @@ def print_model_summary(model, input_dims, batch_size=-1, device="cuda"):
     model.apply(register_hook)
 
     # make a forward pass
-    model(x)
+    with torch.no_grad():
+        model(x)
 
     # remove these hooks
     for h in hooks:
@@ -151,9 +162,13 @@ def print_model_summary(model, input_dims, batch_size=-1, device="cuda"):
         print(line_new)
 
     # assume 4 bytes/number (float on cuda).
-    total_input_size = abs(np.prod(list(input_dims.values())) * batch_size * 4. / (1024 ** 2.))
-    total_output_size = abs(2. * total_output * 4. / (1024 ** 2.))  # x2 for gradients
-    total_params_size = abs(total_params.numpy() * 4. / (1024 ** 2.))
+    total_input_size = abs(
+        np.prod(list(input_dims.values())) * batch_size * 4.0 / (1024**2.0)
+    )
+    total_output_size = abs(
+        2.0 * total_output * 4.0 / (1024**2.0)
+    )  # x2 for gradients
+    total_params_size = abs(total_params.numpy() * 4.0 / (1024**2.0))
     total_size = total_params_size + total_output_size + total_input_size
 
     print("================================================================")
@@ -168,6 +183,7 @@ def print_model_summary(model, input_dims, batch_size=-1, device="cuda"):
     print("----------------------------------------------------------------")
     # return summary
 
+
 def print2(filename, text):
-    with open(filename, 'a') as file:
-        file.write(text + '\n')
+    with open(filename, "a") as file:
+        file.write(text + "\n")
