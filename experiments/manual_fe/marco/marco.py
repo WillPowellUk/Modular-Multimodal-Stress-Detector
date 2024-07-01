@@ -36,6 +36,9 @@ MARCO_CONFIG = "config_files/model_training/deep/marco_config.json"
 # CONFIG file for the dataset
 WRIST_CONFIG = "config_files/dataset/wesad_wrist_configuration.json"
 
+# Set the sensors to use
+sensors = "all"
+
 # Load Train Dataloaders for LOSOCV
 TRAIN_WINDOW_LENGTH = 30
 TRAIN_SPLIT_LENGTH = int(
@@ -49,7 +52,7 @@ dataloader_params = {
     "shuffle": True,
     "drop_last": True,
 }
-TRAIN_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/all/{TRAIN_WINDOW_LENGTH}s_{TRAIN_SLIDING_LENGTH}s_{TRAIN_SPLIT_LENGTH}s/losocv_datasets.pkl"
+TRAIN_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{sensors}/{TRAIN_WINDOW_LENGTH}s_{TRAIN_SLIDING_LENGTH}s_{TRAIN_SPLIT_LENGTH}s/losocv_datasets.pkl"
 train_losocv_loader = LOSOCVSensorDataLoader(
     TRAIN_WRIST_FE, WRIST_CONFIG, **dataloader_params
 )
@@ -67,7 +70,7 @@ dataloader_params = {
     "shuffle": False,
     "drop_last": True,
 }
-VAL_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/all/{VAL_WINDOW_LENGTH}s_{VAL_SLIDING_LENGTH}s_{VAL_SPLIT_LENGTH}s/losocv_datasets.pkl"
+VAL_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{sensors}/{VAL_WINDOW_LENGTH}s_{VAL_SLIDING_LENGTH}s_{VAL_SPLIT_LENGTH}s/losocv_datasets.pkl"
 val_losocv_loader = LOSOCVSensorDataLoader(
     VAL_WRIST_FE, WRIST_CONFIG, **dataloader_params
 )
