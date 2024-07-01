@@ -3,21 +3,21 @@ import time
 import json
 import numpy as np
 import torch
-import torch.nn as nn
+from torch import nn
 import wandb
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score
 from src.ml_pipeline.utils import print_model_summary
 
 class PyTorchTrainer:
-    def __init__(self, model, train_loader, val_loader, config_path, device):
+    def __init__(self, model, train_loader, val_loader, loss_func, config_path, device):
         self.model = model.to(device)
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.device = device
         self.configs = self.load_config(config_path)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.configs['learning_rate'])
-        self.loss_func = nn.BCEWithLogitsLoss()
+        self.loss_func = loss_func
         self.num_classes = self.configs['num_classes']
         self.save_path = self.configs['save_path']
 
@@ -56,8 +56,7 @@ class PyTorchTrainer:
                     continue
                 labels = batch_y.to(self.device)
                 final_output = self.model(inputs)
-                one_hot_labels = torch.nn.functional.one_hot(labels - 1, num_classes=self.num_classes).float()
-                loss = self.loss_func(final_output, one_hot_labels)
+                loss = self.loss_func(final_output, torch.nn.functional.one_hot(labels - 1, num_classes=self.num_classes).float())
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()

@@ -17,6 +17,7 @@ else:
 
 from src.ml_pipeline.train import PyTorchTrainer
 from src.ml_pipeline.models.attention_models import MARCONet
+from src.ml_pipeline.losses import LossWrapper
 from src.ml_pipeline.data_loader import LOSOCVSensorDataLoader
 from src.ml_pipeline.utils import get_active_key, get_key, load_json, copy_json, get_values
 from src.utils import save_var
@@ -67,6 +68,9 @@ model_config = {
     'input_dims': train_input_dims
 }
 
+# Configure LossWrapper for the model
+loss_wrapper = LossWrapper(MARCO_CONFIG)
+
 # Set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f'Using device: {device}')
@@ -86,7 +90,7 @@ for idx, ((subject_id, train_loader), (_, val_loader)) in enumerate(zip(train_da
     model = MARCONet(**model_config)
 
     # Initialize trainer
-    trainer = PyTorchTrainer(model, train_loader_batched, val_loader_batched, MARCO_CONFIG, device)
+    trainer = PyTorchTrainer(model, train_loader_batched, val_loader_batched, loss_wrapper, MARCO_CONFIG, device)
     trainer.save_path = trainer.save_path.format(fold=f'subject_{subject_id}')
     # if idx == 0:
     #     trainer.print_model_summary()
@@ -96,7 +100,7 @@ for idx, ((subject_id, train_loader), (_, val_loader)) in enumerate(zip(train_da
     trained_model_ckpt = trainer.train(use_wandb=True, name_wandb=f'marco_subject_{subject_id}')
     print(f'Model checkpoint saved to: {trained_model_ckpt}\n')
 
-    # Now validate using the sliding co-attention buffer  
+    # Now validate using the sliding co-attention buffer
     trainer.model.token_length = get_values(MARCO_CONFIG, 'token_length')
     result = trainer.validate(trained_model_ckpt, subject_id, val_loader=val_loader)
     del trainer # delete the trainer object and finish wandb
