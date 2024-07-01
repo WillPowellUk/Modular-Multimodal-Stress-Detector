@@ -1,6 +1,7 @@
 import pandas as pd
 from scipy.signal import savgol_filter
 
+
 class TempPreprocessing:
     def __init__(self, df, window_size=31, poly_order=5, wrist=False):
         self.df = df
@@ -9,7 +10,7 @@ class TempPreprocessing:
         self.wrist = wrist
 
     def process(self):
-        key = 'w_temp' if self.wrist else 'temp'
+        key = "w_temp" if self.wrist else "temp"
         temp_signal = self.df[key].values
         filtered_signal = self.temp_filter(temp_signal)
         self.df[key] = filtered_signal

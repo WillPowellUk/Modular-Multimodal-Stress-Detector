@@ -7,5 +7,5 @@ from .utils import (
     load_generalized_model,
     load_json,
     print_model_summary,
-    print2
+    print2,
 )

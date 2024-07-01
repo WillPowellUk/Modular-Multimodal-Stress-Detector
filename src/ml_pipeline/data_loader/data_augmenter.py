@@ -4,22 +4,23 @@ from math import floor
 import pickle
 from src.ml_pipeline.utils.utils import get_max_sampling_rate, get_active_key
 
+
 class DataAugmenter:
     def __init__(self, dataframe_path, config_path):
         self.dataframe = self.load_dataframe(dataframe_path)
         self.sampling_rate = get_max_sampling_rate(config_path)
-        self.labels = get_active_key(config_path, 'labels')
-        
+        self.labels = get_active_key(config_path, "labels")
+
     def load_dataframe(self, dataframe_path):
-        with open(dataframe_path, 'rb') as file:
+        with open(dataframe_path, "rb") as file:
             dataframe = pickle.load(file)
         return dataframe
-    
+
     def augment_data(self, window_size=60, sliding_length=5):
         # iterate through each subject, copying the original data across in segments first (non-augmented) a
         # and then creating synthetic samples by iterating through the data again and again at a cumulative offset of sliding_step until complete
-        print('Segmenting data...')
-        grouped = self.dataframe.groupby('sid')
+        print("Segmenting data...")
+        grouped = self.dataframe.groupby("sid")
         sample_rate = self.sampling_rate
         window_step = window_size * sample_rate
         sliding_step = sliding_length * sample_rate
@@ -33,17 +34,21 @@ class DataAugmenter:
             for i in range(num_of_iterations):
                 while end_idx <= len(group):
                     segment = group.iloc[start_idx:end_idx].copy()
-                    if str(segment['label'].iloc[0]) in self.labels:
-                        if segment['label'].nunique() == 1:
-                            segment.loc[:, 'is_augmented'] = False if start_idx % (window_size * sample_rate) == 0 else True
+                    if str(segment["label"].iloc[0]) in self.labels:
+                        if segment["label"].nunique() == 1:
+                            segment.loc[:, "is_augmented"] = (
+                                False
+                                if start_idx % (window_size * sample_rate) == 0
+                                else True
+                            )
                             if len(segment) == window_size * sample_rate:
                                 segments.append(segment)
                     start_idx += window_step
                     end_idx += window_step
-                start_idx = (i+1) * sliding_step
+                start_idx = (i + 1) * sliding_step
                 end_idx = start_idx + window_step
-        print(f'Number of segments: {len(segments)}')
-        print(f'Synthetic to non-synthetic ratio: {num_of_iterations-1}:{1}')
+        print(f"Number of segments: {len(segments)}")
+        print(f"Synthetic to non-synthetic ratio: {num_of_iterations-1}:{1}")
         return segments
 
     def split_segments(self, segments, num_splits):
@@ -57,7 +62,7 @@ class DataAugmenter:
         Returns:
             list of pd.DataFrame: List of split segments.
         """
-        print('Splitting segments...')
+        print("Splitting segments...")
         split_segments = []
         for segment in segments:
             segment_length = len(segment)
@@ -73,5 +78,5 @@ class DataAugmenter:
                     split = segment.iloc[start_idx:end_idx].copy()
                     split_segment.append(split)
             split_segments.append(split_segment)
-        print('Splitting complete.')
+        print("Splitting complete.")
         return split_segments
