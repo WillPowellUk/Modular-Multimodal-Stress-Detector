@@ -48,7 +48,7 @@ TRAIN_SLIDING_LENGTH = TRAIN_SPLIT_LENGTH  # this will create 6 samples per 30 s
 TRAIN_WRIST_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{TRAIN_WINDOW_LENGTH}s_{TRAIN_SLIDING_LENGTH}s_{TRAIN_SPLIT_LENGTH}s/wrist_features.hdf5"
 
 dataloader_params = {
-    "batch_size": get_values(MARCO_CONFIG, "token_length"),
+    "batch_size": get_values(MARCO_CONFIG, "batch_size"),
     "shuffle": True,
     "drop_last": True,
 }
