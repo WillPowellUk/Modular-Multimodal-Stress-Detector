@@ -137,15 +137,14 @@ class ModelResultsAnalysis:
             bar1 = plt.bar(model_data['subject_id'], model_data['accuracy'], color='darkslategray')
             for i, bar in enumerate(bar1):
                 yval = bar.get_height()
-                plt.text(bar.get_x() + bar.get_width()/2.0, yval, round(yval, 2), va='bottom', ha='center', fontsize=18)
-            # plt.title(f'Validation Accuracy for {model_name}')
+                plt.text(bar.get_x() + bar.get_width() / 2.0, yval, round(yval, 2), va='bottom', ha='center', fontsize=18)
             plt.xlabel('Subject ID', fontsize=24)
             plt.ylabel('Validation Accuracy', fontsize=24)
             plt.ylim((0, 1))  # Adjusting the y-limit to accommodate runtime text
-            plt.xticks(fontsize=18)
+            unique_subject_ids = model_data['subject_id'].unique()
+            plt.xticks(unique_subject_ids, fontsize=18)  # Setting x-ticks to be the unique subject IDs
             plt.yticks(fontsize=18)
-            plt.show()
             bar_chart_path = os.path.join(save_dir, f'{model_name}_validation_accuracy.png')
             plt.savefig(bar_chart_path, dpi=300, format='png', bbox_inches='tight')
-            plt.close()
+            plt.show()
             print(f'Validation accuracy bar chart for {model_name} saved to {bar_chart_path}')

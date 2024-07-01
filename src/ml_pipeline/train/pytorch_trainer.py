@@ -141,8 +141,12 @@ class PyTorchTrainer:
                 labels = batch_y.to(self.device)
 
                 # Measure inference time for each batch
+                if self.device.type == 'cuda':
+                    torch.cuda.synchronize()  # Synchronize CUDA operations before starting the timer
                 start_time = time.time()
                 final_output = self.model(inputs)
+                if self.device.type == 'cuda':
+                    torch.cuda.synchronize()  # Synchronize CUDA operations after model inference
                 end_time = time.time()
 
                 inference_times.append((end_time - start_time) * 1000)  # Convert to milliseconds

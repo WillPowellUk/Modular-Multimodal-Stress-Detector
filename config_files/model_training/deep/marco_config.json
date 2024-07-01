@@ -7,9 +7,9 @@
     "output_dim": 2,
     "n_head_gen": 4,
     "n_head_per": 1,
-    "dropout": 0.1,
-    "learning_rate": 0.005,
-    "epoch": 2,
+    "dropout": 0.3,
+    "learning_rate": 0.001,
+    "epoch": 1,
     "batch_size": 32,
     "save_path": "src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/{fold}"
 }

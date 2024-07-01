@@ -72,7 +72,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f'Using device: {device}')
 
 results = []
-for (subject_id, train_loader), (_, val_loader) in zip(train_dataloaders.items(), val_dataloaders.items()):
+for idx, ((subject_id, train_loader), (_, val_loader)) in enumerate(zip(train_dataloaders.items(), val_dataloaders.items())):
     train_loader_batched = train_loader['train']
     val_loader_batched = train_loader['val']
     val_loader = val_loader['val']
@@ -88,19 +88,22 @@ for (subject_id, train_loader), (_, val_loader) in zip(train_dataloaders.items()
     # Initialize trainer
     trainer = PyTorchTrainer(model, train_loader_batched, val_loader_batched, MARCO_CONFIG, device)
     trainer.save_path = trainer.save_path.format(fold=f'subject_{subject_id}')
-    # if i == 0:
+    # if idx == 0:
     #     trainer.print_model_summary()
     
     # Train the model on the batched data without the sliding co-attention buffer
+    trainer.model.token_length = 1
     trained_model_ckpt = trainer.train(use_wandb=True, name_wandb=f'marco_subject_{subject_id}')
     print(f'Model checkpoint saved to: {trained_model_ckpt}\n')
 
-    # Now validate using the sliding co-attention buffer.  
+    # Now validate using the sliding co-attention buffer  
     trainer.model.token_length = get_values(MARCO_CONFIG, 'token_length')
     result = trainer.validate(trained_model_ckpt, subject_id, val_loader=val_loader)
     results.append(result)
-    break
 
+    if idx+1 == 2:
+        break
+    
 # save the results to pkl
 current_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 save_path = f'src/wesad/WESAD/results/marco/wrist_results/{VAL_WINDOW_LENGTH}s_{VAL_SLIDING_LENGTH}s_{VAL_SPLIT_LENGTH}s/{current_time}/generalized'
