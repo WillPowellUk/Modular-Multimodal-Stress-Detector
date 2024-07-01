@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -lselect=1:ncpus=4:mem=30gb:ngpus=0
-#PBS -lwalltime=8:0:0
+#PBS -lwalltime=2:0:0
  
 cd $PBS_O_WORKDIR
  
@@ -9,5 +9,5 @@ source activate RCS_TEST_TF2
  
 ## Verify install:
 # python wesad_fe_30s.py
-# python marco.py
 python losocv.py
+# python marco.py
