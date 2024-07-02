@@ -95,31 +95,33 @@ for c, current_config in enumerate(hyperparams()):
 
     train_dataloader_params = {
         "batch_size": get_values(current_config, "batch_size"),
-        "shuffle": True,
+        "shuffle": False,
         "drop_last": False,
     }
     train_losocv_loader = LOSOCVSensorDataLoader(
         TRAIN_WRIST_FE, WRIST_CONFIG, **train_dataloader_params
     )
     train_dataloaders, train_input_dims = train_losocv_loader.get_data_loaders(
-        TRAIN_DATASETS_PATH
+        TRAIN_DATASETS_PATH, dataset_type=DATASET_TYPE
     )
 
     val_dataloader_params = {
         "batch_size": 1,
         "shuffle": False,
-        "drop_last": True,
+        "drop_last": False,
     }
     val_losocv_loader = LOSOCVSensorDataLoader(
         VAL_WRIST_FE, WRIST_CONFIG, **val_dataloader_params
     )
     val_dataloaders, val_input_dims = val_losocv_loader.get_data_loaders(
-        VAL_DATASETS_PATH, val_only=True
+        VAL_DATASETS_PATH, dataset_type=DATASET_TYPE, val_only=True
     )
 
     assert (
         train_input_dims == val_input_dims
     ), "Input dimensions of train and val dataloaders do not match"
+
+    assert train_input_dims != 0, "Input dimensions are 0"
 
     # Load Model Parameters
     model_config = load_json(current_config)
@@ -139,7 +141,12 @@ for c, current_config in enumerate(hyperparams()):
         train_loader_batched = train_loader["train"]
         val_loader_batched = train_loader["val"]
         val_loader = val_loader["val"]
-        print(f"\nSubject: {subject_id}")
+        if DATASET_TYPE == 'losocv':
+            print(f"\nSubject: {subject_id}")
+            fold = f"subject_{subject_id}"
+        else:
+            print(f"\nFold: {idx}")
+            fold = f"fold_{idx}"
         print(f"Batched Train Length: {len(train_loader_batched.dataset)}")
         print(f"Batched Val Length: {len(val_loader_batched.dataset)}")
         print(f"Val Length: {len(val_loader.dataset)}")
@@ -157,7 +164,7 @@ for c, current_config in enumerate(hyperparams()):
             current_config,
             device,
         )
-        trainer.save_path = trainer.save_path.format(fold=f"subject_{subject_id}")
+        trainer.save_path = trainer.save_path.format(fold=fold)
         # if idx == 0:
         #     trainer.print_model_summary()
 
@@ -165,7 +172,7 @@ for c, current_config in enumerate(hyperparams()):
         trainer.model.token_length = 1
         trained_model_ckpt = trainer.train(
             use_wandb=True,
-            name_wandb=f"marco_subject_{subject_id}_embed_{model_config['embed_dim']}",
+            name_wandb=f"marco_{fold}_embed_{model_config['embed_dim']}",
         )
         print(f"Model checkpoint saved to: {trained_model_ckpt}\n")
 
@@ -176,14 +183,20 @@ for c, current_config in enumerate(hyperparams()):
         # plot_attention(_)
 
         # Now validate using the sliding co-attention buffer
-        result = trainer.validate(trained_model_ckpt, subject_id, val_loader=val_loader)
+        # if DATASET_TYPE == 'losocv':
+        #     result = trainer.validate(trained_model_ckpt, subject_id, val_loader=val_loader_batched)
+        # else: 
+        #     result = trainer.validate(trained_model_ckpt, idx, val_loader=val_loader_batched)
+        # results.append(result)
+
         trainer.model.token_length = get_values(current_config, "token_length")
-        result = trainer.validate(trained_model_ckpt, subject_id, val_loader=val_loader)
-        del trainer  # delete the trainer object and finish wandb
+        if DATASET_TYPE == 'losocv':
+            result = trainer.validate(trained_model_ckpt, subject_id, val_loader=val_loader)
+        else: 
+            result = trainer.validate(trained_model_ckpt, idx, val_loader=val_loader)
         results.append(result)
 
-        if idx + 1 == 3:
-            break
+        del trainer  # delete the trainer object to finish wandb
 
     # save the results to pkl
     current_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")

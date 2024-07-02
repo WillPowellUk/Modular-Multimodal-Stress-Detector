@@ -100,14 +100,14 @@ class LOSOCVSensorDataLoader:
         print(f"Datasets saved at: {dataset_save_path}")
         return dataset_save_path
 
-    def get_data_loaders(self, datasets_path, train_only=False, val_only=False):
+    def get_data_loaders(self, datasets_path, dataset_type=None, train_only=False, val_only=False):
         with open(datasets_path, "rb") as f:
             datasets_path = pickle.load(f)
 
         dataloaders = {}
         input_dims = {}
         
-        if 'losocv' in datasets_path:
+        if dataset_type==None or dataset_type=="losocv":
             # LOSOCV case
             for i, subject_id in enumerate(self.subjects):
                 subject_id = int(float(subject_id))
