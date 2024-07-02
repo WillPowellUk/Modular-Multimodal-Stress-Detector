@@ -2,8 +2,11 @@ import json
 import shutil
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from collections import OrderedDict
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 def get_max_sampling_rate(config_path):
@@ -187,3 +190,57 @@ def print_model_summary(model, input_dims, batch_size=-1, device="cuda"):
 def print2(filename, text):
     with open(filename, "a") as file:
         file.write(text + "\n")
+
+
+def print_weights_and_biases(attention):
+    query_weights, key_weights, value_weights = attention.in_proj_weight.chunk(3, dim=0)
+
+    print("Query weights shape:", query_weights.shape)
+    print("Key weights shape:", key_weights.shape)
+    print("Value weights shape:", value_weights.shape)
+
+    query_biases, key_biases, value_biases = attention.in_proj_bias.chunk(3, dim=0)
+
+    print("Query biases shape:", query_biases.shape)
+    print("Key biases shape:", key_biases.shape)
+
+
+def plot_attention(attention_weights, title="Attention Weights"):
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(attention_weights.detach().cpu().numpy(), cmap="viridis", annot=False)
+    plt.title(title)
+    plt.xlabel("Key")
+    plt.ylabel("Query")
+    plt.show()
+
+
+def plot_attention(attention_weights, title="Attention Weights"):
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(attention_weights.detach().cpu().numpy(), cmap="viridis", annot=False)
+    plt.title(title)
+    plt.xlabel("Key")
+    plt.ylabel("Query")
+    plt.show()
+
+
+def plot_all_heads(attention_weights, title="Attention Weights for All Heads"):
+    n_heads = attention_weights.shape[1]
+    fig, axes = plt.subplots(2, 4, figsize=(20, 10))  # Adjust based on number of heads
+    fig.suptitle(title)
+
+    for i, ax in enumerate(axes.flat):
+        if i < n_heads:
+            sns.heatmap(
+                attention_weights[0, i].detach().cpu().numpy(),
+                cmap="viridis",
+                annot=False,
+                ax=ax,
+            )
+            ax.set_title(f"Head {i+1}")
+            ax.set_xlabel("Key")
+            ax.set_ylabel("Query")
+        else:
+            ax.axis("off")
+
+    plt.tight_layout()
+    plt.show()

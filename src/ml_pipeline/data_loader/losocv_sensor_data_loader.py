@@ -53,14 +53,16 @@ class LOSOCVSensorDataLoader:
                     include_augmented=True,
                 )
                 self._get_dataset(
-                    val_dataset_path, include_subjects=[subject_id], include_augmented=False
+                    val_dataset_path,
+                    include_subjects=[subject_id],
+                    include_augmented=False,
                 )
                 datesets_path[subject_id] = {
                     "train": train_dataset_path,
                     "val": val_dataset_path,
                 }
                 print(f"Dataset prepared for subject: {subject_id}\n")
-                
+
             # Save dataset paths as pkl file
             dataset_save_path = f"{save_path}/losocv_datasets.pkl"
         else:
@@ -70,7 +72,7 @@ class LOSOCVSensorDataLoader:
             fold_size = len(subjects) // n_folds
 
             for fold in range(n_folds):
-                val_subjects = subjects[fold * fold_size:(fold + 1) * fold_size]
+                val_subjects = subjects[fold * fold_size : (fold + 1) * fold_size]
                 train_subjects = [s for s in subjects if s not in val_subjects]
 
                 train_dataset_path = f"{save_path}/nfold/train_fold_{fold}.hdf5"
@@ -81,16 +83,18 @@ class LOSOCVSensorDataLoader:
                     include_augmented=True,
                 )
                 self._get_dataset(
-                    val_dataset_path, include_subjects=val_subjects, include_augmented=False
+                    val_dataset_path,
+                    include_subjects=val_subjects,
+                    include_augmented=False,
                 )
                 datesets_path[fold] = {
                     "train": train_dataset_path,
                     "val": val_dataset_path,
                 }
                 print(f"Dataset prepared for fold: {fold}\n")
-                        # Save dataset paths as pkl file
+                # Save dataset paths as pkl file
             dataset_save_path = f"{save_path}/cv_{n_folds}_datasets.pkl"
-            
+
         with open(dataset_save_path, "wb") as f:
             pickle.dump(datesets_path, f)
         print(f"Datasets saved at: {dataset_save_path}")

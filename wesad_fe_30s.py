@@ -2,8 +2,8 @@ from src.ml_pipeline.data_loader import DataAugmenter
 from src.ml_pipeline.feature_extraction import ManualFE
 
 WINDOW_LENGTH = 5
-SLIDING_LENGTH = WINDOW_LENGTH # this will create no overlap between segments i.e. no augmented / synthetic data.
-SPLIT_LENGTH = WINDOW_LENGTH # this will not sub-split the data
+SLIDING_LENGTH = WINDOW_LENGTH  # this will create no overlap between segments i.e. no augmented / synthetic data.
+SPLIT_LENGTH = WINDOW_LENGTH  # this will not sub-split the data
 
 # WINDOW_LENGTH = 30
 # SPLIT_LENGTH = int(WINDOW_LENGTH / 6) # this will sub-split the data 6 times each of 5 seconds

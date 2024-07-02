@@ -172,8 +172,11 @@ class MARCONet(nn.Module):
                 {
                     "embedding": nn.Linear(self.input_dims[modality], self.embed_dim),
                     "pos_enc": PositionalEncoding(self.embed_dim),
-                    "predictor": ModularAvgPool(
-                        self.embed_dim, self.hidden_dim, self.output_dim, self.dropout
+                    "predictor": (
+                        self.embed_dim,
+                        self.hidden_dim,
+                        self.output_dim,
+                        self.dropout,
                     ),
                 }
             )
