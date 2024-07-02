@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import ConfusionMatrixDisplay
 import sys
 from IPython.display import display, Latex
+import time
 
 
 class ModelResultsAnalysis:
@@ -68,7 +69,7 @@ class ModelResultsAnalysis:
             plt.xticks(fontsize=18)
             plt.yticks(fontsize=18)
 
-        plt.show()
+        # plt.show()
         return fig
 
     def analyze_collective(self, save_dir):
@@ -187,7 +188,7 @@ class ModelResultsAnalysis:
                 save_dir, f"{model_name}_validation_accuracy.png"
             )
             plt.savefig(bar_chart_path, dpi=300, format="png", bbox_inches="tight")
-            plt.show()
+            # plt.show()
             print(
                 f"Validation accuracy bar chart for {model_name} saved to {bar_chart_path}"
             )

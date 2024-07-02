@@ -8,4 +8,7 @@ from .utils import (
     load_json,
     print_model_summary,
     print2,
+    print_weights_and_biases,
+    plot_attention,
+    HyperParamsIterator,
 )

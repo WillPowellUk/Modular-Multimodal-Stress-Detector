@@ -3,15 +3,15 @@ from src.ml_pipeline.data_loader import LOSOCVSensorDataLoader
 n_folds = 5
 
 WINDOW_LENGTH = 5
-SLIDING_LENGTH = WINDOW_LENGTH # this will create no overlap between segments i.e. no augmented / synthetic data.
-SPLIT_LENGTH = WINDOW_LENGTH # this will not sub-split the data
+SLIDING_LENGTH = WINDOW_LENGTH  # this will create no overlap between segments i.e. no augmented / synthetic data.
+SPLIT_LENGTH = WINDOW_LENGTH  # this will not sub-split the data
 
 # WRIST_CONFIG = 'config_files/dataset/wesad_wrist_configuration.json'
 WRIST_CONFIG = 'config_files/dataset/wesad_wrist_bvp_eda_configuration.json'
 WRIST_FE = f'src/wesad/WESAD/manual_fe/wrist_manual_fe/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s/wrist_features.hdf5'
 dataloader_params = {
-    'batch_size': 32,
-    'shuffle': True,
+    "batch_size": 32,
+    "shuffle": True,
     # 'num_workers': 4
 }
 losocv_loader = LOSOCVSensorDataLoader(WRIST_FE, WRIST_CONFIG, **dataloader_params)
@@ -30,8 +30,8 @@ SLIDING_LENGTH = SPLIT_LENGTH  # this will create 6 samples per 30 seconds since
 WRIST_CONFIG = 'config_files/dataset/wesad_wrist_bvp_eda_configuration.json'
 WRIST_FE = f'src/wesad/WESAD/manual_fe/wrist_manual_fe/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s/wrist_features.hdf5'
 dataloader_params = {
-    'batch_size': 32,
-    'shuffle': True,
+    "batch_size": 32,
+    "shuffle": True,
     # 'num_workers': 4
 }
 losocv_loader = LOSOCVSensorDataLoader(WRIST_FE, WRIST_CONFIG, **dataloader_params)

@@ -1,9 +1,17 @@
 import json
+import itertools
+import copy
+import tempfile
+import os
 import shutil
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from collections import OrderedDict
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import itertools
 
 
 def get_max_sampling_rate(config_path):
@@ -165,9 +173,7 @@ def print_model_summary(model, input_dims, batch_size=-1, device="cuda"):
     total_input_size = abs(
         np.prod(list(input_dims.values())) * batch_size * 4.0 / (1024**2.0)
     )
-    total_output_size = abs(
-        2.0 * total_output * 4.0 / (1024**2.0)
-    )  # x2 for gradients
+    total_output_size = abs(2.0 * total_output * 4.0 / (1024**2.0))  # x2 for gradients
     total_params_size = abs(total_params.numpy() * 4.0 / (1024**2.0))
     total_size = total_params_size + total_output_size + total_input_size
 
@@ -187,3 +193,106 @@ def print_model_summary(model, input_dims, batch_size=-1, device="cuda"):
 def print2(filename, text):
     with open(filename, "a") as file:
         file.write(text + "\n")
+
+
+def print_weights_and_biases(attention):
+    query_weights, key_weights, value_weights = attention.in_proj_weight.chunk(3, dim=0)
+
+    print("Query weights shape:", query_weights.shape)
+    print("Key weights shape:", key_weights.shape)
+    print("Value weights shape:", value_weights.shape)
+
+    query_biases, key_biases, value_biases = attention.in_proj_bias.chunk(3, dim=0)
+
+    print("Query biases shape:", query_biases.shape)
+    print("Key biases shape:", key_biases.shape)
+
+
+def plot_attention(
+    attention, title="", x_label="Source Sequence", y_label="Target Sequence"
+):
+    """
+    Plots the attention weights.
+
+    Args:
+        attention (numpy.ndarray or torch.Tensor): The attention weights.
+            Should be of shape (L, S) for single head or (N, L, S) for batched input
+            or (N, num_heads, L, S) for multi-head attention.
+        title (str): The title of the plot.
+    """
+    if isinstance(attention, torch.Tensor):
+        attention = attention.detach().cpu().numpy()
+
+    # If the attention weights are multi-headed or batched, average them
+    if attention.ndim == 4:  # (N, num_heads, L, S)
+        attention = attention.mean(axis=1)  # Average over heads
+    if attention.ndim == 3:  # (N, L, S)
+        attention = attention.mean(axis=0)  # Average over batch
+
+    # Determine if annotations are needed
+    annot = False
+    annot_kws = {}
+    if attention.shape[0] <= 10 and attention.shape[1] <= 10:
+        annot = True
+        annot_kws = {"size": 16, "weight": "bold"}
+
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(attention, cmap="Blues", annot=annot, annot_kws=annot_kws, fmt=".2f")
+    plt.title(title)
+    plt.xlabel(x_label, fontsize=14)
+    plt.ylabel(y_label, fontsize=14)
+    # Set x-axis label at the top
+    plt.gca().xaxis.set_label_position("top")
+    plt.gca().xaxis.tick_top()
+    plt.show()
+    plt.savefig("attention_weights.png", dpi=300, format="png", bbox_inches="tight")
+
+
+class HyperParamsIterator:
+    def __init__(self, json_path, hyperparameter_grid):
+        self.json_path = json_path
+        self.hyperparameter_grid = hyperparameter_grid
+        self.grid_keys = list(hyperparameter_grid.keys())
+        self.grid_values = list(hyperparameter_grid.values())
+        self.combinations = list(itertools.product(*self.grid_values))
+        self.temp_files = []
+
+    def __call__(self):
+        for combination in self.combinations:
+            # Load the original JSON configuration
+            with open(self.json_path, "r") as f:
+                config = json.load(f)
+
+            # Update the configuration with the current combination of hyperparameters
+            for key, value in zip(self.grid_keys, combination):
+                config[key] = value
+
+            # Create a temporary file and save the modified configuration
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
+            with open(temp_file.name, "w") as f:
+                json.dump(config, f, indent=4)
+
+            # Store the path of the temporary file
+            temp_file_path = temp_file.name
+            self.temp_files.append(temp_file_path)
+
+            # Clean up previous temporary file
+            if len(self.temp_files) > 1:
+                os.remove(self.temp_files[-2])
+                self.temp_files.pop(0)
+
+            # Yield the path to the temporary JSON file
+            yield temp_file_path
+
+        # Clean up the last temporary file after the last iteration
+        if self.temp_files:
+            os.remove(self.temp_files[-1])
+            self.temp_files.pop(0)
+
+    def __del__(self):
+        # Destructor to clean up any remaining temporary files
+        for temp_file in self.temp_files:
+            try:
+                os.remove(temp_file)
+            except OSError:
+                pass

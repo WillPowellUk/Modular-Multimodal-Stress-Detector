@@ -97,7 +97,9 @@ class CrossAttentionEncoder(nn.Module):
 class CachedSlidngSelfAttentionEncoder(nn.Module):
     def __init__(self, d_model, ffn_hidden, n_head, drop_prob):
         super(CachedSlidngSelfAttentionEncoder, self).__init__()
-        self.attention = MultiheadAttention(d_model, n_head, batch_first=True)
+        self.attention = MultiheadAttention(
+            d_model, n_head, batch_first=True, dropout=drop_prob
+        )
         self.norm1 = nn.LayerNorm(d_model)
         self.dropout1 = nn.Dropout(drop_prob)
         self.ffn = PositionwiseFeedForward(
@@ -129,6 +131,7 @@ class CachedSlidngSelfAttentionEncoder(nn.Module):
             keys, values = x, x
 
         x, _ = self.attention(x, keys, values)
+        # x = self.attention(x, keys, values, average_attn_weights=False)
 
         # Update cache
         if use_cache:

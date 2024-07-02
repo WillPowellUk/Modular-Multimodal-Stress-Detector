@@ -61,15 +61,15 @@ class ModularBCSA(nn.Module):
         for i, modality1 in enumerate(modalities):
             for j, modality2 in enumerate(modalities):
                 if i != j:
-                    self.cross_attention_blocks[
-                        f"{modality1}_to_{modality2}"
-                    ] = nn.ModuleList(
-                        [
-                            CrossAttentionEncoder(
-                                self.embed_dim, self.n_head, self.dropout
-                            )
-                            for _ in range(self.n_bcsa)
-                        ]
+                    self.cross_attention_blocks[f"{modality1}_to_{modality2}"] = (
+                        nn.ModuleList(
+                            [
+                                CrossAttentionEncoder(
+                                    self.embed_dim, self.n_head, self.dropout
+                                )
+                                for _ in range(self.n_bcsa)
+                            ]
+                        )
                     )
 
         self.relu = nn.ReLU()
@@ -158,9 +158,6 @@ class MARCONet(nn.Module):
         self.batch_size = kwargs["batch_size"]
         self.token_length = kwargs["token_length"]
 
-        # If val_model is set to True, the model will use cache for the sliding co-attention
-        self.val_model = kwargs.get("val_model", False)
-
         super(MARCONet, self).__init__()
 
         self.modalities = nn.ModuleDict()
@@ -173,7 +170,10 @@ class MARCONet(nn.Module):
                     "embedding": nn.Linear(self.input_dims[modality], self.embed_dim),
                     "pos_enc": PositionalEncoding(self.embed_dim),
                     "predictor": ModularAvgPool(
-                        self.embed_dim, self.hidden_dim, self.output_dim, self.dropout
+                        self.embed_dim,
+                        self.hidden_dim,
+                        self.output_dim,
+                        self.dropout,
                     ),
                 }
             )
@@ -191,18 +191,18 @@ class MARCONet(nn.Module):
         for i, modality1 in enumerate(modalities):
             for j, modality2 in enumerate(modalities):
                 if i != j:
-                    self.cross_attention_blocks[
-                        f"{modality1}_to_{modality2}"
-                    ] = nn.ModuleList(
-                        [
-                            CachedSlidingCrossAttentionEncoder(
-                                d_model=self.embed_dim,
-                                ffn_hidden=self.hidden_dim,
-                                n_head=self.n_head,
-                                drop_prob=self.dropout,
-                            )
-                            for _ in range(self.n_bcsa)
-                        ]
+                    self.cross_attention_blocks[f"{modality1}_to_{modality2}"] = (
+                        nn.ModuleList(
+                            [
+                                CachedSlidingCrossAttentionEncoder(
+                                    d_model=self.embed_dim,
+                                    ffn_hidden=self.hidden_dim,
+                                    n_head=self.n_head,
+                                    drop_prob=self.dropout,
+                                )
+                                for _ in range(self.n_bcsa)
+                            ]
+                        )
                     )
 
     def forward(self, inputs):
@@ -223,14 +223,14 @@ class MARCONet(nn.Module):
             #     for modality2 in modality_features:
             #         if modality1 != modality2:
             #             ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
-            #             modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], self.token_length, use_cache=self.val_model)
+            #             modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], self.token_length, use_cache=self.token_length>1)
 
             for modality, net in self.modalities.items():
                 sa_block = self.self_attention_blocks[modality][i]
                 modality_features[modality] = sa_block(
                     modality_features[modality],
                     self.token_length,
-                    use_cache=self.val_model,
+                    use_cache=self.token_length > 1,
                 )
 
         # Step 3: Merge branches into one tensor and call Predictor
