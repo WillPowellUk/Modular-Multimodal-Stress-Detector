@@ -173,7 +173,7 @@ for c, current_config in enumerate(hyperparams()):
         trainer.model.token_length = 1
         trained_model_ckpt = trainer.train(
             use_wandb=True,
-            name_wandb=f"{model.NAME}_fold_{fold}",
+            name_wandb=f"{model.NAME}_{fold}",
             # one_token_val_loader=one_token_val_loader,
         )
         print(f"Model checkpoint saved to: {trained_model_ckpt}\n")
