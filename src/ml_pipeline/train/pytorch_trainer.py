@@ -224,4 +224,16 @@ class PyTorchTrainer:
             "device": str(self.device),
         }
 
+        if wandb.run is not None and val_loader is not None:
+            wandb.log(
+                {
+                    "Final Validation Loss": avg_loss,
+                    "Final Validation Accuracy": accuracy,
+                    "Final Validation Precision": precision,
+                    "Final Validation Recall": recall,
+                    "Final Validation F1 Score": f1,
+                    "Final Validation Inference Time (ms)": avg_inference_time,
+                }
+            )
+
         return results
