@@ -130,7 +130,7 @@ class CachedSlidngSelfAttentionEncoder(nn.Module):
         else:
             keys, values = x, x
 
-        x, _ = self.attention(x, keys, values)
+        x, attn_output_weights = self.attention(x, keys, values)
         # x = self.attention(x, keys, values, average_attn_weights=False)
 
         # Update cache

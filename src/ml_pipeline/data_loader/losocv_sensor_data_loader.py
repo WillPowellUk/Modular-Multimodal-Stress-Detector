@@ -106,39 +106,77 @@ class LOSOCVSensorDataLoader:
 
         dataloaders = {}
         input_dims = {}
-        for i, subject_id in enumerate(self.subjects):
-            subject_id = int(float(subject_id))
-            if train_only:
-                train_dataset = SensorDataset(
-                    datasets_path[subject_id]["train"],
-                    self.dataset_config["include_sensors"],
-                )
-                train_loader = DataLoader(train_dataset, **self.params)
-                dataloaders[subject_id] = {"train": train_loader}
-                if i == 0:
-                    input_dims = train_dataset.get_dims()
-            elif val_only:
-                val_dataset = SensorDataset(
-                    datasets_path[subject_id]["val"],
-                    self.dataset_config["include_sensors"],
-                )
-                val_loader = DataLoader(val_dataset, **self.params)
-                dataloaders[subject_id] = {"val": val_loader}
-                if i == 0:
-                    input_dims = val_dataset.get_dims()
-            else:
-                train_dataset = SensorDataset(
-                    datasets_path[subject_id]["train"],
-                    self.dataset_config["include_sensors"],
-                )
-                val_dataset = SensorDataset(
-                    datasets_path[subject_id]["val"],
-                    self.dataset_config["include_sensors"],
-                )
-                train_loader = DataLoader(train_dataset, **self.params)
-                val_loader = DataLoader(val_dataset, **self.params)
-                dataloaders[subject_id] = {"train": train_loader, "val": val_loader}
-                if i == 0:
-                    input_dims = train_dataset.get_dims()
+        
+        if 'losocv' in datasets_path:
+            # LOSOCV case
+            for i, subject_id in enumerate(self.subjects):
+                subject_id = int(float(subject_id))
+                if train_only:
+                    train_dataset = SensorDataset(
+                        datasets_path[subject_id]["train"],
+                        self.dataset_config["include_sensors"],
+                    )
+                    train_loader = DataLoader(train_dataset, **self.params)
+                    dataloaders[subject_id] = {"train": train_loader}
+                    if i == 0:
+                        input_dims = train_dataset.get_dims()
+                elif val_only:
+                    val_dataset = SensorDataset(
+                        datasets_path[subject_id]["val"],
+                        self.dataset_config["include_sensors"],
+                    )
+                    val_loader = DataLoader(val_dataset, **self.params)
+                    dataloaders[subject_id] = {"val": val_loader}
+                    if i == 0:
+                        input_dims = val_dataset.get_dims()
+                else:
+                    train_dataset = SensorDataset(
+                        datasets_path[subject_id]["train"],
+                        self.dataset_config["include_sensors"],
+                    )
+                    val_dataset = SensorDataset(
+                        datasets_path[subject_id]["val"],
+                        self.dataset_config["include_sensors"],
+                    )
+                    train_loader = DataLoader(train_dataset, **self.params)
+                    val_loader = DataLoader(val_dataset, **self.params)
+                    dataloaders[subject_id] = {"train": train_loader, "val": val_loader}
+                    if i == 0:
+                        input_dims = train_dataset.get_dims()
+        else:
+            # N-fold CV case
+            for fold in datasets_path:
+                if train_only:
+                    train_dataset = SensorDataset(
+                        datasets_path[fold]["train"],
+                        self.dataset_config["include_sensors"],
+                    )
+                    train_loader = DataLoader(train_dataset, **self.params)
+                    dataloaders[fold] = {"train": train_loader}
+                    if fold == 0:
+                        input_dims = train_dataset.get_dims()
+                elif val_only:
+                    val_dataset = SensorDataset(
+                        datasets_path[fold]["val"],
+                        self.dataset_config["include_sensors"],
+                    )
+                    val_loader = DataLoader(val_dataset, **self.params)
+                    dataloaders[fold] = {"val": val_loader}
+                    if fold == 0:
+                        input_dims = val_dataset.get_dims()
+                else:
+                    train_dataset = SensorDataset(
+                        datasets_path[fold]["train"],
+                        self.dataset_config["include_sensors"],
+                    )
+                    val_dataset = SensorDataset(
+                        datasets_path[fold]["val"],
+                        self.dataset_config["include_sensors"],
+                    )
+                    train_loader = DataLoader(train_dataset, **self.params)
+                    val_loader = DataLoader(val_dataset, **self.params)
+                    dataloaders[fold] = {"train": train_loader, "val": val_loader}
+                    if fold == 0:
+                        input_dims = train_dataset.get_dims()
 
         return dataloaders, input_dims

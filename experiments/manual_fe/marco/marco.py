@@ -49,10 +49,16 @@ from src.ml_pipeline.utils import (
 MARCO_CONFIG = "config_files/model_training/deep/marco_config.json"
 
 # CONFIG file for the dataset
-WRIST_CONFIG = "config_files/dataset/wesad_wrist_configuration.json"
+# WRIST_CONFIG = "config_files/dataset/wesad_wrist_configuration.json"
+WRIST_CONFIG = "config_files/dataset/wesad_wrist_bvp_eda_configuration.json"
+
+# Set either losocv or kfold
+# DATASET_TYPE = "losocv"
+DATASET_TYPE = "cv_5"
 
 # Set the sensors to use
-sensors = "all"
+# SENSORS = "all"
+SENSORS = "bvp_eda"
 
 # Load Train Dataloaders for LOSOCV
 TRAIN_WINDOW_LENGTH = 30
@@ -61,14 +67,14 @@ TRAIN_SPLIT_LENGTH = int(
 )  # this will sub-split the data 6 times each of 5 seconds
 TRAIN_SLIDING_LENGTH = TRAIN_SPLIT_LENGTH  # this will create 6 samples per 30 seconds since 30/5 = 6 with 5:1 ratio of synthetic to real samples
 TRAIN_WRIST_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{TRAIN_WINDOW_LENGTH}s_{TRAIN_SLIDING_LENGTH}s_{TRAIN_SPLIT_LENGTH}s/wrist_features.hdf5"
-TRAIN_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{sensors}/{TRAIN_WINDOW_LENGTH}s_{TRAIN_SLIDING_LENGTH}s_{TRAIN_SPLIT_LENGTH}s/losocv_datasets.pkl"
+TRAIN_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{TRAIN_WINDOW_LENGTH}s_{TRAIN_SLIDING_LENGTH}s_{TRAIN_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
 
 # Load Val Dataloaders for LOSOCV
 VAL_WINDOW_LENGTH = 5
 VAL_SLIDING_LENGTH = VAL_WINDOW_LENGTH  # this will create no overlap between segments i.e. no augmented / synthetic data.
 VAL_SPLIT_LENGTH = VAL_WINDOW_LENGTH  # this will not sub-split the data
 VAL_WRIST_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{VAL_WINDOW_LENGTH}s_{VAL_SLIDING_LENGTH}s_{VAL_SPLIT_LENGTH}s/wrist_features.hdf5"
-VAL_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{sensors}/{VAL_WINDOW_LENGTH}s_{VAL_SLIDING_LENGTH}s_{VAL_SPLIT_LENGTH}s/losocv_datasets.pkl"
+VAL_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{VAL_WINDOW_LENGTH}s_{VAL_SLIDING_LENGTH}s_{VAL_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
 
 HYPERPARAMETER_GRID = {
     "embed_dim": [16],
@@ -167,6 +173,7 @@ for c, current_config in enumerate(hyperparams()):
         # plot_attention(_)
 
         # Now validate using the sliding co-attention buffer
+        result = trainer.validate(trained_model_ckpt, subject_id, val_loader=val_loader)
         trainer.model.token_length = get_values(current_config, "token_length")
         result = trainer.validate(trained_model_ckpt, subject_id, val_loader=val_loader)
         del trainer  # delete the trainer object and finish wandb
