@@ -8,4 +8,5 @@ from .utils import (
     load_json,
     print_model_summary,
     print2,
+    HyperParamsIterator
 )

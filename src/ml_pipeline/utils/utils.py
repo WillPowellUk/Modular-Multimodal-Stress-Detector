@@ -1,4 +1,8 @@
 import json
+import itertools
+import copy
+import tempfile
+import os
 import shutil
 import torch
 import torch.nn as nn
@@ -7,6 +11,7 @@ from collections import OrderedDict
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import itertools
 
 
 def get_max_sampling_rate(config_path):
@@ -244,3 +249,53 @@ def plot_all_heads(attention_weights, title="Attention Weights for All Heads"):
 
     plt.tight_layout()
     plt.show()
+
+
+class HyperParamsIterator:
+    def __init__(self, json_path, hyperparameter_grid):
+        self.json_path = json_path
+        self.hyperparameter_grid = hyperparameter_grid
+        self.grid_keys = list(hyperparameter_grid.keys())
+        self.grid_values = list(hyperparameter_grid.values())
+        self.combinations = list(itertools.product(*self.grid_values))
+        self.temp_files = []
+
+    def __call__(self):
+        for combination in self.combinations:
+            # Load the original JSON configuration
+            with open(self.json_path, 'r') as f:
+                config = json.load(f)
+
+            # Update the configuration with the current combination of hyperparameters
+            for key, value in zip(self.grid_keys, combination):
+                config[key] = value
+
+            # Create a temporary file and save the modified configuration
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.json')
+            with open(temp_file.name, 'w') as f:
+                json.dump(config, f, indent=4)
+            
+            # Store the path of the temporary file
+            temp_file_path = temp_file.name
+            self.temp_files.append(temp_file_path)
+
+            # Clean up previous temporary file
+            if len(self.temp_files) > 1:
+                os.remove(self.temp_files[-2])
+                self.temp_files.pop(0)
+
+            # Yield the path to the temporary JSON file
+            yield temp_file_path
+
+        # Clean up the last temporary file after the last iteration
+        if self.temp_files:
+            os.remove(self.temp_files[-1])
+            self.temp_files.pop(0)
+
+    def __del__(self):
+        # Destructor to clean up any remaining temporary files
+        for temp_file in self.temp_files:
+            try:
+                os.remove(temp_file)
+            except OSError:
+                pass

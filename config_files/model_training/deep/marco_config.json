@@ -1,4 +1,5 @@
 {
+    "NAME": "MARCO",
     "num_classes": 2,
     "token_length": 6,
     "n_bcsa": 1,
