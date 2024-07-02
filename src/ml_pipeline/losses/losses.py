@@ -4,28 +4,30 @@ from src.ml_pipeline.utils import get_active_key
 
 
 class FocalLoss(nn.Module):
-    def __init__(self, alpha=1, gamma=2, reduction: str = "mean"):
-        super().__init__()
-        if reduction not in ["mean", "none", "sum"]:
-            raise NotImplementedError("Reduction {} not implemented.".format(reduction))
-        self.reduction = reduction
-        self.alpha = alpha
+    def __init__(self, gamma=2, reduction='mean'):
+        super(FocalLoss, self).__init__()
         self.gamma = gamma
+        self.reduction = reduction
 
-    def forward(self, x, target):
-        p_t = torch.where(target == 1, x, 1 - x)
-        fl = -1 * (1 - p_t) ** self.gamma * torch.log(p_t)
-        fl = torch.where(target == 1, fl * self.alpha, fl)
-        return self._reduce(fl)
+    def forward(self, y_pred, target):
+        # Ensure y_pred is in the same shape as target
+        if y_pred.size() != target.size():
+            raise ValueError(f"y_pred size ({y_pred.size()}) must be the same as target size ({target.size()})")
 
-    def _reduce(self, x):
-        if self.reduction == "mean":
-            return x.mean()
-        elif self.reduction == "sum":
-            return x.sum()
+        # Apply softmax to get probabilities
+        y_pred = y_pred.sigmoid()
+
+        # Calculate the focal loss
+        pt = y_pred * target + (1 - y_pred) * (1 - target)
+        log_pt = torch.log(pt)
+        focal_loss = -((1 - pt) ** self.gamma) * log_pt
+
+        if self.reduction == 'mean':
+            return focal_loss.mean()
+        elif self.reduction == 'sum':
+            return focal_loss.sum()
         else:
-            return x
-
+            return focal_loss
 
 class LossWrapper(nn.Module):
     def __init__(self, CONFIG_PATH):

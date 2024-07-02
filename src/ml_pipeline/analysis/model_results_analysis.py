@@ -154,7 +154,7 @@ class ModelResultsAnalysis:
             fig.savefig(
                 confusion_matrix_path, dpi=300, format="png", bbox_inches="tight"
             )
-            plt.close(fig)
+            # plt.show()
             print(f"Confusion matrix for {model_name} saved to {confusion_matrix_path}")
 
         # Plot bar chart for each model's validation accuracy for each subject ID

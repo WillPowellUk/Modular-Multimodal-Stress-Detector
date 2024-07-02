@@ -139,6 +139,7 @@ class MARCONet(nn.Module):
             "output_dim",
             "n_head_gen",
             "dropout",
+            "attention_dropout",
             "n_bcsa",
             "batch_size",
             "token_length",
@@ -154,6 +155,7 @@ class MARCONet(nn.Module):
         self.output_dim = kwargs["output_dim"]
         self.n_head = kwargs["n_head_gen"]
         self.dropout = kwargs["dropout"]
+        self.attention_dropout = kwargs["attention_dropout"]
         self.n_bcsa = kwargs["n_bcsa"]
         self.batch_size = kwargs["batch_size"]
         self.token_length = kwargs["token_length"]
@@ -181,7 +183,7 @@ class MARCONet(nn.Module):
             self.self_attention_blocks[modality] = nn.ModuleList(
                 [
                     CachedSlidngSelfAttentionEncoder(
-                        self.embed_dim, self.hidden_dim, self.n_head, self.dropout
+                        self.embed_dim, self.hidden_dim, self.n_head, self.dropout, self.attention_dropout
                     )
                     for _ in range(self.n_bcsa)
                 ]
@@ -198,7 +200,8 @@ class MARCONet(nn.Module):
                                     d_model=self.embed_dim,
                                     ffn_hidden=self.hidden_dim,
                                     n_head=self.n_head,
-                                    drop_prob=self.dropout,
+                                    ffn_dropout=self.dropout,
+                                    attention_dropout=self.attention_dropout,
                                 )
                                 for _ in range(self.n_bcsa)
                             ]
@@ -219,11 +222,11 @@ class MARCONet(nn.Module):
 
         # Step 2: Cross-Attention and Self-Attention Blocks
         for i in range(self.n_bcsa):
-            # for modality1 in modality_features:
-            #     for modality2 in modality_features:
-            #         if modality1 != modality2:
-            #             ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
-            #             modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], self.token_length, use_cache=self.token_length>1)
+            for modality1 in modality_features:
+                for modality2 in modality_features:
+                    if modality1 != modality2:
+                        ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
+                        modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], self.token_length, use_cache=self.token_length>1)
 
             for modality, net in self.modalities.items():
                 sa_block = self.self_attention_blocks[modality][i]

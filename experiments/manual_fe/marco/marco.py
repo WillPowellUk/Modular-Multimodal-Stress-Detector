@@ -79,9 +79,10 @@ VAL_WRIST_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{VAL_WINDOW_LENGTH}s_
 VAL_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{VAL_WINDOW_LENGTH}s_{VAL_SLIDING_LENGTH}s_{VAL_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
 
 HYPERPARAMETER_GRID = {
-    "embed_dim": [16, 32],
-    "hidden_dim": [16, 32, 62, 64, 128, 256],
-    "n_head_gen": [2, 4, 8],
+    "embed_dim": [16],
+    # "embed_dim": [16, 32],
+    # "hidden_dim": [16, 32, 62, 64, 128, 256],
+    # "n_head_gen": [2, 4, 8],
     # "dropout": [0.3, 0.5, 0.7],
     # "learning_rate": [0.0001, 0.001, 0.01],
     # "batch_size": [8, 16, 32]
@@ -135,12 +136,12 @@ for c, current_config in enumerate(hyperparams()):
     print(f"Using device: {device}")
 
     results = []
-    for idx, ((subject_id, train_loader), (_, val_loader)) in enumerate(
+    for idx, ((subject_id, train_loader), (_, one_token_val_loader)) in enumerate(
         zip(train_dataloaders.items(), val_dataloaders.items())
     ):
         train_loader_batched = train_loader["train"]
         val_loader_batched = train_loader["val"]
-        val_loader = val_loader["val"]
+        one_token_val_loader = one_token_val_loader["val"]
         if DATASET_TYPE == 'losocv':
             print(f"\nSubject: {subject_id}")
             fold = f"subject_{subject_id}"
@@ -149,7 +150,7 @@ for c, current_config in enumerate(hyperparams()):
             fold = f"fold_{idx}"
         print(f"Batched Train Length: {len(train_loader_batched.dataset)}")
         print(f"Batched Val Length: {len(val_loader_batched.dataset)}")
-        print(f"Val Length: {len(val_loader.dataset)}")
+        print(f"One Token Val Length: {len(one_token_val_loader.dataset)}")
         print()
 
         # Initialize model
@@ -172,7 +173,8 @@ for c, current_config in enumerate(hyperparams()):
         trainer.model.token_length = 1
         trained_model_ckpt = trainer.train(
             use_wandb=True,
-            name_wandb=f"marco_{fold}_embed_{model_config['embed_dim']}",
+            name_wandb=f"{model.NAME}_fold_{fold}",
+            # one_token_val_loader=one_token_val_loader,
         )
         print(f"Model checkpoint saved to: {trained_model_ckpt}\n")
 
@@ -191,12 +193,15 @@ for c, current_config in enumerate(hyperparams()):
 
         trainer.model.token_length = get_values(current_config, "token_length")
         if DATASET_TYPE == 'losocv':
-            result = trainer.validate(trained_model_ckpt, subject_id, val_loader=val_loader)
+            result = trainer.validate(trained_model_ckpt, subject_id, val_loader=one_token_val_loader)
         else: 
-            result = trainer.validate(trained_model_ckpt, idx, val_loader=val_loader)
+            result = trainer.validate(trained_model_ckpt, idx, val_loader=one_token_val_loader)
         results.append(result)
 
         del trainer  # delete the trainer object to finish wandb
+
+        if idx == 0:
+            break
 
     # save the results to pkl
     current_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")

@@ -26,11 +26,11 @@ class PositionalEncoding(nn.Module):
 
 
 class PositionwiseFeedForward(nn.Module):
-    def __init__(self, d_model, hidden, drop_prob=0.1):
+    def __init__(self, d_model, hidden, ffn_dropout=0.1):
         super(PositionwiseFeedForward, self).__init__()
         self.linear1 = nn.Linear(d_model, hidden)
         self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(p=drop_prob)
+        self.dropout = nn.Dropout(p=ffn_dropout)
         self.linear2 = nn.Linear(hidden, d_model)
 
     def forward(self, x):
@@ -42,16 +42,16 @@ class PositionwiseFeedForward(nn.Module):
 
 
 class SelfAttentionEncoder(nn.Module):
-    def __init__(self, d_model, ffn_hidden, n_head, drop_prob):
+    def __init__(self, d_model, ffn_hidden, n_head, ffn_dropout):
         super(SelfAttentionEncoder, self).__init__()
         self.attention = nn.MultiheadAttention(d_model, n_head)
         self.norm1 = nn.LayerNorm(d_model)
-        self.dropout1 = nn.Dropout(drop_prob)
+        self.dropout1 = nn.Dropout(ffn_dropout)
         self.ffn = PositionwiseFeedForward(
-            d_model=d_model, hidden=ffn_hidden, drop_prob=drop_prob
+            d_model=d_model, hidden=ffn_hidden, ffn_dropout=ffn_dropout
         )
         self.norm2 = nn.LayerNorm(d_model)
-        self.dropout2 = nn.Dropout(drop_prob)
+        self.dropout2 = nn.Dropout(ffn_dropout)
 
     def forward(self, x):
         _x = x
@@ -67,16 +67,16 @@ class SelfAttentionEncoder(nn.Module):
 
 
 class CrossAttentionEncoder(nn.Module):
-    def __init__(self, d_model, ffn_hidden, n_head, drop_prob):
+    def __init__(self, d_model, ffn_hidden, n_head, ffn_dropout):
         super(CrossAttentionEncoder, self).__init__()
         self.cross_attention = nn.MultiheadAttention(d_model, n_head)
         self.norm1 = nn.LayerNorm(d_model)
-        self.dropout1 = nn.Dropout(drop_prob)
+        self.dropout1 = nn.Dropout(ffn_dropout)
         self.ffn = PositionwiseFeedForward(
-            d_model=d_model, hidden=ffn_hidden, drop_prob=drop_prob
+            d_model=d_model, hidden=ffn_hidden, ffn_dropout=ffn_dropout
         )
         self.norm2 = nn.LayerNorm(d_model)
-        self.dropout2 = nn.Dropout(drop_prob)
+        self.dropout2 = nn.Dropout(ffn_dropout)
 
     def forward(self, x, context):
         # Cross-attention
@@ -95,18 +95,18 @@ class CrossAttentionEncoder(nn.Module):
 
 
 class CachedSlidngSelfAttentionEncoder(nn.Module):
-    def __init__(self, d_model, ffn_hidden, n_head, drop_prob):
+    def __init__(self, d_model, ffn_hidden, n_head, ffn_dropout, attention_dropout=0.1):
         super(CachedSlidngSelfAttentionEncoder, self).__init__()
         self.attention = MultiheadAttention(
-            d_model, n_head, batch_first=True, dropout=drop_prob
+            d_model, n_head, batch_first=True, dropout=attention_dropout
         )
         self.norm1 = nn.LayerNorm(d_model)
-        self.dropout1 = nn.Dropout(drop_prob)
+        self.dropout1 = nn.Dropout(ffn_dropout)
         self.ffn = PositionwiseFeedForward(
-            d_model=d_model, hidden=ffn_hidden, drop_prob=drop_prob
+            d_model=d_model, hidden=ffn_hidden, ffn_dropout=ffn_dropout
         )
         self.norm2 = nn.LayerNorm(d_model)
-        self.dropout2 = nn.Dropout(drop_prob)
+        self.dropout2 = nn.Dropout(ffn_dropout)
 
         # Initialize KV cache
         self.kv_cache = None
@@ -130,8 +130,8 @@ class CachedSlidngSelfAttentionEncoder(nn.Module):
         else:
             keys, values = x, x
 
-        x, attn_output_weights = self.attention(x, keys, values)
-        # x = self.attention(x, keys, values, average_attn_weights=False)
+        # x, attn_output_weights = self.attention(x, keys, values)
+        x, _ = self.attention(x, keys, values, need_weights=False)
 
         # Update cache
         if use_cache:
@@ -152,54 +152,56 @@ class CachedSlidngSelfAttentionEncoder(nn.Module):
 
 
 class CachedSlidingCrossAttentionEncoder(nn.Module):
-    def __init__(self, d_model, ffn_hidden, n_head, drop_prob):
+    def __init__(self, d_model, ffn_hidden, n_head, ffn_dropout, attention_dropout=0.1):
         super(CachedSlidingCrossAttentionEncoder, self).__init__()
-        self.attention = MultiheadAttention(d_model, n_head, batch_first=True)
+        self.attention = MultiheadAttention(
+            d_model, n_head, batch_first=True, dropout=attention_dropout
+        )
         self.norm1 = nn.LayerNorm(d_model)
-        self.dropout1 = nn.Dropout(drop_prob)
+        self.dropout1 = nn.Dropout(ffn_dropout)
         self.ffn = PositionwiseFeedForward(
-            d_model=d_model, hidden=ffn_hidden, drop_prob=drop_prob
+            d_model=d_model, hidden=ffn_hidden, ffn_dropout=ffn_dropout
         )
         self.norm2 = nn.LayerNorm(d_model)
-        self.dropout2 = nn.Dropout(drop_prob)
+        self.dropout2 = nn.Dropout(ffn_dropout)
 
         # Initialize KV cache
         self.kv_cache = None
 
-    def forward(self, query, key_value, token_length, use_cache=False):
+    def forward(self, x, memory, token_length, use_cache=False):
         if use_cache and self.kv_cache is not None:
             key_cache, value_cache = self.kv_cache
         else:
             key_cache, value_cache = None, None
 
-        # Cross-attention layer
-        _query = query
+        # Attention layer
+        _x = x
         if key_cache is not None and value_cache is not None:
-            keys = torch.cat([key_cache, key_value], dim=1)
-            values = torch.cat([value_cache, key_value], dim=1)
+            keys = torch.cat([key_cache, memory], dim=1)
+            values = torch.cat([value_cache, memory], dim=1)
 
             # Maintain the sliding window of cache
             if keys.size(1) > token_length:
                 keys = keys[:, -token_length:, :]
                 values = values[:, -token_length:, :]
         else:
-            keys, values = key_value, key_value
+            keys, values = memory, memory
 
-        query, _ = self.attention(query, keys, values)
+        x, _ = self.attention(x, keys, values, average_attn_weights=False)
 
         # Update cache
         if use_cache:
             self.kv_cache = (keys.detach(), values.detach())
 
-        query = self.norm1(query + _query)
-        query = self.dropout1(query)
+        x = self.norm1(x + _x)
+        x = self.dropout1(x)
 
         # Feed-forward layer
-        _query = query
-        query = self.ffn(query)
-        query = self.norm2(query + _query)
-        query = self.dropout2(query)
-        return query
+        _x = x
+        x = self.ffn(x)
+        x = self.norm2(x + _x)
+        x = self.dropout2(x)
+        return x
 
     def clear_cache(self):
         self.kv_cache = None

@@ -49,7 +49,7 @@ class PyTorchTrainer:
         )
         self.model = model_copy
 
-    def train(self, use_wandb=False, name_wandb=None):
+    def train(self, use_wandb=False, name_wandb=None, one_token_val_loader=None):
         if use_wandb:
             # Initialize wandb
             if name_wandb is None:
@@ -110,6 +110,12 @@ class PyTorchTrainer:
                             "Step": step,
                         }
                     )
+
+            if one_token_val_loader is not None:
+                        tl = self.model.token_length
+                        self.model.token_length = self.configs["token_length"]
+                        val_metrics = self.validate(val_loader=one_token_val_loader)
+                        self.model.token_length = tl
 
             avg_loss = epoch_loss / len(self.train_loader)
             avg_acc = epoch_correct / epoch_total
@@ -224,7 +230,7 @@ class PyTorchTrainer:
             "device": str(self.device),
         }
 
-        if wandb.run is not None and val_loader is not None:
+        if wandb.run is not None and val_loader!=self.val_loader:
             wandb.log(
                 {
                     "Final Validation Loss": avg_loss,
@@ -237,3 +243,58 @@ class PyTorchTrainer:
             )
 
         return results
+
+    def measure_inference_time(self, warmup_batches=20, repetitions=1000, ckpt_path=None, val_loader=None):
+        # Use provided validation data loader if available or use the default one
+        if val_loader is not None:
+            val_loader = val_loader
+        elif self.val_loader is not None:
+            val_loader = self.val_loader
+        else:
+            raise ValueError("Validation data loader is not provided")
+
+        # Load model from checkpoint if provided
+        if ckpt_path is not None:
+            self.model.load_state_dict(torch.load(ckpt_path))
+
+        self.model.eval()
+
+        starter, ender = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
+        timings = np.zeros((repetitions, 1))
+
+        with torch.no_grad():
+            # Warm up the GPU
+            for i, (batch_x, batch_y) in enumerate(val_loader):
+                if i >= warmup_batches:
+                    break
+                inputs = {key: val.to(self.device) for key, val in batch_x.items()}
+                _ = self.model(inputs)
+                if self.device.type == "cuda":
+                    torch.cuda.synchronize()
+
+            # Measure inference time
+            rep = 0
+            for i, (batch_x, batch_y) in enumerate(val_loader):
+                if rep >= repetitions:
+                    break
+                inputs = {key: val.to(self.device) for key, val in batch_x.items()}
+
+                starter.record()
+                _ = self.model(inputs)
+                ender.record()
+
+                # Wait for GPU to synchronize
+                torch.cuda.synchronize()
+                
+                curr_time = starter.elapsed_time(ender)
+                timings[rep] = curr_time
+                rep += 1
+
+        mean_syn = np.mean(timings)
+        std_syn = np.std(timings)
+
+        print(f"Mean Inference Time: {mean_syn:.6f} ms")
+        print(f"Standard Deviation: {std_syn:.6f} ms")
+        
+        return mean_syn, std_syn
+
