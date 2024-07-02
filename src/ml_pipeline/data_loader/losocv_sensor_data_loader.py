@@ -75,8 +75,8 @@ class LOSOCVSensorDataLoader:
                 val_subjects = subjects[fold * fold_size : (fold + 1) * fold_size]
                 train_subjects = [s for s in subjects if s not in val_subjects]
 
-                train_dataset_path = f"{save_path}/nfold/train_fold_{fold}.hdf5"
-                val_dataset_path = f"{save_path}/nfold/val_fold_{fold}.hdf5"
+                train_dataset_path = f"{save_path}/cv_{n_folds}/train_fold_{fold}.hdf5"
+                val_dataset_path = f"{save_path}/cv_{n_folds}/val_fold_{fold}.hdf5"
                 self._get_dataset(
                     train_dataset_path,
                     include_subjects=train_subjects,

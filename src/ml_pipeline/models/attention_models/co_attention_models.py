@@ -61,15 +61,15 @@ class ModularBCSA(nn.Module):
         for i, modality1 in enumerate(modalities):
             for j, modality2 in enumerate(modalities):
                 if i != j:
-                    self.cross_attention_blocks[
-                        f"{modality1}_to_{modality2}"
-                    ] = nn.ModuleList(
-                        [
-                            CrossAttentionEncoder(
-                                self.embed_dim, self.n_head, self.dropout
-                            )
-                            for _ in range(self.n_bcsa)
-                        ]
+                    self.cross_attention_blocks[f"{modality1}_to_{modality2}"] = (
+                        nn.ModuleList(
+                            [
+                                CrossAttentionEncoder(
+                                    self.embed_dim, self.n_head, self.dropout
+                                )
+                                for _ in range(self.n_bcsa)
+                            ]
+                        )
                     )
 
         self.relu = nn.ReLU()
@@ -191,18 +191,18 @@ class MARCONet(nn.Module):
         for i, modality1 in enumerate(modalities):
             for j, modality2 in enumerate(modalities):
                 if i != j:
-                    self.cross_attention_blocks[
-                        f"{modality1}_to_{modality2}"
-                    ] = nn.ModuleList(
-                        [
-                            CachedSlidingCrossAttentionEncoder(
-                                d_model=self.embed_dim,
-                                ffn_hidden=self.hidden_dim,
-                                n_head=self.n_head,
-                                drop_prob=self.dropout,
-                            )
-                            for _ in range(self.n_bcsa)
-                        ]
+                    self.cross_attention_blocks[f"{modality1}_to_{modality2}"] = (
+                        nn.ModuleList(
+                            [
+                                CachedSlidingCrossAttentionEncoder(
+                                    d_model=self.embed_dim,
+                                    ffn_hidden=self.hidden_dim,
+                                    n_head=self.n_head,
+                                    drop_prob=self.dropout,
+                                )
+                                for _ in range(self.n_bcsa)
+                            ]
+                        )
                     )
 
     def forward(self, inputs):
@@ -230,7 +230,7 @@ class MARCONet(nn.Module):
                 modality_features[modality] = sa_block(
                     modality_features[modality],
                     self.token_length,
-                    use_cache=self.token_length>1,
+                    use_cache=self.token_length > 1,
                 )
 
         # Step 3: Merge branches into one tensor and call Predictor

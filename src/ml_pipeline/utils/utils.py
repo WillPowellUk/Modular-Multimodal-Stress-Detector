@@ -173,9 +173,7 @@ def print_model_summary(model, input_dims, batch_size=-1, device="cuda"):
     total_input_size = abs(
         np.prod(list(input_dims.values())) * batch_size * 4.0 / (1024**2.0)
     )
-    total_output_size = abs(
-        2.0 * total_output * 4.0 / (1024**2.0)
-    )  # x2 for gradients
+    total_output_size = abs(2.0 * total_output * 4.0 / (1024**2.0))  # x2 for gradients
     total_params_size = abs(total_params.numpy() * 4.0 / (1024**2.0))
     total_size = total_params_size + total_output_size + total_input_size
 
@@ -210,19 +208,21 @@ def print_weights_and_biases(attention):
     print("Key biases shape:", key_biases.shape)
 
 
-def plot_attention(attention, title="", x_label="Source Sequence", y_label="Target Sequence"):
+def plot_attention(
+    attention, title="", x_label="Source Sequence", y_label="Target Sequence"
+):
     """
     Plots the attention weights.
-    
+
     Args:
-        attention (numpy.ndarray or torch.Tensor): The attention weights. 
+        attention (numpy.ndarray or torch.Tensor): The attention weights.
             Should be of shape (L, S) for single head or (N, L, S) for batched input
             or (N, num_heads, L, S) for multi-head attention.
         title (str): The title of the plot.
     """
     if isinstance(attention, torch.Tensor):
         attention = attention.detach().cpu().numpy()
-    
+
     # If the attention weights are multi-headed or batched, average them
     if attention.ndim == 4:  # (N, num_heads, L, S)
         attention = attention.mean(axis=1)  # Average over heads
@@ -237,15 +237,16 @@ def plot_attention(attention, title="", x_label="Source Sequence", y_label="Targ
         annot_kws = {"size": 16, "weight": "bold"}
 
     plt.figure(figsize=(10, 8))
-    sns.heatmap(attention, cmap='Blues', annot=annot, annot_kws=annot_kws, fmt=".2f")
+    sns.heatmap(attention, cmap="Blues", annot=annot, annot_kws=annot_kws, fmt=".2f")
     plt.title(title)
     plt.xlabel(x_label, fontsize=14)
     plt.ylabel(y_label, fontsize=14)
     # Set x-axis label at the top
-    plt.gca().xaxis.set_label_position('top')
+    plt.gca().xaxis.set_label_position("top")
     plt.gca().xaxis.tick_top()
     plt.show()
     plt.savefig("attention_weights.png", dpi=300, format="png", bbox_inches="tight")
+
 
 class HyperParamsIterator:
     def __init__(self, json_path, hyperparameter_grid):
@@ -259,7 +260,7 @@ class HyperParamsIterator:
     def __call__(self):
         for combination in self.combinations:
             # Load the original JSON configuration
-            with open(self.json_path, 'r') as f:
+            with open(self.json_path, "r") as f:
                 config = json.load(f)
 
             # Update the configuration with the current combination of hyperparameters
@@ -267,10 +268,10 @@ class HyperParamsIterator:
                 config[key] = value
 
             # Create a temporary file and save the modified configuration
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.json')
-            with open(temp_file.name, 'w') as f:
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
+            with open(temp_file.name, "w") as f:
                 json.dump(config, f, indent=4)
-            
+
             # Store the path of the temporary file
             temp_file_path = temp_file.name
             self.temp_files.append(temp_file_path)

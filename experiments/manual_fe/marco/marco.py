@@ -22,7 +22,9 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Traverse up to find the desired directory
 target_dir = current_dir
-while "experiments" not in os.listdir(target_dir) and target_dir != os.path.dirname(target_dir):
+while "experiments" not in os.listdir(target_dir) and target_dir != os.path.dirname(
+    target_dir
+):
     target_dir = os.path.dirname(target_dir)
 
 # Append the target directory to sys.path
@@ -42,7 +44,7 @@ from src.ml_pipeline.utils import (
     load_json,
     copy_json,
     get_values,
-    HyperParamsIterator
+    HyperParamsIterator,
 )
 
 # CONFIG file for the model
@@ -162,7 +164,8 @@ for c, current_config in enumerate(hyperparams()):
         # Train the model on the batched data without the sliding co-attention buffer
         trainer.model.token_length = 1
         trained_model_ckpt = trainer.train(
-            use_wandb=True, name_wandb=f"marco_subject_{subject_id}_embed_{model_config['embed_dim']}"
+            use_wandb=True,
+            name_wandb=f"marco_subject_{subject_id}_embed_{model_config['embed_dim']}",
         )
         print(f"Model checkpoint saved to: {trained_model_ckpt}\n")
 
