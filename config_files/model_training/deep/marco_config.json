@@ -10,8 +10,8 @@
     "n_head_per": 1,
     "dropout": 0.5,
     "learning_rate": 0.001,
-    "epoch": 2,
-    "batch_size": 16,
+    "epoch": 1,
+    "batch_size": 32,
     "loss_fns": {
         "bce": true,
         "focal": false

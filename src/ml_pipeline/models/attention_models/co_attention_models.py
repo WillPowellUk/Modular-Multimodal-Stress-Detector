@@ -158,9 +158,6 @@ class MARCONet(nn.Module):
         self.batch_size = kwargs["batch_size"]
         self.token_length = kwargs["token_length"]
 
-        # If val_model is set to True, the model will use cache for the sliding co-attention
-        self.val_model = kwargs.get("val_model", False)
-
         super(MARCONet, self).__init__()
 
         self.modalities = nn.ModuleDict()
@@ -226,14 +223,14 @@ class MARCONet(nn.Module):
             #     for modality2 in modality_features:
             #         if modality1 != modality2:
             #             ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
-            #             modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], self.token_length, use_cache=self.val_model)
+            #             modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], self.token_length, use_cache=self.token_length>1)
 
             for modality, net in self.modalities.items():
                 sa_block = self.self_attention_blocks[modality][i]
                 modality_features[modality] = sa_block(
                     modality_features[modality],
                     self.token_length,
-                    use_cache=self.val_model,
+                    use_cache=self.token_length>1,
                 )
 
         # Step 3: Merge branches into one tensor and call Predictor

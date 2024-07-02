@@ -210,46 +210,42 @@ def print_weights_and_biases(attention):
     print("Key biases shape:", key_biases.shape)
 
 
-def plot_attention(attention_weights, title="Attention Weights"):
+def plot_attention(attention, title="", x_label="Source Sequence", y_label="Target Sequence"):
+    """
+    Plots the attention weights.
+    
+    Args:
+        attention (numpy.ndarray or torch.Tensor): The attention weights. 
+            Should be of shape (L, S) for single head or (N, L, S) for batched input
+            or (N, num_heads, L, S) for multi-head attention.
+        title (str): The title of the plot.
+    """
+    if isinstance(attention, torch.Tensor):
+        attention = attention.detach().cpu().numpy()
+    
+    # If the attention weights are multi-headed or batched, average them
+    if attention.ndim == 4:  # (N, num_heads, L, S)
+        attention = attention.mean(axis=1)  # Average over heads
+    if attention.ndim == 3:  # (N, L, S)
+        attention = attention.mean(axis=0)  # Average over batch
+
+    # Determine if annotations are needed
+    annot = False
+    annot_kws = {}
+    if attention.shape[0] <= 10 and attention.shape[1] <= 10:
+        annot = True
+        annot_kws = {"size": 16, "weight": "bold"}
+
     plt.figure(figsize=(10, 8))
-    sns.heatmap(attention_weights.detach().cpu().numpy(), cmap="viridis", annot=False)
+    sns.heatmap(attention, cmap='Blues', annot=annot, annot_kws=annot_kws, fmt=".2f")
     plt.title(title)
-    plt.xlabel("Key")
-    plt.ylabel("Query")
+    plt.xlabel(x_label, fontsize=14)
+    plt.ylabel(y_label, fontsize=14)
+    # Set x-axis label at the top
+    plt.gca().xaxis.set_label_position('top')
+    plt.gca().xaxis.tick_top()
     plt.show()
-
-
-def plot_attention(attention_weights, title="Attention Weights"):
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(attention_weights.detach().cpu().numpy(), cmap="viridis", annot=False)
-    plt.title(title)
-    plt.xlabel("Key")
-    plt.ylabel("Query")
-    plt.show()
-
-
-def plot_all_heads(attention_weights, title="Attention Weights for All Heads"):
-    n_heads = attention_weights.shape[1]
-    fig, axes = plt.subplots(2, 4, figsize=(20, 10))  # Adjust based on number of heads
-    fig.suptitle(title)
-
-    for i, ax in enumerate(axes.flat):
-        if i < n_heads:
-            sns.heatmap(
-                attention_weights[0, i].detach().cpu().numpy(),
-                cmap="viridis",
-                annot=False,
-                ax=ax,
-            )
-            ax.set_title(f"Head {i+1}")
-            ax.set_xlabel("Key")
-            ax.set_ylabel("Query")
-        else:
-            ax.axis("off")
-
-    plt.tight_layout()
-    plt.show()
-
+    plt.savefig("attention_weights.png", dpi=300, format="png", bbox_inches="tight")
 
 class HyperParamsIterator:
     def __init__(self, json_path, hyperparameter_grid):

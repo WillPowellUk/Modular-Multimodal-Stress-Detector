@@ -71,7 +71,7 @@ VAL_WRIST_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{VAL_WINDOW_LENGTH}s_
 VAL_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{sensors}/{VAL_WINDOW_LENGTH}s_{VAL_SLIDING_LENGTH}s_{VAL_SPLIT_LENGTH}s/losocv_datasets.pkl"
 
 HYPERPARAMETER_GRID = {
-    "embed_dim": [8, 16, 32, 64, 128, 256],
+    "embed_dim": [16],
     # "hidden_dim": [16, 32, 62, 64, 128, 256, 512],
     # "n_head_gen": [2, 4, 8],
     # "dropout": [0.3, 0.5, 0.7],
@@ -82,13 +82,13 @@ HYPERPARAMETER_GRID = {
 # Grid Search Parameters
 hyperparams = HyperParamsIterator(MARCO_CONFIG, HYPERPARAMETER_GRID)
 
-for current_config in hyperparams():
-    print(f"\n\nCurrent Configuration: {current_config} out of {len(hyperparams.combinations)}\n\n")
+for c, current_config in enumerate(hyperparams()):
+    print(f"\n\nCurrent Configuration: {c} out of {len(hyperparams.combinations)}\n\n")
 
     train_dataloader_params = {
         "batch_size": get_values(current_config, "batch_size"),
         "shuffle": True,
-        "drop_last": True,
+        "drop_last": False,
     }
     train_losocv_loader = LOSOCVSensorDataLoader(
         TRAIN_WRIST_FE, WRIST_CONFIG, **train_dataloader_params
@@ -159,6 +159,12 @@ for current_config in hyperparams():
             use_wandb=True, name_wandb=f"marco_subject_{subject_id}_embed_{model_config['embed_dim']}"
         )
         print(f"Model checkpoint saved to: {trained_model_ckpt}\n")
+
+        # from src.ml_pipeline.utils import print_weights_and_biases, plot_attention
+        # bvp_head_0_attention = trainer.model.self_attention_blocks['bvp'][0].attention
+        # print_weights_and_biases(bvp_head_0_attention)
+        # plot_attention(bvp_head_0_attention.in_proj_weight)
+        # plot_attention(_)
 
         # Now validate using the sliding co-attention buffer
         trainer.model.token_length = get_values(current_config, "token_length")
