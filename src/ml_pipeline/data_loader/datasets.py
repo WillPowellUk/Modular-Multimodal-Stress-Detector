@@ -119,10 +119,7 @@ class PerSensorDataset(Dataset):
                     if self.exclude_subjects and subject_id in self.exclude_subjects:
                         continue
 
-                    if (
-                        self.include_subjects
-                        and subject_id not in self.include_subjects
-                    ):
+                    if self.include_subjects and subject_id not in self.include_subjects:
                         continue
 
                     for aug in hdf5_file[subject].keys():

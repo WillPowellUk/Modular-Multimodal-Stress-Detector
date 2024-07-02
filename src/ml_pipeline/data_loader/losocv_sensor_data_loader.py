@@ -67,7 +67,7 @@ class LOSOCVSensorDataLoader:
             dataset_save_path = f"{save_path}/losocv_datasets.pkl"
         else:
             # Perform N-fold cross-validation
-            subjects = list(self.subjects)
+            subjects = [int(float(subject)) for subject in self.subjects]
             random.shuffle(subjects)
             fold_size = len(subjects) // n_folds
 
