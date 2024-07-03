@@ -79,13 +79,14 @@ VAL_WRIST_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{VAL_WINDOW_LENGTH}s_
 VAL_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{VAL_WINDOW_LENGTH}s_{VAL_SLIDING_LENGTH}s_{VAL_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
 
 HYPERPARAMETER_GRID = {
-    "embed_dim": [16],
+    # "embed_dim": [16],
     # "embed_dim": [16, 32],
     # "hidden_dim": [16, 32, 62, 64, 128, 256],
     # "n_head_gen": [2, 4, 8],
     # "dropout": [0.3, 0.5, 0.7],
     # "learning_rate": [0.0001, 0.001, 0.01],
     # "batch_size": [8, 16, 32]
+    "epoch": [5, 7, 10],
 }
 
 # Grid Search Parameters
