@@ -82,14 +82,16 @@ NON_BATCHED_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{NON_BATCHED_WINDOW
 NON_BATCHED_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
 
 HYPERPARAMETER_GRID = {
-    # "embed_dim": [16],
-    # "embed_dim": [16, 32],
+    "embed_dim": [16],
+    "embed_dim": [16],
     # "hidden_dim": [16, 32, 62, 64, 128, 256],
     # "n_head_gen": [2, 4, 8],
-    # "dropout": [0.3, 0.5, 0.7],
+    "dropout": [0.3],
     # "learning_rate": [0.0001, 0.001, 0.01],
     # "batch_size": [8, 16, 32]
-    "epochs": [1] # [5, 7, 10],
+    # "epochs": [5, 7, 10],
+    # "fine_tune_epochs": [1, 3, 5],
+    # "fine_tune_learning_rate": [0.001, 0.0001, 0.00005],
 }
 
 # Grid Search Parameters
@@ -191,7 +193,7 @@ for c, current_config in enumerate(hyperparams()):
         # Fine Tune on non-batched (Optional)
         if FINE_TUNE:
             print("Fine Tuning Model on Non-Batched Data")
-            fine_tune_loss_wrapper = LossWrapper(model_config["loss_fns"])
+            fine_tune_loss_wrapper = LossWrapper(model_config["fine_tune_loss_fns"])
 
             trainer.model.token_length = get_values(current_config, "token_length")
             fine_tuned_model_ckpt = trainer.train(train_loader_non_batched, val_loader_non_batched, fine_tune_loss_wrapper, ckpt_path=pre_trained_model_ckpt, use_wandb=True, name_wandb=f"{model.NAME}_{fold}", fine_tune=True)

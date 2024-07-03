@@ -8,16 +8,16 @@
     "output_dim": 2,
     "n_head_gen": 4,
     "n_head_per": 1,
-    "dropout": 0.7,
+    "dropout": 0.3,
     "attention_dropout": 0.5,
     "learning_rate": 0.001,
-    "epochs": 1,
+    "epochs": 7,
     "batch_size": 32,
     "loss_fns": {
         "bce": false,
         "focal": true
     },
-    "fine_tune": true,
+    "fine_tune": false,
     "fine_tune_epochs": 1,
     "fine_tune_learning_rate": 0.001,
     "fine_tune_loss_fns": {
