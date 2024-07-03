@@ -200,8 +200,8 @@ for c, current_config in enumerate(hyperparams()):
 
         del trainer  # delete the trainer object to finish wandb
 
-        if idx == 0:
-            break
+        # if idx == 0:
+        #     break
 
     # save the results to pkl
     current_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
