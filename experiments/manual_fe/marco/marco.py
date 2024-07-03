@@ -93,7 +93,7 @@ HYPERPARAMETER_GRID = {
 hyperparams = HyperParamsIterator(MARCO_CONFIG, HYPERPARAMETER_GRID)
 
 for c, current_config in enumerate(hyperparams()):
-    print(f"\n\nCurrent Configuration: {c} out of {len(hyperparams.combinations)}\n\n")
+    print(f"\n\nCurrent Configuration: {c+1} out of {len(hyperparams.combinations)}\n\n")
 
     train_dataloader_params = {
         "batch_size": get_values(current_config, "batch_size"),
