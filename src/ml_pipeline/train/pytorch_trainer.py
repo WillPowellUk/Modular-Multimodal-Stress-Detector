@@ -49,7 +49,7 @@ class PyTorchTrainer:
         )
         self.model = model_copy
 
-    def train(self, use_wandb=False, name_wandb=None, one_token_val_loader=None):
+    def train(self, use_wandb=False, name_wandb=None, one_token_loader=None):
         if use_wandb:
             # Initialize wandb
             if name_wandb is None:
@@ -111,10 +111,10 @@ class PyTorchTrainer:
                         }
                     )
 
-            if one_token_val_loader is not None:
+            if one_token_loader is not None:
                         tl = self.model.token_length
                         self.model.token_length = self.configs["token_length"]
-                        val_metrics = self.validate(val_loader=one_token_val_loader)
+                        val_metrics = self.validate(val_loader=one_token_loader)
                         self.model.token_length = tl
 
             avg_loss = epoch_loss / len(self.train_loader)

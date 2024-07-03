@@ -137,12 +137,13 @@ for c, current_config in enumerate(hyperparams()):
     print(f"Using device: {device}")
 
     results = []
-    for idx, ((subject_id, train_loader), (_, one_token_val_loader)) in enumerate(
+    for idx, ((subject_id, train_loader), (_, one_token_loader)) in enumerate(
         zip(train_dataloaders.items(), val_dataloaders.items())
     ):
         train_loader_batched = train_loader["train"]
         val_loader_batched = train_loader["val"]
-        one_token_val_loader = one_token_val_loader["val"]
+        train_one_token_loader = one_token_loader["train"]
+        val_one_token_loader = one_token_loader["val"]
         if DATASET_TYPE == 'losocv':
             print(f"\nSubject: {subject_id}")
             fold = f"subject_{subject_id}"
@@ -151,7 +152,8 @@ for c, current_config in enumerate(hyperparams()):
             fold = f"fold_{idx}"
         print(f"Batched Train Length: {len(train_loader_batched.dataset)}")
         print(f"Batched Val Length: {len(val_loader_batched.dataset)}")
-        print(f"One Token Val Length: {len(one_token_val_loader.dataset)}")
+        print(f"One Token Train Length: {len(train_one_token_loader.dataset)}")
+        print(f"One Token Val Length: {len(val_one_token_loader.dataset)}")
         print()
 
         # Initialize model
@@ -175,7 +177,7 @@ for c, current_config in enumerate(hyperparams()):
         trained_model_ckpt = trainer.train(
             use_wandb=True,
             name_wandb=f"{model.NAME}_{fold}",
-            # one_token_val_loader=one_token_val_loader,
+            one_token_loader=one_token_loader,
         )
         print(f"Model checkpoint saved to: {trained_model_ckpt}\n")
 
@@ -194,9 +196,9 @@ for c, current_config in enumerate(hyperparams()):
 
         trainer.model.token_length = get_values(current_config, "token_length")
         if DATASET_TYPE == 'losocv':
-            result = trainer.validate(trained_model_ckpt, subject_id, val_loader=one_token_val_loader)
+            result = trainer.validate(trained_model_ckpt, subject_id, val_loader=one_token_loader)
         else: 
-            result = trainer.validate(trained_model_ckpt, idx, val_loader=one_token_val_loader)
+            result = trainer.validate(trained_model_ckpt, idx, val_loader=one_token_loader)
         results.append(result)
 
         del trainer  # delete the trainer object to finish wandb

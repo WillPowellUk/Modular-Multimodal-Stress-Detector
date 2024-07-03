@@ -68,9 +68,10 @@ class LOSOCVSensorDataLoader:
         else:
             # Perform N-fold cross-validation
             subjects = [int(float(subject)) for subject in self.subjects]
+            random.seed(42069)
             random.shuffle(subjects)
             fold_size = len(subjects) // n_folds
-
+            print(subjects)
             for fold in range(n_folds):
                 val_subjects = subjects[fold * fold_size : (fold + 1) * fold_size]
                 train_subjects = [s for s in subjects if s not in val_subjects]
