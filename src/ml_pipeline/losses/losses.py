@@ -30,18 +30,15 @@ class FocalLoss(nn.Module):
             return focal_loss
 
 class LossWrapper(nn.Module):
-    def __init__(self, CONFIG_PATH):
+    def __init__(self, config):
         super().__init__()
-        self.loss_fns = get_active_key(CONFIG_PATH, "loss_fns")
-        if "bce" in self.loss_fns:
-            self.bce = nn.BCEWithLogitsLoss()
-        if "focal" in self.loss_fns:
-            self.focal = FocalLoss()
+        self.bce = nn.BCEWithLogitsLoss() if 'bce' in config and config['bce'] else None
+        self.focal = FocalLoss() if 'focal' in config and config['focal'] else None
 
     def forward(self, y_pred, target):
         loss = 0.0
-        if "bce" in self.loss_fns:
+        if self.bce:
             loss += self.bce(y_pred, target)
-        if "focal" in self.loss_fns:
+        if self.focal:
             loss += self.focal(y_pred, target)
         return loss
