@@ -11,11 +11,14 @@
     "dropout": 0.7,
     "attention_dropout": 0.5,
     "learning_rate": 0.001,
-    "epoch": 5,
+    "epochs": 1,
     "batch_size": 32,
     "loss_fns": {
         "bce": false,
         "focal": true
     },
+    "fine_tune": true,
+    "fine_tune_epochs": 1,
+    "fine_tune_learning_rate": 32,
     "save_path": "src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/{fold}"
 }
