@@ -133,7 +133,7 @@ for c, current_config in enumerate(hyperparams()):
     model_config = {**model_config, "input_dims": batched_input_dims}
 
     # Configure LossWrapper for the model
-    loss_wrapper = LossWrapper(current_config)
+    loss_wrapper = LossWrapper(model_config["loss_fns"])
 
     # Set device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -191,16 +191,18 @@ for c, current_config in enumerate(hyperparams()):
         # Fine Tune on non-batched (Optional)
         if FINE_TUNE:
             print("Fine Tuning Model on Non-Batched Data")
+            fine_tune_loss_wrapper = LossWrapper(model_config["loss_fns"])
+
             trainer.model.token_length = get_values(current_config, "token_length")
-            fine_tuned_model_ckpt = trainer.train(train_loader_non_batched, val_loader_non_batched, loss_wrapper, ckpt_path=pre_trained_model_ckpt, use_wandb=True, name_wandb=f"{model.NAME}_{fold}", fine_tune=True)
+            fine_tuned_model_ckpt = trainer.train(train_loader_non_batched, val_loader_non_batched, fine_tune_loss_wrapper, ckpt_path=pre_trained_model_ckpt, use_wandb=True, name_wandb=f"{model.NAME}_{fold}", fine_tune=True)
             print(f"Fine Tuned Model checkpoint saved to: {pre_trained_model_ckpt}\n")
             # Validate model on non-batched data
             print("Validating Fine Tuned Model on Non-Batched Data")
             trainer.model.token_length = get_values(current_config, "token_length")
             if DATASET_TYPE == 'losocv':
-                result = trainer.validate(val_loader_non_batched, loss_wrapper, fine_tuned_model_ckpt, subject_id=subject_id, fine_tune_run=FINE_TUNE, pre_trained_run=not FINE_TUNE)
+                result = trainer.validate(val_loader_non_batched, fine_tune_loss_wrapper, fine_tuned_model_ckpt, subject_id=subject_id, fine_tune_run=FINE_TUNE, pre_trained_run=not FINE_TUNE)
             else: 
-                result = trainer.validate(val_loader_non_batched, loss_wrapper, fine_tuned_model_ckpt, subject_id=idx, fine_tune_run=FINE_TUNE, pre_trained_run=not FINE_TUNE)
+                result = trainer.validate(val_loader_non_batched, fine_tune_loss_wrapper, fine_tuned_model_ckpt, subject_id=idx, fine_tune_run=FINE_TUNE, pre_trained_run=not FINE_TUNE)
         
         results.append(result)
 

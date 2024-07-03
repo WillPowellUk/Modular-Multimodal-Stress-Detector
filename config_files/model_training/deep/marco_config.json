@@ -19,6 +19,10 @@
     },
     "fine_tune": true,
     "fine_tune_epochs": 1,
-    "fine_tune_learning_rate": 32,
+    "fine_tune_learning_rate": 0.001,
+    "fine_tune_loss_fns": {
+        "bce": true,
+        "focal": false
+    },
     "save_path": "src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/10s_2s_10s/generalized/{fold}"
 }
