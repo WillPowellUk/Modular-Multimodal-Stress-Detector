@@ -182,7 +182,7 @@ class MARCONet(nn.Module):
             self.modalities[modality] = modality_net
             self.self_attention_blocks[modality] = nn.ModuleList(
                 [
-                    CachedSlidngSelfAttentionEncoder(
+                    CachedSlidingSelfAttentionEncoder(
                         self.embed_dim, self.hidden_dim, self.n_head, self.dropout, self.attention_dropout
                     )
                     for _ in range(self.n_bcsa)
@@ -222,11 +222,11 @@ class MARCONet(nn.Module):
 
         # Step 2: Cross-Attention and Self-Attention Blocks
         for i in range(self.n_bcsa):
-            for modality1 in modality_features:
-                for modality2 in modality_features:
-                    if modality1 != modality2:
-                        ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
-                        modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], self.token_length, use_cache=self.token_length>1)
+            # for modality1 in modality_features:
+            #     for modality2 in modality_features:
+            #         if modality1 != modality2:
+            #             ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
+            #             modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], self.token_length, use_cache=self.token_length>1)
 
             for modality, net in self.modalities.items():
                 sa_block = self.self_attention_blocks[modality][i]

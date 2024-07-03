@@ -5,6 +5,6 @@ from .attention_mechansims import (
     PositionwiseFeedForward,
     SelfAttentionEncoder,
     CachedSlidingCrossAttentionEncoder,
-    CachedSlidngSelfAttentionEncoder,
+    CachedSlidingSelfAttentionEncoder,
     CrossAttentionEncoder,
 )
