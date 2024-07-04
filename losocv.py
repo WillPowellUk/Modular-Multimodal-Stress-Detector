@@ -14,7 +14,7 @@ WRIST_CONFIG = f"config_files/dataset/wesad_wrist_{SENSORS}_configuration.json"
 WRIST_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s/wrist_features.hdf5"
 dataloader_params = {
     "batch_size": 32,
-    "shuffle": True,
+    "shuffle": False,
     # 'num_workers': 4
 }
 losocv_loader = LOSOCVSensorDataLoader(WRIST_FE, WRIST_CONFIG, **dataloader_params)
@@ -37,7 +37,7 @@ WRIST_CONFIG = f"config_files/dataset/wesad_wrist_{SENSORS}_configuration.json"
 WRIST_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s/wrist_features.hdf5"
 dataloader_params = {
     "batch_size": 32,
-    "shuffle": True,
+    "shuffle": False,
     # 'num_workers': 4
 }
 losocv_loader = LOSOCVSensorDataLoader(WRIST_FE, WRIST_CONFIG, **dataloader_params)

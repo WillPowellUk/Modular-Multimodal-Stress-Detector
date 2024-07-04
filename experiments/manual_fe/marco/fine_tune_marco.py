@@ -48,6 +48,8 @@ from src.ml_pipeline.utils import (
     HyperParamsIterator,
 )
 
+PRE_TRAINED_CKPT = "src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/5s_5s_5s/generalized/2024_07_04_11_24_10/fold_0/checkpoint_7.pth"
+
 # CONFIG file for the model
 MARCO_CONFIG = "config_files/model_training/deep/marco_config.json"
 
@@ -66,15 +68,6 @@ SENSORS = "bvp_eda"
 # Optional fine tune on non-batched data
 FINE_TUNE = get_values(MARCO_CONFIG, "fine_tune")
 
-# Load Train Dataloaders for LOSOCV
-BATCHED_WINDOW_LENGTH = 30
-BATCHED_SPLIT_LENGTH = int(
-    BATCHED_WINDOW_LENGTH / 6
-)  # this will sub-split the data 6 times each of 5 seconds
-BATCHED_SLIDING_LENGTH = BATCHED_SPLIT_LENGTH  # this will create 6 samples per 30 seconds since 30/5 = 6 with 5:1 ratio of synthetic to real samples
-BATCHED_WRIST_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{BATCHED_WINDOW_LENGTH}s_{BATCHED_SLIDING_LENGTH}s_{BATCHED_SPLIT_LENGTH}s/wrist_features.hdf5"
-BATCHED_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{BATCHED_WINDOW_LENGTH}s_{BATCHED_SLIDING_LENGTH}s_{BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
-
 # Load Val Dataloaders for LOSOCV
 NON_BATCHED_WINDOW_LENGTH = 5
 NON_BATCHED_SLIDING_LENGTH = NON_BATCHED_WINDOW_LENGTH  # this will create no overlap between segments i.e. no augmented / synthetic data.
@@ -84,10 +77,10 @@ NON_BATCHED_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{NON_BATC
 
 HYPERPARAMETER_GRID = {
     "embed_dim": [16],
-    "embed_dim": [16],
+    # "embed_dim": [16],
     # "hidden_dim": [16, 32, 62, 64, 128, 256],
     # "n_head_gen": [2, 4, 8],
-    "dropout": [0.3],
+    # "dropout": [0.3],
     # "learning_rate": [0.0001, 0.001, 0.01],
     # "batch_size": [8, 16, 32]
     # "epochs": [5, 7, 10],
@@ -101,18 +94,6 @@ hyperparams = HyperParamsIterator(MARCO_CONFIG, HYPERPARAMETER_GRID)
 for c, current_config in enumerate(hyperparams()):
     print(f"\n\nCurrent Configuration: {c+1} out of {len(hyperparams.combinations)}\n\n")
 
-    batched_dataloader_params = {
-        "batch_size": get_values(current_config, "batch_size"),
-        "shuffle": True,
-        "drop_last": False,
-    }
-    batched_losocv_loader = LOSOCVSensorDataLoader(
-        BATCHED_WRIST_FE, WRIST_CONFIG, **batched_dataloader_params
-    )
-    batched_dataloaders, batched_input_dims = batched_losocv_loader.get_data_loaders(
-        BATCHED_DATASETS_PATH, dataset_type=DATASET_TYPE
-    )
-
     non_batched_dataloader_params = {
         "batch_size": 1,
         "shuffle": False,
@@ -125,15 +106,9 @@ for c, current_config in enumerate(hyperparams()):
         NON_BATCHED_DATASETS_PATH, dataset_type=DATASET_TYPE
     )
 
-    assert (
-        batched_input_dims == non_batched_input_dims
-    ), "Input dimensions of batched and non-batched dataloaders do not match"
-
-    assert batched_input_dims != 0, "Input dimensions are 0"
-
     # Load Model Parameters
     model_config = load_json(current_config)
-    model_config = {**model_config, "input_dims": batched_input_dims, }
+    model_config = {**model_config, "input_dims": non_batched_input_dims, }
 
     # Configure LossWrapper for the model
     loss_wrapper = LossWrapper(model_config["loss_fns"])
@@ -143,11 +118,7 @@ for c, current_config in enumerate(hyperparams()):
     print(f"Using device: {device}")
 
     results = []
-    for idx, ((subject_id, batched_loader), (_, val_loader)) in enumerate(
-        zip(batched_dataloaders.items(), non_batched_dataloaders.items())
-    ):
-        train_loader_batched = batched_loader["train"]
-        val_loader_batched = batched_loader["val"]
+    for idx, (subject_id, val_loader) in enumerate(non_batched_dataloaders.items()):
         train_loader_non_batched = val_loader["train"]
         val_loader_non_batched = val_loader["val"]
         if DATASET_TYPE == 'losocv':
@@ -156,8 +127,6 @@ for c, current_config in enumerate(hyperparams()):
         else:
             print(f"\nFold: {idx}")
             fold = f"fold_{idx}"
-        print(f"Batched Train Length: {len(train_loader_batched.dataset)}")
-        print(f"Batched Val Length: {len(val_loader_batched.dataset)}")
         print(f"Non-Batched Train Length: {len(train_loader_non_batched.dataset)}")
         print(f"Non-Batched Val Length: {len(val_loader_non_batched.dataset)}")
         print()
@@ -165,7 +134,7 @@ for c, current_config in enumerate(hyperparams()):
         # Modify Current Config
         config = load_json(current_config)
         current_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-        config["save_path"] = f"src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/generalized/{current_time}/{fold}"
+        config["save_path"] = f"src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/generalized/{current_time}/{fold}/fine_tuned"
         save_json(config, current_config)
 
         # Initialize model
@@ -177,41 +146,23 @@ for c, current_config in enumerate(hyperparams()):
             current_config,
             device,
         )
-        # if idx == 0:
-        #     trainer.print_model_summary()
+        print("Validating Pre-Trained Model on Non-Batched Data")
+        fine_tune_loss_wrapper = LossWrapper(model_config["fine_tune_loss_fns"])
+        result = trainer.validate(val_loader_non_batched, fine_tune_loss_wrapper, ckpt_path=PRE_TRAINED_CKPT, subject_id=idx, fine_tune_run=FINE_TUNE, pre_trained_run=not FINE_TUNE, seq_to_seq=False)
 
-        # Train the model on the batched data without the sliding co-attention buffer
-        trainer.model.token_length = 1
-        pre_trained_model_ckpt = trainer.train(train_loader_batched, val_loader_batched, loss_wrapper, 
-            use_wandb=True,
-            name_wandb=f"{model.NAME}_{fold}",
-        )
-        print(f"Pre-Trained Model checkpoint saved to: {pre_trained_model_ckpt}\n")
+        print("Fine Tuning Model on Non-Batched Data")
+        trainer.model.token_length = get_values(current_config, "token_length")
+        fine_tuned_model_ckpt = trainer.train(train_loader_non_batched, val_loader_non_batched, fine_tune_loss_wrapper, ckpt_path=PRE_TRAINED_CKPT, use_wandb=True, name_wandb=f"{model.NAME}_{fold}", fine_tune=True)
+        print(f"Fine Tuned Model checkpoint saved to: {fine_tuned_model_ckpt}\n")
 
         # Validate model on non-batched data
-        print("Validating Pre-Trained Model on Non-Batched Data")
+        print("Validating Fine Tuned Model on Non-Batched Data")
         trainer.model.token_length = get_values(current_config, "token_length")
         if DATASET_TYPE == 'losocv':
-            result = trainer.validate(val_loader_non_batched, loss_wrapper, ckpt_path=pre_trained_model_ckpt, subject_id=subject_id, pre_trained_run=True)
+            result = trainer.validate(val_loader_non_batched, fine_tune_loss_wrapper, fine_tuned_model_ckpt, subject_id=subject_id, fine_tune_run=FINE_TUNE, pre_trained_run=not FINE_TUNE)
         else: 
-            result = trainer.validate(val_loader_non_batched, loss_wrapper, ckpt_path=pre_trained_model_ckpt, subject_id=idx, pre_trained_run=True)
-
-        # Fine Tune on non-batched (Optional)
-        if FINE_TUNE:
-            print("Fine Tuning Model on Non-Batched Data")
-            fine_tune_loss_wrapper = LossWrapper(model_config["fine_tune_loss_fns"])
-
-            trainer.model.token_length = get_values(current_config, "token_length")
-            fine_tuned_model_ckpt = trainer.train(train_loader_non_batched, val_loader_non_batched, fine_tune_loss_wrapper, ckpt_path=pre_trained_model_ckpt, use_wandb=True, name_wandb=f"{model.NAME}_{fold}", fine_tune=True)
-            print(f"Fine Tuned Model checkpoint saved to: {fine_tuned_model_ckpt}\n")
-            # Validate model on non-batched data
-            print("Validating Fine Tuned Model on Non-Batched Data")
-            trainer.model.token_length = get_values(current_config, "token_length")
-            if DATASET_TYPE == 'losocv':
-                result = trainer.validate(val_loader_non_batched, fine_tune_loss_wrapper, fine_tuned_model_ckpt, subject_id=subject_id, fine_tune_run=FINE_TUNE, pre_trained_run=not FINE_TUNE)
-            else: 
-                result = trainer.validate(val_loader_non_batched, fine_tune_loss_wrapper, fine_tuned_model_ckpt, subject_id=idx, fine_tune_run=FINE_TUNE, pre_trained_run=not FINE_TUNE)
-        
+            result = trainer.validate(val_loader_non_batched, fine_tune_loss_wrapper, fine_tuned_model_ckpt, subject_id=idx, fine_tune_run=FINE_TUNE, pre_trained_run=not FINE_TUNE)
+    
         results.append(result)
 
         del trainer  # delete the trainer object to finish wandb

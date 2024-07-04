@@ -43,7 +43,7 @@ class PyTorchTrainer:
         )
         self.model = model_copy
 
-    def train(self, train_loader, val_loader, loss_func, ckpt_path=None, use_wandb=False, name_wandb=None, fine_tune=False):
+    def train(self, train_loader, val_loader, loss_func, ckpt_path=None, use_wandb=False, name_wandb=None, fine_tune=False, seq_to_seq=True):
         # Load model from checkpoint if provided
         if ckpt_path is not None:
             self.model.load_state_dict(torch.load(ckpt_path))
@@ -63,7 +63,7 @@ class PyTorchTrainer:
         if use_wandb:
             if fine_tune:
                 # Continue from the previous wandb run
-                wandb.init(project="MMSD", resume="must", name=name_wandb)
+                wandb.init(project="MMSD", resume="allow", name=name_wandb)
             else:
                 # Initialize a new wandb run
                 if name_wandb is None:
@@ -87,6 +87,7 @@ class PyTorchTrainer:
                 if inputs["bvp"].shape[0] != train_loader.batch_size:
                     print("Batch size mismatch")
                     continue
+                
                 labels = batch_y.to(self.device)
                 final_output = self.model(inputs)
                 loss = loss_func(
@@ -163,7 +164,7 @@ class PyTorchTrainer:
         return final_save_path
 
 
-    def validate(self, val_loader, loss_func, ckpt_path=None, subject_id=None, pre_trained_run=False, fine_tune_run=False):
+    def validate(self, val_loader, loss_func, ckpt_path=None, subject_id=None, pre_trained_run=False, fine_tune_run=False, seq_to_seq=True):
         # Load model from checkpoint if provided
         if ckpt_path is not None:
             self.model.load_state_dict(torch.load(ckpt_path))
@@ -174,9 +175,13 @@ class PyTorchTrainer:
 
         inference_times = []
         epoch_loss = 0.0
-
+        self.label_buffer = []
+        num_overlaps_detected = 0
+        num_non_overlaps_detected = 0
+        num_incorrect_predictions_with_overlap = 0
+        num_incorrect_predictions_without_overlap = 0
         with torch.no_grad():
-            for batch_x, batch_y in val_loader:
+            for i, (batch_x, batch_y) in enumerate(val_loader):
                 inputs = {key: val.to(self.device) for key, val in batch_x.items()}
                 labels = batch_y.to(self.device)
 
@@ -202,15 +207,46 @@ class PyTorchTrainer:
                 epoch_loss += loss.item()
 
                 _, preds = torch.max(final_output, 1)
-                y_true.extend(labels.cpu().numpy())
+                y_true.extend(labels.cpu().numpy()-1) # correct for labelling starting from index `1`
                 y_pred.extend(preds.cpu().numpy())
+
+                # check if prediction is incorrect
+                if y_true[-1] != y_pred[-1]:
+                    incorrect_pred = True
+                else:
+                    incorrect_pred = False
+
+                # Check for label overlaps in the last n segment lengths
+                self.label_buffer.extend(labels.cpu().numpy())
+                if len(self.label_buffer) > self.model.token_length:
+                    self.label_buffer = self.label_buffer[-self.model.token_length:]
+
+                overlap_detected = self._check_label_overlap()
+                if overlap_detected:
+                    num_overlaps_detected += 1
+                    if incorrect_pred:
+                        num_incorrect_predictions_with_overlap += 1
+                else:
+                    num_non_overlaps_detected += 1
+                    if incorrect_pred:
+                        num_incorrect_predictions_without_overlap += 1
+
+                # # Print overlap detection message if needed
+                # if overlap_detected:
+                #     print("Overlap detected in last {} segment lengths.".format(self.model.token_length))
+
+        # After validation loop
+        print("Number of overlaps detected: {}".format(num_overlaps_detected))
+        print("Number of non-overlaps detected: {}".format(num_non_overlaps_detected))
+        print("Number of incorrect predictions with overlap: {}".format(num_incorrect_predictions_with_overlap))
+        print("Number of incorrect predictions without overlap: {}".format(num_incorrect_predictions_without_overlap))
 
         # Calculate average inference time in milliseconds
         avg_inference_time = np.mean(inference_times)
         avg_loss = epoch_loss / len(val_loader)
 
         y_pred = np.array(y_pred)
-        y_true = np.array(y_true) - 1  # correct for labelling starting from index `1`
+        y_true = np.array(y_true)
         accuracy = accuracy_score(y_true, y_pred)
         conf_matrix = confusion_matrix(
             y_true, y_pred, labels=[i for i in range(self.num_classes)]
@@ -304,3 +340,12 @@ class PyTorchTrainer:
         
         return mean_syn, std_syn
 
+    def _check_label_overlap(self):
+        # Convert self.label_buffer to a set to find unique labels
+        unique_labels = set(self.label_buffer)
+        
+        # If the number of unique labels is less than self.model.token_length, overlap detected
+        if len(unique_labels) > 1:
+            return True
+        else:
+            return False

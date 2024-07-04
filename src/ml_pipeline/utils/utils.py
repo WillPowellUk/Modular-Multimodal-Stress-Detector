@@ -73,6 +73,9 @@ def load_json(config_path):
 
     return config
 
+def save_json(data, file_path):
+    with open(file_path, "w") as f:
+        json.dump(data, f, indent=4)
 
 def print_model_summary(model, input_dims, batch_size=-1, device="cuda"):
     def register_hook(module):
