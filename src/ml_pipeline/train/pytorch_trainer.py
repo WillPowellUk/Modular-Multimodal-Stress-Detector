@@ -56,21 +56,23 @@ class PyTorchTrainer:
             epochs = self.configs["epochs"]
             learning_rate = self.configs["learning_rate"]
 
-        self.optimizer = torch.optim.Adam(
-            self.model.parameters(), lr=learning_rate
-        )
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
 
         if use_wandb:
             if fine_tune:
-                # Continue from the previous wandb run
                 wandb.init(project="MMSD", resume="allow", name=name_wandb)
             else:
-                # Initialize a new wandb run
                 if name_wandb is None:
                     wandb.init(project="MMSD", config=self.configs)
                 else:
                     wandb.init(project="MMSD", config=self.configs, name=name_wandb)
             wandb.watch(self.model, log="all", log_freq=5)
+
+        # Early stopping initialization
+        best_metric = float('inf') if self.configs['early_stopping_metric'] == 'loss' else 0
+        best_model_state = None
+        steps_without_improvement = 0
+        early_exit = False
 
         for epoch in range(epochs):
             epoch_loss = 0.0
@@ -81,8 +83,8 @@ class PyTorchTrainer:
                 total=len(train_loader),
                 desc=f'Epoch {epoch+1}/{epochs}',
             )
-            val_metrics = None
-            for s, (batch_x, batch_y) in progress_bar:
+
+            for step, (batch_x, batch_y) in progress_bar:
                 inputs = {key: val.to(self.device) for key, val in batch_x.items()}
                 if inputs["bvp"].shape[0] != train_loader.batch_size:
                     print("Batch size mismatch")
@@ -92,9 +94,7 @@ class PyTorchTrainer:
                 final_output = self.model(inputs)
                 loss = loss_func(
                     final_output,
-                    torch.nn.functional.one_hot(
-                        labels - 1, num_classes=self.num_classes
-                    ).float(),
+                    torch.nn.functional.one_hot(labels - 1, num_classes=self.num_classes).float(),
                 )
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -105,62 +105,63 @@ class PyTorchTrainer:
                 epoch_correct += (preds == (labels - 1)).sum().item()
                 epoch_total += labels.size(0)
                 accuracy = epoch_correct / epoch_total if epoch_total > 0 else 0
-                progress_bar.set_postfix(accuracy=accuracy,loss=loss.item())
+                progress_bar.set_postfix(accuracy=accuracy, loss=loss.item())
 
-                # Log intermediate training metrics to wandb
-                if use_wandb and s % (len(train_loader) // 10) == 0:
+                # Log intermediate training metrics and perform early stopping check
+                if use_wandb and step % (len(train_loader) // 10) == 0:
                     val_metrics = self.validate(val_loader, loss_func)
                     train_acc = epoch_correct / epoch_total
-                    train_loss = epoch_loss / (s + 1)
+                    train_loss = epoch_loss / (step + 1)
 
                     # Log intermediate training and validation metrics to wandb
-                    step = epoch * len(train_loader) + s
-                    wandb.log(
-                        {
-                            "Train Loss": train_loss,
-                            "Validation Loss": val_metrics[self.model.NAME]["loss"],
-                            "Train Accuracy": train_acc,
-                            "Validation Accuracy": val_metrics[self.model.NAME][
-                                "accuracy"
-                            ],
-                            "Step": step,
-                        }
-                    )
+                    global_step = epoch * len(train_loader) + step
+                    wandb.log({
+                        "Train Loss": train_loss,
+                        "Validation Loss": val_metrics[self.model.NAME]["loss"],
+                        "Train Accuracy": train_acc,
+                        "Validation Accuracy": val_metrics[self.model.NAME]["accuracy"],
+                        "Step": global_step,
+                    })
+
+                    # Early stopping check
+                    if self.configs['early_stopping']:
+                        current_metric = val_metrics[self.model.NAME]["loss"] if self.configs['early_stopping_metric'] == 'loss' else -val_metrics[self.model.NAME]["accuracy"]
+                        if current_metric <= best_metric:
+                            best_metric = current_metric
+                            steps_without_improvement = 0
+                            best_model_state = self.model.state_dict().copy()
+                        else:
+                            steps_without_improvement += 1
+                            if steps_without_improvement >= self.configs['early_stopping_patience']:
+                                print(f"Early stopping triggered at epoch {epoch + 1}, step {step + 1}")
+                                self.model.load_state_dict(best_model_state)
+                                early_exit = True
+                                break
 
             avg_loss = epoch_loss / len(train_loader)
             avg_acc = epoch_correct / epoch_total
-            print(
-                f'Epoch: {epoch}, | training loss: {avg_loss:.4f}, | training accuracy: {avg_acc:.4f} | validation loss: {val_metrics[self.model.NAME]["loss"]:.4f} | validation accuracy: {val_metrics[self.model.NAME]["accuracy"]:.4f}'
-            )
+            print(f'Epoch: {epoch + 1}, | training loss: {avg_loss:.4f}, | training accuracy: {avg_acc:.4f} | validation loss: {val_metrics[self.model.NAME]["loss"]:.4f} | validation accuracy: {val_metrics[self.model.NAME]["accuracy"]:.4f}')
 
-            # Log end of epoch training loss and accuracy to wandb
+            # Log end of epoch metrics to wandb
             if use_wandb:
-                wandb.log(
-                    {"Train Loss": avg_loss, "Train Accuracy": avg_acc, "Epoch": epoch}
-                )
+                wandb.log({
+                    "Train Loss": avg_loss,
+                    "Train Accuracy": avg_acc,
+                    "Validation Loss": val_metrics[self.model.NAME]["loss"],
+                    "Validation Accuracy": val_metrics[self.model.NAME]["accuracy"],
+                    "Epoch": epoch + 1,
+                })
 
-                # Validate and log validation loss and accuracy
-                val_metrics = self.validate(val_loader, loss_func)
-                wandb.log(
-                    {
-                        "Validation Loss": val_metrics[self.model.NAME]["loss"],
-                        "Validation Accuracy": val_metrics[self.model.NAME]["accuracy"],
-                        "Epoch": epoch,
-                    }
-                )
+            if early_exit:
+                break
 
-            if (epoch + 1) % 10 == 0:
-                save_path = f"{self.save_path}/checkpoint_{epoch + 1}.pth"
-                directory = os.path.dirname(save_path)
-                if not os.path.exists(directory):
-                    os.makedirs(directory)
-                torch.save(self.model.state_dict(), save_path)
-
-        final_save_path = f"{self.save_path}/checkpoint_{epoch + 1}.pth"
+        # Save the final model
+        final_save_path = f"{self.save_path}/checkpoint_final.pth"
         directory = os.path.dirname(final_save_path)
         if not os.path.exists(directory):
             os.makedirs(directory)
         torch.save(self.model.state_dict(), final_save_path)
+        
         return final_save_path
 
 

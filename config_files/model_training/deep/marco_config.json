@@ -23,5 +23,8 @@
     "fine_tune_loss_fns": {
         "bce": true,
         "focal": false
-    }
+    },
+    "early_stopping": true,
+    "early_stopping_patience": 8,
+    "early_stopping_metric": "accuracy"
 }
