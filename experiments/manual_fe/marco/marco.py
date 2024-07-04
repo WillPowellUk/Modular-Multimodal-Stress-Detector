@@ -84,10 +84,9 @@ NON_BATCHED_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{NON_BATC
 
 HYPERPARAMETER_GRID = {
     "embed_dim": [16],
-    "embed_dim": [16],
     # "hidden_dim": [16, 32, 62, 64, 128, 256],
     # "n_head_gen": [2, 4, 8],
-    "dropout": [0.3],
+    # "dropout": [0.3],
     # "learning_rate": [0.0001, 0.001, 0.01],
     # "batch_size": [8, 16, 32]
     # "epochs": [5, 7, 10],

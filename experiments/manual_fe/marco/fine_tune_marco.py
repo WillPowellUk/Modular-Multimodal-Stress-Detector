@@ -146,9 +146,7 @@ for c, current_config in enumerate(hyperparams()):
             current_config,
             device,
         )
-        print("Validating Pre-Trained Model on Non-Batched Data")
         fine_tune_loss_wrapper = LossWrapper(model_config["fine_tune_loss_fns"])
-        result = trainer.validate(val_loader_non_batched, fine_tune_loss_wrapper, ckpt_path=PRE_TRAINED_CKPT, subject_id=idx, fine_tune_run=FINE_TUNE, pre_trained_run=not FINE_TUNE, seq_to_seq=False)
 
         print("Fine Tuning Model on Non-Batched Data")
         trainer.model.token_length = get_values(current_config, "token_length")

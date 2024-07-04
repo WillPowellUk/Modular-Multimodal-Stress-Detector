@@ -300,6 +300,7 @@ class SensorDataset(Dataset):
         self.include_sensors = include_sensors
         with h5py.File(self.features_path, "r") as hdf5_file:
             self.data_keys = list(hdf5_file.keys())
+        self.data_keys = sorted(self.data_keys, key=int)
         self.dataset_length = len(self.data_keys)
 
     def get_dims(self):

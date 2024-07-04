@@ -17,7 +17,7 @@
         "bce": false,
         "focal": true
     },
-    "fine_tune": true,
+    "fine_tune": false,
     "fine_tune_epochs": 1,
     "fine_tune_learning_rate": 0.0005,
     "fine_tune_loss_fns": {
