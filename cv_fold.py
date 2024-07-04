@@ -1,5 +1,7 @@
 from src.ml_pipeline.data_loader import LOSOCVSensorDataLoader
 
+n_folds = 5
+
 WINDOW_LENGTH = 5
 SLIDING_LENGTH = WINDOW_LENGTH  # this will create no overlap between segments i.e. no augmented / synthetic data.
 SPLIT_LENGTH = WINDOW_LENGTH  # this will not sub-split the data
@@ -20,7 +22,8 @@ losocv_loader = LOSOCVSensorDataLoader(WRIST_FE, WRIST_CONFIG, **dataloader_para
 
 # Prepare the datasets
 DATASETS_PATH = losocv_loader.prepare_datasets(
-    f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s"
+    f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s",
+    n_folds=n_folds,
 )
 
 
@@ -42,13 +45,15 @@ losocv_loader = LOSOCVSensorDataLoader(WRIST_FE, WRIST_CONFIG, **dataloader_para
 
 # Prepare the datasets
 DATASETS_PATH = losocv_loader.prepare_datasets(
-    f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s"
+    f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s",
+    n_folds=n_folds,
 )
 
 
 
-
 from src.ml_pipeline.data_loader import LOSOCVSensorDataLoader
+
+n_folds = 5
 
 WINDOW_LENGTH = 5
 SLIDING_LENGTH = WINDOW_LENGTH  # this will create no overlap between segments i.e. no augmented / synthetic data.
@@ -70,7 +75,8 @@ losocv_loader = LOSOCVSensorDataLoader(WRIST_FE, WRIST_CONFIG, **dataloader_para
 
 # Prepare the datasets
 DATASETS_PATH = losocv_loader.prepare_datasets(
-    f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s"
+    f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s",
+    n_folds=n_folds,
 )
 
 
@@ -92,13 +98,15 @@ losocv_loader = LOSOCVSensorDataLoader(WRIST_FE, WRIST_CONFIG, **dataloader_para
 
 # Prepare the datasets
 DATASETS_PATH = losocv_loader.prepare_datasets(
-    f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s"
+    f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s",
+    n_folds=n_folds,
 )
 
 
 
-
 from src.ml_pipeline.data_loader import LOSOCVSensorDataLoader
+
+n_folds = 5
 
 WINDOW_LENGTH = 5
 SLIDING_LENGTH = WINDOW_LENGTH  # this will create no overlap between segments i.e. no augmented / synthetic data.
@@ -120,7 +128,8 @@ losocv_loader = LOSOCVSensorDataLoader(WRIST_FE, WRIST_CONFIG, **dataloader_para
 
 # Prepare the datasets
 DATASETS_PATH = losocv_loader.prepare_datasets(
-    f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s"
+    f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s",
+    n_folds=n_folds,
 )
 
 
@@ -142,5 +151,6 @@ losocv_loader = LOSOCVSensorDataLoader(WRIST_FE, WRIST_CONFIG, **dataloader_para
 
 # Prepare the datasets
 DATASETS_PATH = losocv_loader.prepare_datasets(
-    f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s"
+    f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s",
+    n_folds=n_folds,
 )
