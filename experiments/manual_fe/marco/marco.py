@@ -83,15 +83,18 @@ NON_BATCHED_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{NON_BATCHED_WINDOW
 NON_BATCHED_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
 
 HYPERPARAMETER_GRID = {
-    "embed_dim": [16],
+    # "embed_dim": [16],
     # "hidden_dim": [16, 32, 62, 64, 128, 256],
     # "n_head_gen": [2, 4, 8],
-    # "dropout": [0.3],
+    "dropout": [0.3, 0.5, 0.7],
+    "attention_dropout": [0.3, 0.5, 0.7],
     # "learning_rate": [0.0001, 0.001, 0.01],
-    # "batch_size": [8, 16, 32]
+    # "batch_size": [8, 16, 32],
     # "epochs": [5, 7, 10],
     # "fine_tune_epochs": [1, 3, 5],
     # "fine_tune_learning_rate": [0.001, 0.0001, 0.00005],
+    "early_stopping_patience": [5,8,10,20],
+    "early_stopping_metric": ["loss", "accuracy"],
 }
 
 # Grid Search Parameters
@@ -214,9 +217,6 @@ for c, current_config in enumerate(hyperparams()):
         results.append(result)
 
         del trainer  # delete the trainer object to finish wandb
-
-        # if idx == 0:
-        #     break
 
     # save the results to pkl
     save_path = get_values(current_config, "save_path")
