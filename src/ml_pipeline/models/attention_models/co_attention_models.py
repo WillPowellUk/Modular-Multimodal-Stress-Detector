@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 from src.ml_pipeline.models.attention_models.attention_mechansims import *
 from src.ml_pipeline.models.late_fusion_models.soft_voting import *
-
+from src.ml_pipeline.models.late_fusion_models.hard_voting import *
+from src.ml_pipeline.models.late_fusion_models.kalman import * 
 
 class ModularBCSA(nn.Module):
     NAME = "ModularBCSA"
@@ -132,6 +133,7 @@ class MARCONet(nn.Module):
     NAME = "MARCONet"
 
     def __init__(self, **kwargs):
+        super(MARCONet, self).__init__()
         required_params = [
             "input_dims",
             "embed_dim",
@@ -160,7 +162,6 @@ class MARCONet(nn.Module):
         self.batch_size = kwargs["batch_size"]
         self.token_length = kwargs["token_length"]
 
-        super(MARCONet, self).__init__()
 
         self.modalities = nn.ModuleDict()
         self.cross_attention_blocks = nn.ModuleDict()
@@ -242,5 +243,135 @@ class MARCONet(nn.Module):
             0, 2, 1
         )  # change to shape (batch_size, embed_dim, n_branches)
         final_output = net["predictor"](concatenated_features)
+
+        return final_output
+
+
+class MOSCAN(nn.Module):
+    NAME = "MOSCAN"
+    def __init__(self, **kwargs):
+        super(MOSCAN, self).__init__()
+        required_params = [
+            "input_dims",
+            "embed_dim",
+            "hidden_dim",
+            "output_dim",
+            "n_head_gen",
+            "dropout",
+            "attention_dropout",
+            "n_bcsa",
+            "batch_size",
+            "token_length",
+            "active_sensors"
+            "predictor",
+        ]
+
+        for param in required_params:
+            if param not in kwargs:
+                raise ValueError(f"Missing required parameter: {param}")
+
+        self.input_dims = kwargs["input_dims"]
+        self.embed_dim = kwargs["embed_dim"]
+        self.hidden_dim = kwargs["hidden_dim"]
+        self.output_dim = kwargs["output_dim"]
+        self.n_head = kwargs["n_head_gen"]
+        self.dropout = kwargs["dropout"]
+        self.attention_dropout = kwargs["attention_dropout"]
+        self.n_bcsa = kwargs["n_bcsa"]
+        self.batch_size = kwargs["batch_size"]
+        self.token_length = kwargs["token_length"]
+        self.active_sensors = kwargs["active_sensors"]
+        predictor = kwargs["predictor"]
+
+        self.modalities = nn.ModuleDict()
+        self.cross_attention_blocks = nn.ModuleDict()
+        self.self_attention_blocks = nn.ModuleDict()
+
+        for modality in self.input_dims:
+            modality_net = nn.ModuleDict(
+                {
+                    "embedding": nn.Linear(self.input_dims[modality], self.embed_dim),
+                    "pos_enc": PositionalEncoding(self.embed_dim),
+                    "predictor": ModularAvgPool(
+                        self.embed_dim,
+                        self.hidden_dim,
+                        self.output_dim,
+                        self.dropout,
+                    ),
+                }
+            )
+            self.modalities[modality] = modality_net
+            self.self_attention_blocks[modality] = nn.ModuleList(
+                [
+                    CachedSlidingSelfAttentionEncoder(
+                        self.embed_dim, self.hidden_dim, self.n_head, self.dropout, self.attention_dropout
+                    )
+                    for _ in range(self.n_bcsa)
+                ]
+            )
+
+        modalities = list(self.input_dims.keys())
+        for i, modality1 in enumerate(modalities):
+            for j, modality2 in enumerate(modalities):
+                if i != j:
+                    self.cross_attention_blocks[f"{modality1}_to_{modality2}"] = (
+                        nn.ModuleList(
+                            [
+                                CachedSlidingCrossAttentionEncoder(
+                                    d_model=self.embed_dim,
+                                    ffn_hidden=self.hidden_dim,
+                                    n_head=self.n_head,
+                                    ffn_dropout=self.dropout,
+                                    attention_dropout=self.attention_dropout,
+                                )
+                                for _ in range(self.n_bcsa)
+                            ]
+                        )
+                    )
+        match predictor:
+            case "kalman":
+                self.predictor = KalmanFilterPredictor(self.embed_dim, self.embed_dim * len(self.input_dims))
+            case "avg_pool":
+                self.predictor = ModularAvgPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout)
+            case "weighted_avg_pool":
+                self.predictor = ModularWeightedAvgPool(
+                    self.embed_dim, self.hidden_dim, self.output_dim, self.dropout, self.active_sensors
+                )
+            case _:
+                raise ValueError(f"Predictor {predictor} not supported")
+
+    def forward(self, inputs):
+        # Step 1: Embedding and Positional Encoding for each modality
+        modality_features = {}
+        for modality, net in self.modalities.items():
+            # For modularity: only process the modality if it is present in the input
+            if modality in inputs:
+                x = inputs[modality]  # Input for the modality
+                x = x.permute(
+                    0, 2, 1
+                )  # Change shape to [batch_size, seq_len, features] from [batch_size, features, seq_len]
+                x = net["embedding"](x)
+                x = net["pos_enc"](x)
+                modality_features[modality] = x
+
+        # Step 2: Bidirectional Cross-Attention and Self-Attention Blocks
+        for i in range(self.n_bcsa):
+            # Cross-Attention
+            for modality1 in modality_features:
+                for modality2 in modality_features:
+                    if modality1 != modality2:
+                        ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
+                        modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], self.token_length, use_cache=self.token_length>1)
+            # Self Attention
+            for modality, net in self.modalities.items():
+                sa_block = self.self_attention_blocks[modality][i]
+                modality_features[modality] = sa_block(
+                    modality_features[modality],
+                    self.token_length,
+                    use_cache=self.token_length > 1,
+                )
+
+        # Step 3: Predictor to merge branches and perform late fusion to produce a classification
+        final_output = self.predictor(modality_features)
 
         return final_output

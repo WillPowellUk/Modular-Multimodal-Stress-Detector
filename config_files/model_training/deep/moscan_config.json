@@ -1,0 +1,31 @@
+{
+    "NAME": "MOSCAN",
+    "predictor": "weighted_avg_pool",
+    "num_classes": 2,
+    "token_length": 6,
+    "n_bcsa": 1,
+    "embed_dim": 16,
+    "hidden_dim": 32,
+    "output_dim": 2,
+    "n_head_gen": 4,
+    "n_head_per": 1,
+    "dropout": 0.3,
+    "attention_dropout": 0.5,
+    "learning_rate": 0.001,
+    "epochs": 7,
+    "batch_size": 32,
+    "loss_fns": {
+        "bce": false,
+        "focal": true
+    },
+    "early_stopping": true,
+    "early_stopping_patience": 8,
+    "early_stopping_metric": "accuracy",
+    "fine_tune": false,
+    "fine_tune_epochs": 10,
+    "fine_tune_learning_rate": 0.0001,
+    "fine_tune_loss_fns": {
+        "bce": true,
+        "focal": false
+    }
+}
