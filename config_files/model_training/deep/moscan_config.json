@@ -19,7 +19,7 @@
         "focal": true
     },
     "early_stopping": true,
-    "early_stopping_patience": 20,
+    "early_stopping_patience": 30,
     "early_stopping_metric": "accuracy",
     "fine_tune": false,
     "fine_tune_epochs": 10,
