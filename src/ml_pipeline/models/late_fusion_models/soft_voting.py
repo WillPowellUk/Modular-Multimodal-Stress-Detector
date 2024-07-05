@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 class OG(nn.Module):
     def __init__(self, embed_dim, hidden_dim, output_dim, dropout):
-        super(ModularAvgPool, self).__init__()
+        super(OG, self).__init__()
         self.embed_dim = embed_dim
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
