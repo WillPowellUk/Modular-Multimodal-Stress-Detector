@@ -326,10 +326,16 @@ class MOSCAN(nn.Module):
             case "kalman":
                 self.predictor = KalmanFilterPredictor(self.embed_dim, self.embed_dim * len(self.input_dims))
             case "avg_pool":
-                self.predictor = ModularAvgPool(self.embed_dim, self.output_dim, self.dropout)
+                self.predictor = ModularPool(self.embed_dim, self.output_dim, self.dropout, pool_type='avg')
+            case "max_pool":
+                self.predictor = ModularPool(self.embed_dim, self.output_dim, self.dropout, pool_type='max')
             case "weighted_avg_pool":
-                self.predictor = ModularWeightedAvgPool(
-                    self.embed_dim, self.output_dim, self.dropout, self.active_sensors
+                self.predictor = ModularWeightedPool(
+                    self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='avg'
+                )
+            case "weighted_max_pool":
+                self.predictor = ModularWeightedPool(
+                    self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='max'
                 )
             case "og":
                 self.predictor = OG(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout)

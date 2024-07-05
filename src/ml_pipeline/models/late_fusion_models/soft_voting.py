@@ -45,15 +45,21 @@ class OG(nn.Module):
 
         return x
 
-class ModularAvgPool(nn.Module):
-    def __init__(self, embed_dim, output_dim, dropout):
-        super(ModularAvgPool, self).__init__()
+class ModularPool(nn.Module):
+    def __init__(self, embed_dim, output_dim, dropout, pooling_type='avg'):
+        super(ModularPool, self).__init__()
         self.embed_dim = embed_dim
         self.output_dim = output_dim
         self.dropout = dropout
+        self.pooling_type = pooling_type
 
-        # Define the average pooling layer
-        self.avg_pool = nn.AdaptiveAvgPool1d(1)
+        # Define the pooling layer based on pooling_type
+        if pooling_type == 'avg':
+            self.pool = nn.AdaptiveAvgPool1d(1)
+        elif pooling_type == 'max':
+            self.pool = nn.AdaptiveMaxPool1d(1)
+        else:
+            raise ValueError("pooling_type must be either 'avg' or 'max'")
 
         # Define the linear layer
         self.linear = nn.Linear(embed_dim, output_dim)
@@ -71,10 +77,10 @@ class ModularAvgPool(nn.Module):
             # Permute to shape (batch_size, embed_dim, seq_len)
             branch = branch.permute(0, 2, 1)
             
-            # Apply average pooling
-            branch = self.avg_pool(branch)
+            # Apply pooling
+            branch = self.pool(branch)
             
-            # Remove the last dimension (which is 1 after avg pooling)
+            # Remove the last dimension (which is 1 after pooling)
             branch = branch.squeeze(-1)
             
             # Apply linear layer
@@ -99,16 +105,21 @@ class ModularAvgPool(nn.Module):
 
         return weighted_avg_output
 
-
-class ModularWeightedAvgPool(nn.Module):
-    def __init__(self, embed_dim, output_dim, dropout, branch_keys):
-        super(ModularWeightedAvgPool, self).__init__()
+class ModularWeightedPool(nn.Module):
+    def __init__(self, embed_dim, output_dim, dropout, branch_keys, pool_type='avg'):
+        super(ModularWeightedPool, self).__init__()
         self.embed_dim = embed_dim
         self.output_dim = output_dim
         self.dropout = dropout
+        self.pool_type = pool_type
 
-        # Define the average pooling layer
-        self.avg_pool = nn.AdaptiveAvgPool1d(1)
+        # Define the pooling layer
+        if pool_type == 'avg':
+            self.pool = nn.AdaptiveAvgPool1d(1)
+        elif pool_type == 'max':
+            self.pool = nn.AdaptiveMaxPool1d(1)
+        else:
+            raise ValueError("pool_type must be either 'avg' or 'max'")
 
         # Define the linear layer for branch processing
         self.branch_linear = nn.Linear(embed_dim, output_dim)
@@ -129,10 +140,10 @@ class ModularWeightedAvgPool(nn.Module):
             # Permute to shape (batch_size, embed_dim, seq_len)
             branch = branch.permute(0, 2, 1)
 
-            # Apply average pooling
-            branch = self.avg_pool(branch)
+            # Apply pooling
+            branch = self.pool(branch)
 
-            # Remove the last dimension (which is 1 after avg pooling)
+            # Remove the last dimension (which is 1 after pooling)
             branch = branch.squeeze(-1)
 
             # Apply linear layer
