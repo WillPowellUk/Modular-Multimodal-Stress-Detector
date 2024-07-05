@@ -113,13 +113,6 @@ class PyTorchTrainer:
                 accuracy = epoch_correct / epoch_total if epoch_total > 0 else 0
                 progress_bar.set_postfix(accuracy=accuracy, loss=loss.item())
 
-                if use_wandb:
-                    wandb.log({
-                        "Train Loss": train_loss,
-                        "Train Accuracy": train_acc,
-                        "Step": global_step,
-                    })
-
                 # Log intermediate training metrics and perform early stopping check
                 if use_wandb and step % (len(train_loader) // 10) == 0:
                     if step % val_freq_per_epoch == 0:
