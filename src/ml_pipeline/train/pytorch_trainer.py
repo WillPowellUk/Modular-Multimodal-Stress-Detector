@@ -43,7 +43,7 @@ class PyTorchTrainer:
         )
         self.model = model_copy
 
-    def train(self, train_loader, val_loader, loss_func, ckpt_path=None, use_wandb=False, name_wandb=None, fine_tune=False, val_freq_per_epoch=10):
+    def train(self, train_loader, val_loader, loss_func, ckpt_path=None, use_wandb=False, name_wandb=None, use_local_wandb=False, fine_tune=False, val_freq_per_epoch=10):
         # Load model from checkpoint if provided
         if ckpt_path is not None:
             self.model.load_state_dict(torch.load(ckpt_path))
@@ -59,13 +59,15 @@ class PyTorchTrainer:
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
 
         if use_wandb:
-            if fine_tune:
-                wandb.init(project="MMSD", resume="allow", name=name_wandb)
+            # self.initialize_wandb(use_local_server=use_local_wandb)
+
+            # if fine_tune:
+            #     wandb.init(project="MMSD", resume="allow", name=name_wandb)
+            # else:
+            if name_wandb is None:
+                wandb.init(project="MMSD", config=self.configs)
             else:
-                if name_wandb is None:
-                    wandb.init(project="MMSD", config=self.configs)
-                else:
-                    wandb.init(project="MMSD", config=self.configs, name=name_wandb)
+                wandb.init(project="MMSD", config=self.configs, name=name_wandb)
             wandb.watch(self.model, log="all", log_freq=5)
 
         # Early stopping initialization
@@ -84,11 +86,15 @@ class PyTorchTrainer:
                 desc=f'Epoch {epoch+1}/{epochs}',
             )
 
-            for step, (batch_x, batch_y) in progress_bar:
+            for step, data in progress_bar:
+                # Reset attention cache if new segment
+                if fine_tune:
+                    batch_x, batch_y, new_segment_flag = data
+                    if new_segment_flag:
+                        self.model.reset_attention_cache()
+                else:
+                    batch_x, batch_y = data
                 inputs = {key: val.to(self.device) for key, val in batch_x.items()}
-                if inputs["bvp"].shape[0] != train_loader.batch_size:
-                    print("Batch size mismatch")
-                    continue
                 
                 labels = batch_y.to(self.device)
                 final_output = self.model(inputs)
@@ -107,9 +113,22 @@ class PyTorchTrainer:
                 accuracy = epoch_correct / epoch_total if epoch_total > 0 else 0
                 progress_bar.set_postfix(accuracy=accuracy, loss=loss.item())
 
+                if use_wandb:
+                    wandb.log({
+                        "Train Loss": train_loss,
+                        "Train Accuracy": train_acc,
+                        "Step": global_step,
+                    })
+
                 # Log intermediate training metrics and perform early stopping check
-                if use_wandb and step % (len(train_loader) // val_freq_per_epoch) == 0:
-                    val_metrics = self.validate(val_loader, loss_func)
+                if use_wandb and step % (len(train_loader) // 10) == 0:
+                    if step % val_freq_per_epoch == 0:
+                        val_metrics = self.validate(val_loader, loss_func)
+                        wandb.log({
+                            "Validation Loss": val_metrics[self.model.NAME]["loss"],
+                            "Validation Accuracy": val_metrics[self.model.NAME]["accuracy"],
+                        })
+
                     train_acc = epoch_correct / epoch_total
                     train_loss = epoch_loss / (step + 1)
 
@@ -117,9 +136,7 @@ class PyTorchTrainer:
                     global_step = epoch * len(train_loader) + step
                     wandb.log({
                         "Train Loss": train_loss,
-                        "Validation Loss": val_metrics[self.model.NAME]["loss"],
                         "Train Accuracy": train_acc,
-                        "Validation Accuracy": val_metrics[self.model.NAME]["accuracy"],
                         "Step": global_step,
                     })
 
@@ -348,3 +365,9 @@ class PyTorchTrainer:
             return True
         else:
             return False
+        
+    def initialize_wandb(self, use_local_server):
+        if use_local_server:
+            os.environ['WANDB_BASE_URL'] = 'http://localhost:8081'
+        else:
+            os.environ['WANDB_BASE_URL'] = 'https://api.wandb.ai'

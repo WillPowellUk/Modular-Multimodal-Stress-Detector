@@ -36,7 +36,7 @@ else:
 from src.ml_pipeline.train import PyTorchTrainer
 from src.ml_pipeline.models.attention_models import MOSCAN
 from src.ml_pipeline.losses import LossWrapper
-from src.ml_pipeline.data_loader import LOSOCVSensorDataLoader
+from src.ml_pipeline.data_loader import LOSOCVSensorDataLoader, SeqToSeqDataLoader
 from src.utils import save_var
 from src.ml_pipeline.utils import (
     get_active_key,
@@ -104,7 +104,7 @@ for c, current_config in enumerate(hyperparams()):
         NON_BATCHED_FE, WRIST_CONFIG, **non_batched_dataloader_params
     )
     non_batched_dataloaders, non_batched_input_dims = non_batched_losocv_loader.get_data_loaders(
-        NON_BATCHED_DATASETS_PATH, dataset_type=DATASET_TYPE, seq_to_seq_config=True
+        NON_BATCHED_DATASETS_PATH, dataset_type=DATASET_TYPE
     )
 
     # Set device
@@ -112,9 +112,9 @@ for c, current_config in enumerate(hyperparams()):
     print(f"Using device: {device}")
 
     results = []
-    for idx, (subject_id, val_loader) in enumerate(non_batched_dataloaders.items()):
-        train_loader_non_batched = val_loader["train"]
-        val_loader_non_batched = val_loader["val"]
+    for idx, (subject_id, data_loader) in enumerate(non_batched_dataloaders.items()):
+        train_loader_non_batched = data_loader["train"]
+        val_loader_non_batched = data_loader["val"]
         if DATASET_TYPE == 'losocv':
             print(f"\nSubject: {subject_id}")
             fold = f"subject_{subject_id}"
@@ -125,13 +125,19 @@ for c, current_config in enumerate(hyperparams()):
         print(f"Non-Batched Val Length: {len(val_loader_non_batched.dataset)}")
         print()
 
-            # Load Model Parameters
+        # Load Model Parameters
         model_config = load_json(current_config)
         model_config = {**model_config, }
+
+        # Mix the dataloaders so there are randomised segments whilst ensuring the sequential format is maintained.
+        train_loader_non_batched = SeqToSeqDataLoader(train_loader_non_batched, model_config['fine_tune_sequence_length']) 
 
         # Configure LossWrapper for the model
         loss_wrapper = LossWrapper(model_config["loss_fns"])
 
+        # Load Pre-Trained Model
+        pre_trained_ckpt = PRE_TRAINED_CKPTS[idx]
+        
         # Modify Current Config with 
         model_config = load_json(current_config)
         current_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
@@ -155,13 +161,12 @@ for c, current_config in enumerate(hyperparams()):
         model_config["kalman"] = False
         save_json(model_config, current_config)
 
-        pre_trained_ckpt = PRE_TRAINED_CKPTS[idx]
-        trainer.model.token_length = get_values(current_config, "token_length")
-        if DATASET_TYPE == 'losocv':
-            result = trainer.validate(val_loader_non_batched, loss_wrapper, ckpt_path=pre_trained_ckpt, subject_id=subject_id, pre_trained_run=True, check_overlap=True)
-        else: 
-            result = trainer.validate(val_loader_non_batched, loss_wrapper, ckpt_path=pre_trained_ckpt, subject_id=idx, pre_trained_run=True, check_overlap=True)
-        print(result)
+        # trainer.model.token_length = get_values(current_config, "token_length")
+        # if DATASET_TYPE == 'losocv':
+        #     result = trainer.validate(val_loader_non_batched, loss_wrapper, ckpt_path=pre_trained_ckpt, subject_id=subject_id, pre_trained_run=True, check_overlap=True)
+        # else: 
+        #     result = trainer.validate(val_loader_non_batched, loss_wrapper, ckpt_path=pre_trained_ckpt, subject_id=idx, pre_trained_run=True, check_overlap=True)
+        # print(result)
         
         # Fine Tune on non-batched
         model_config["kalman"] = False
@@ -171,7 +176,7 @@ for c, current_config in enumerate(hyperparams()):
         fine_tune_loss_wrapper = LossWrapper(model_config["fine_tune_loss_fns"])
 
         trainer.model.token_length = get_values(current_config, "token_length")
-        fine_tuned_model_ckpt = trainer.train(train_loader_non_batched, val_loader_non_batched, fine_tune_loss_wrapper, ckpt_path=pre_trained_ckpt, use_wandb=True, name_wandb=f"{model.NAME}_{fold}", fine_tune=True, val_freq_per_epoch=1)
+        fine_tuned_model_ckpt = trainer.train(train_loader_non_batched, val_loader_non_batched, fine_tune_loss_wrapper, ckpt_path=pre_trained_ckpt, use_wandb=True, name_wandb=f"{model.NAME}_{fold}_fine-tune", use_local_wandb=True, fine_tune=True, val_freq_per_epoch=2)
         print(f"Fine Tuned Model checkpoint saved to: {fine_tuned_model_ckpt}\n")
 
         # Validate model on non-batched data

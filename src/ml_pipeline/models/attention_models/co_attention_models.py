@@ -389,3 +389,11 @@ class MOSCAN(nn.Module):
             classification = self.kalman_filter.forward(classification)
 
         return classification
+
+    def reset_attention_cache(self):
+        for modality in self.self_attention_blocks:
+            for block in self.self_attention_blocks[modality]:
+                block.clear_cache()
+        for modality in self.cross_attention_blocks:
+            for block in self.cross_attention_blocks[modality]:
+                block.clear_cache()

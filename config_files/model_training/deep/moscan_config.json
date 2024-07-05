@@ -23,6 +23,7 @@
     "early_stopping_patience": 30,
     "early_stopping_metric": "accuracy",
     "fine_tune": false,
+    "fine_tune_sequence_length": 32,
     "fine_tune_epochs": 10,
     "fine_tune_learning_rate": 0.0001,
     "fine_tune_loss_fns": {
