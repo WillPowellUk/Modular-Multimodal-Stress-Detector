@@ -86,15 +86,16 @@ HYPERPARAMETER_GRID = {
     # "embed_dim": [16],
     # "hidden_dim": [16, 32, 62, 64, 128, 256],
     # "n_head_gen": [2, 4, 8],
-    "dropout": [0.3, 0.5, 0.7],
-    "attention_dropout": [0.3, 0.5, 0.7],
+    # "dropout": [0.3, 0.5, 0.7],
+    # "attention_dropout": [0.3, 0.5, 0.7],
     # "learning_rate": [0.0001, 0.001, 0.01],
     # "batch_size": [8, 16, 32],
     # "epochs": [5, 7, 10],
     # "fine_tune_epochs": [1, 3, 5],
     # "fine_tune_learning_rate": [0.001, 0.0001, 0.00005],
-    "early_stopping_patience": [5,8,10,20],
-    "early_stopping_metric": ["loss", "accuracy"],
+    # "early_stopping_patience": [5,8,10,20],
+    # "early_stopping_metric": ["loss", "accuracy"],
+    "predictor": ['weighted_avg_pool', "avg_pool", "og"]
 }
 
 # Grid Search Parameters

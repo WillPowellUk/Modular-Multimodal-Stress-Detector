@@ -12,14 +12,14 @@
     "dropout": 0.3,
     "attention_dropout": 0.5,
     "learning_rate": 0.001,
-    "epochs": 7,
+    "epochs": 10,
     "batch_size": 32,
     "loss_fns": {
         "bce": false,
         "focal": true
     },
     "early_stopping": true,
-    "early_stopping_patience": 8,
+    "early_stopping_patience": 20,
     "early_stopping_metric": "accuracy",
     "fine_tune": false,
     "fine_tune_epochs": 10,

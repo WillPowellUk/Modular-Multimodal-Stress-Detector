@@ -262,7 +262,7 @@ class MOSCAN(nn.Module):
             "n_bcsa",
             "batch_size",
             "token_length",
-            "active_sensors"
+            "active_sensors",
             "predictor",
         ]
 
@@ -291,13 +291,7 @@ class MOSCAN(nn.Module):
             modality_net = nn.ModuleDict(
                 {
                     "embedding": nn.Linear(self.input_dims[modality], self.embed_dim),
-                    "pos_enc": PositionalEncoding(self.embed_dim),
-                    "predictor": ModularAvgPool(
-                        self.embed_dim,
-                        self.hidden_dim,
-                        self.output_dim,
-                        self.dropout,
-                    ),
+                    "pos_enc": PositionalEncoding(self.embed_dim)
                 }
             )
             self.modalities[modality] = modality_net
@@ -332,11 +326,13 @@ class MOSCAN(nn.Module):
             case "kalman":
                 self.predictor = KalmanFilterPredictor(self.embed_dim, self.embed_dim * len(self.input_dims))
             case "avg_pool":
-                self.predictor = ModularAvgPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout)
+                self.predictor = ModularAvgPool(self.embed_dim, self.output_dim, self.dropout)
             case "weighted_avg_pool":
                 self.predictor = ModularWeightedAvgPool(
-                    self.embed_dim, self.hidden_dim, self.output_dim, self.dropout, self.active_sensors
+                    self.embed_dim, self.output_dim, self.dropout, self.active_sensors
                 )
+            case "og":
+                self.predictor = OG(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout)
             case _:
                 raise ValueError(f"Predictor {predictor} not supported")
 
