@@ -17,12 +17,12 @@ from src.ml_pipeline.utils import print_model_summary
 
 
 class PyTorchTrainer:
-    def __init__(self, model, config_path, device):
-        self.model = model.to(device)
-        self.device = device
+    def __init__(self, model, config_path):
         self.configs = self.load_config(config_path)
         self.num_classes = self.configs["num_classes"]
         self.save_path = self.configs["save_path"]
+        self.device = self.configs["device"]
+        self.model = model.to(self.device)
 
     def __del__(self):
         if wandb.run is not None:
@@ -39,11 +39,11 @@ class PyTorchTrainer:
             self.model,
             self.model.input_dims,
             batch_size=train_loader.batch_size,
-            device=self.device.type,
+            device=self.device,
         )
         self.model = model_copy
 
-    def train(self, train_loader, val_loader, loss_func, ckpt_path=None, use_wandb=False, name_wandb=None, fine_tune=False):
+    def train(self, train_loader, val_loader, loss_func, ckpt_path=None, use_wandb=False, name_wandb=None, fine_tune=False, val_freq_per_epoch=10):
         # Load model from checkpoint if provided
         if ckpt_path is not None:
             self.model.load_state_dict(torch.load(ckpt_path))
@@ -108,7 +108,7 @@ class PyTorchTrainer:
                 progress_bar.set_postfix(accuracy=accuracy, loss=loss.item())
 
                 # Log intermediate training metrics and perform early stopping check
-                if use_wandb and step % (len(train_loader) // 10) == 0:
+                if use_wandb and step % (len(train_loader) // val_freq_per_epoch) == 0:
                     val_metrics = self.validate(val_loader, loss_func)
                     train_acc = epoch_correct / epoch_total
                     train_loss = epoch_loss / (step + 1)
@@ -187,11 +187,11 @@ class PyTorchTrainer:
                 labels = batch_y.to(self.device)
 
                 # Measure inference time for each batch
-                if self.device.type == "cuda":
+                if self.device == "cuda":
                     torch.cuda.synchronize()  # Synchronize CUDA operations before starting the timer
                 start_time = time.time()
                 final_output = self.model(inputs)
-                if self.device.type == "cuda":
+                if self.device == "cuda":
                     torch.cuda.synchronize()  # Synchronize CUDA operations after model inference
                 end_time = time.time()
 
@@ -310,7 +310,7 @@ class PyTorchTrainer:
                     break
                 inputs = {key: val.to(self.device) for key, val in batch_x.items()}
                 _ = self.model(inputs)
-                if self.device.type == "cuda":
+                if self.device == "cuda":
                     torch.cuda.synchronize()
 
             # Measure inference time

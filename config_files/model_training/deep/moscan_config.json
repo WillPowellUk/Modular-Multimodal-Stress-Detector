@@ -18,6 +18,7 @@
         "bce": false,
         "focal": true
     },
+    "kalman": false,
     "early_stopping": true,
     "early_stopping_patience": 30,
     "early_stopping_metric": "accuracy",

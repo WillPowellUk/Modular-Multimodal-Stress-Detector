@@ -264,6 +264,7 @@ class MOSCAN(nn.Module):
             "token_length",
             "active_sensors",
             "predictor",
+            "device"
         ]
 
         for param in required_params:
@@ -282,6 +283,7 @@ class MOSCAN(nn.Module):
         self.token_length = kwargs["token_length"]
         self.active_sensors = kwargs["active_sensors"]
         predictor = kwargs["predictor"]
+        self.device = kwargs["device"]
         self.kalman = kwargs.get("kalman", False)
 
         self.modalities = nn.ModuleDict()
@@ -346,7 +348,7 @@ class MOSCAN(nn.Module):
                 raise ValueError(f"Predictor {predictor} not supported")
         
         if self.kalman:
-            pass
+            self.kalman_filter = KalmanFilter(self.output_dim, device=self.device)
 
     def forward(self, inputs):
         # Step 1: Embedding and Positional Encoding for each modality
@@ -379,10 +381,11 @@ class MOSCAN(nn.Module):
                     use_cache=self.token_length > 1,
                 )
 
-        # Step 3: Predictor to merge branches and perform late fusion to produce a classification
-        final_output = self.predictor(modality_features)
+        # Step 3: Predictor to merge branches and perform late fusion to produce an overall classification or a per branch classification 
+        classification = self.predictor(modality_features)
 
-        # Step 4: Optional Kalman Filter
-        # if self.kalman:
+        # Step 4: Optional Kalman Filter expects shape (batch_size, num_branches, output_dim)
+        if self.kalman:
+            classification = self.kalman_filter.forward(classification)
 
-        return final_output
+        return classification
