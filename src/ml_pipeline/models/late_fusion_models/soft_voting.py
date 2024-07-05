@@ -23,10 +23,14 @@ class OG(nn.Module):
         self.dropout_layer = nn.Dropout(dropout)
 
     def forward(self, x):
-        # Expects the shape (batch_size, embed_dim, n_branches)
+        # Merge branches into one tensor
+        concatenated_features = torch.cat(list(x.values()), dim=1)
+        concatenated_features = concatenated_features.permute(
+            0, 2, 1
+        )  # change to shape (batch_size, embed_dim, n_branches)
 
         # Apply average pooling
-        x = self.avg_pool(x)
+        x = self.avg_pool(concatenated_features)
 
         # Remove the last dimension (which is 1 after avg pooling)
         x = x.squeeze(-1)
@@ -46,29 +50,27 @@ class OG(nn.Module):
         return x
 
 class ModularPool(nn.Module):
-    def __init__(self, embed_dim, output_dim, dropout, pooling_type='avg'):
+    def __init__(self, embed_dim, output_dim, dropout, pool_type='avg', return_branch_outputs=False):
         super(ModularPool, self).__init__()
         self.embed_dim = embed_dim
         self.output_dim = output_dim
         self.dropout = dropout
-        self.pooling_type = pooling_type
+        self.pool_type = pool_type
+        self.return_branch_outputs = return_branch_outputs
 
-        # Define the pooling layer based on pooling_type
-        if pooling_type == 'avg':
+        # Define the pooling layer based on pool_type
+        if pool_type == 'avg':
             self.pool = nn.AdaptiveAvgPool1d(1)
-        elif pooling_type == 'max':
+        elif pool_type == 'max':
             self.pool = nn.AdaptiveMaxPool1d(1)
         else:
-            raise ValueError("pooling_type must be either 'avg' or 'max'")
+            raise ValueError("pool_type must be either 'avg' or 'max'")
 
         # Define the linear layer
         self.linear = nn.Linear(embed_dim, output_dim)
 
         # Define dropout layer
         self.dropout_layer = nn.Dropout(dropout)
-
-        # Define a parameter for the weights
-        self.weight_scale = nn.Parameter(torch.ones(1, dtype=torch.float32))
 
     def forward(self, x):
         branch_outputs = []
@@ -94,16 +96,16 @@ class ModularPool(nn.Module):
             
             branch_outputs.append(branch)
 
-        # Stack branch outputs and compute weights
+        # Stack branch outputs and compute the average
         branch_outputs = torch.stack(branch_outputs, dim=1)  # Shape: (batch_size, num_branches, output_dim)
+
+        if self.return_branch_outputs:
+            return branch_outputs
         
-        # Compute weights for each branch
-        weights = F.softmax(self.weight_scale.expand(branch_outputs.size(1)), dim=0)  # Shape: (num_branches,)
+        # Compute the average of branch outputs
+        avg_output = torch.mean(branch_outputs, dim=1)  # Shape: (batch_size, output_dim)
 
-        # Weighted average of branch outputs
-        weighted_avg_output = torch.sum(branch_outputs * weights.unsqueeze(0).unsqueeze(2), dim=1)  # Shape: (batch_size, output_dim)
-
-        return weighted_avg_output
+        return avg_output
 
 class ModularWeightedPool(nn.Module):
     def __init__(self, embed_dim, output_dim, dropout, branch_keys, pool_type='avg'):

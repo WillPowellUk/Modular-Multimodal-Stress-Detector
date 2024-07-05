@@ -95,7 +95,8 @@ HYPERPARAMETER_GRID = {
     # "fine_tune_learning_rate": [0.001, 0.0001, 0.00005],
     # "early_stopping_patience": [5,8,10,20],
     # "early_stopping_metric": ["loss", "accuracy"],
-    "predictor": ['weighted_avg_pool', "avg_pool", "og"]
+    "predictor": ["avg_pool"], # ['weighted_avg_pool', "avg_pool", "og"], 
+    "kalman": [True]
 }
 
 # Grid Search Parameters

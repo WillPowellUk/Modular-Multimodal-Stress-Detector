@@ -172,7 +172,7 @@ class MARCONet(nn.Module):
                 {
                     "embedding": nn.Linear(self.input_dims[modality], self.embed_dim),
                     "pos_enc": PositionalEncoding(self.embed_dim),
-                    "predictor": ModularAvgPool(
+                    "predictor": OG(
                         self.embed_dim,
                         self.hidden_dim,
                         self.output_dim,
@@ -282,6 +282,7 @@ class MOSCAN(nn.Module):
         self.token_length = kwargs["token_length"]
         self.active_sensors = kwargs["active_sensors"]
         predictor = kwargs["predictor"]
+        self.kalman = kwargs.get("kalman", False)
 
         self.modalities = nn.ModuleDict()
         self.cross_attention_blocks = nn.ModuleDict()
@@ -323,12 +324,10 @@ class MOSCAN(nn.Module):
                         )
                     )
         match predictor:
-            case "kalman":
-                self.predictor = KalmanFilterPredictor(self.embed_dim, self.embed_dim * len(self.input_dims))
             case "avg_pool":
-                self.predictor = ModularPool(self.embed_dim, self.output_dim, self.dropout, pool_type='avg')
+                self.predictor = ModularPool(self.embed_dim, self.output_dim, self.dropout, pool_type='avg', return_branch_outputs=self.kalman)
             case "max_pool":
-                self.predictor = ModularPool(self.embed_dim, self.output_dim, self.dropout, pool_type='max')
+                self.predictor = ModularPool(self.embed_dim, self.output_dim, self.dropout, pool_type='max', return_branch_outputs=self.kalman)
             case "weighted_avg_pool":
                 self.predictor = ModularWeightedPool(
                     self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='avg'
@@ -337,10 +336,17 @@ class MOSCAN(nn.Module):
                 self.predictor = ModularWeightedPool(
                     self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='max'
                 )
+            case "hard_voting":
+                self.predictor = ModularHardVoting(
+                    self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='avg'
+                )
             case "og":
                 self.predictor = OG(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout)
             case _:
                 raise ValueError(f"Predictor {predictor} not supported")
+        
+        if self.kalman:
+            pass
 
     def forward(self, inputs):
         # Step 1: Embedding and Positional Encoding for each modality
@@ -375,5 +381,8 @@ class MOSCAN(nn.Module):
 
         # Step 3: Predictor to merge branches and perform late fusion to produce a classification
         final_output = self.predictor(modality_features)
+
+        # Step 4: Optional Kalman Filter
+        # if self.kalman:
 
         return final_output
