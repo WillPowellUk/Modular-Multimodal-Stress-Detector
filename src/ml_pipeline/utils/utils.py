@@ -251,6 +251,15 @@ def plot_attention(
     plt.savefig("attention_weights.png", dpi=300, format="png", bbox_inches="tight")
 
 
+def create_temp_file(config):
+    # Create a temporary file and save the modified configuration
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
+    with open(temp_file.name, "w") as f:
+        json.dump(config, f, indent=4)
+
+    # Return the path of the temporary file
+    return temp_file.name
+
 class HyperParamsIterator:
     def __init__(self, json_path, hyperparameter_grid):
         self.json_path = json_path
@@ -270,13 +279,8 @@ class HyperParamsIterator:
             for key, value in zip(self.grid_keys, combination):
                 config[key] = value
 
-            # Create a temporary file and save the modified configuration
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
-            with open(temp_file.name, "w") as f:
-                json.dump(config, f, indent=4)
-
-            # Store the path of the temporary file
-            temp_file_path = temp_file.name
+            # Create a temporary file using the create_temp_file function
+            temp_file_path = create_temp_file(config)
             self.temp_files.append(temp_file_path)
 
             # Clean up previous temporary file

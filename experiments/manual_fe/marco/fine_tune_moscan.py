@@ -48,8 +48,8 @@ from src.ml_pipeline.utils import (
     HyperParamsIterator,
 )
 
-# PRE_TRAINED_CKPTS = ["src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/5s_5s_5s/generalized/2024_07_05_13_15_50/fold_0/checkpoint_final.pth"]
-PRE_TRAINED_CKPTS = ["src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/checkpoint_final.pth"]
+PRE_TRAINED_CKPTS = ["src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/5s_5s_5s/generalized/2024_07_05_13_15_50/fold_0/checkpoint_final.pth"]
+# PRE_TRAINED_CKPTS = ["src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/checkpoint_final.pth"]
 
 # CONFIG file for the dataset
 WRIST_CONFIG = "config_files/dataset/wesad_wrist_bvp_w_eda_configuration.json"
@@ -82,12 +82,11 @@ HYPERPARAMETER_GRID = {
     # "learning_rate": [0.0001, 0.001, 0.01],
     # "batch_size": [8, 16, 32],
     # "epochs": [5, 7, 10],
-    "fine_tune_epochs": [1, 3, 5, 10, 20],
-    "fine_tune_learning_rate": [0.0005, 0.0001, 0.00005],
+    # "fine_tune_epochs": [1, 3, 5, 10, 20],
+    # "fine_tune_learning_rate": [0.0005, 0.0001, 0.00005],
     # "early_stopping_patience": [5,8,10,20],
     # "early_stopping_metric": ["loss", "accuracy"],
     "predictor": ["avg_pool"], # ['weighted_avg_pool', "avg_pool", "og"], 
-    "kalman": [True]
 }
 
 # Grid Search Parameters
@@ -128,7 +127,6 @@ for c, current_config in enumerate(hyperparams()):
 
         # Load Model Parameters
         model_config = load_json(current_config)
-        model_config = {**model_config, }
 
         # Mix the dataloaders so there are randomised segments whilst ensuring the sequential format is maintained.
         train_loader_non_batched = SeqToSeqDataLoader(train_loader_non_batched, model_config['fine_tune_sequence_length']) 

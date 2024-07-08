@@ -1,6 +1,6 @@
 {
     "NAME": "MOSCAN",
-    "predictor": "weighted_avg_pool",
+    "predictor": "avg_pool",
     "num_classes": 2,
     "token_length": 6,
     "n_bcsa": 1,
@@ -25,7 +25,7 @@
     "fine_tune": false,
     "fine_tune_sequence_length": 32,
     "fine_tune_epochs": 10,
-    "fine_tune_learning_rate": 0.0001,
+    "fine_tune_learning_rate": 0.00005,
     "fine_tune_loss_fns": {
         "bce": true,
         "focal": false
