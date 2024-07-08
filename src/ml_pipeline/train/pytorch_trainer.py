@@ -46,7 +46,7 @@ class PyTorchTrainer:
     def train(self, train_loader, val_loader, loss_func, ckpt_path=None, use_wandb=False, name_wandb=None, use_local_wandb=False, fine_tune=False, val_freq_per_epoch=10):
         # Load model from checkpoint if provided
         if ckpt_path is not None:
-            self.model.load_state_dict(torch.load(ckpt_path))
+            self.model.load_state_dict(torch.load(ckpt_path, map_location=torch.device(self.device)))
 
         # Set learning rate and epochs based on fine-tuning or training from scratch
         if fine_tune:
@@ -178,7 +178,7 @@ class PyTorchTrainer:
     def validate(self, val_loader, loss_func, ckpt_path=None, subject_id=None, pre_trained_run=False, fine_tune_run=False, check_overlap=False):
         # Load model from checkpoint if provided
         if ckpt_path is not None:
-            self.model.load_state_dict(torch.load(ckpt_path))
+            self.model.load_state_dict(torch.load(ckpt_path, map_location=torch.device(self.device)))
 
         self.model.eval()
         y_true = []
@@ -306,7 +306,7 @@ class PyTorchTrainer:
     def measure_inference_time(self, val_loader, warmup_batches=20, repetitions=1000, ckpt_path=None):
         # Load model from checkpoint if provided
         if ckpt_path is not None:
-            self.model.load_state_dict(torch.load(ckpt_path))
+            self.model.load_state_dict(torch.load(ckpt_path, map_location=torch.device(self.device)))
 
         self.model.eval()
 

@@ -48,7 +48,8 @@ from src.ml_pipeline.utils import (
     HyperParamsIterator,
 )
 
-PRE_TRAINED_CKPTS = ["src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/5s_5s_5s/generalized/2024_07_05_13_15_50/fold_0/checkpoint_final.pth"]
+# PRE_TRAINED_CKPTS = ["src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/5s_5s_5s/generalized/2024_07_05_13_15_50/fold_0/checkpoint_final.pth"]
+PRE_TRAINED_CKPTS = ["src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/checkpoint_final.pth"]
 
 # CONFIG file for the dataset
 WRIST_CONFIG = "config_files/dataset/wesad_wrist_bvp_w_eda_configuration.json"
@@ -81,8 +82,8 @@ HYPERPARAMETER_GRID = {
     # "learning_rate": [0.0001, 0.001, 0.01],
     # "batch_size": [8, 16, 32],
     # "epochs": [5, 7, 10],
-    # "fine_tune_epochs": [1, 3, 5],
-    # "fine_tune_learning_rate": [0.001, 0.0001, 0.00005],
+    "fine_tune_epochs": [1, 3, 5, 10, 20],
+    "fine_tune_learning_rate": [0.0005, 0.0001, 0.00005],
     # "early_stopping_patience": [5,8,10,20],
     # "early_stopping_metric": ["loss", "accuracy"],
     "predictor": ["avg_pool"], # ['weighted_avg_pool', "avg_pool", "og"], 
