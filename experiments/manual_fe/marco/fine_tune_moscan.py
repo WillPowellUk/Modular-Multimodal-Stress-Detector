@@ -87,7 +87,7 @@ HYPERPARAMETER_GRID = {
     # "early_stopping_patience": [5,8,10,20],
     # "early_stopping_metric": ["loss", "accuracy"],
     "predictor": ["avg_pool"], # ['weighted_avg_pool', "avg_pool", "og"], 
-    "kalman": [False]
+    "kalman": [True]
 }
 
 # Grid Search Parameters
@@ -158,9 +158,9 @@ for c, current_config in enumerate(hyperparams()):
         )
 
         # Validate model on non-batched data
-        print("Validating Pre-Trained Model on Non-Batched Data")
-        model_config["kalman"] = False
-        save_json(model_config, current_config)
+        # print("Validating Pre-Trained Model on Non-Batched Data")
+        # model_config["kalman"] = False
+        # save_json(model_config, current_config)
 
         # trainer.model.token_length = get_values(current_config, "token_length")
         # if DATASET_TYPE == 'losocv':
@@ -170,8 +170,8 @@ for c, current_config in enumerate(hyperparams()):
         # print(result)
         
         # Fine Tune on non-batched
-        model_config["kalman"] = False
-        save_json(model_config, current_config)
+
+        # save_json(model_config, current_config)
 
         print("Fine Tuning Model on Non-Batched Data")
         fine_tune_loss_wrapper = LossWrapper(model_config["fine_tune_loss_fns"])

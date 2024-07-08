@@ -154,9 +154,9 @@ for c, current_config in enumerate(hyperparams()):
         checkpoint = torch.load(pre_trained_ckpt, map_location=torch.device(str(device)))
         model.load_state_dict(checkpoint)
 
-        # Freeze all layers except for the Kalman filter and the last layers
+        # Freeze all layers except for the predictor and the last layers
         for name, param in model.named_parameters():
-            if 'kalman_filter' not in name:
+            if 'predictor' not in name:
                 param.requires_grad = False
 
         # Initialize trainer
@@ -169,7 +169,7 @@ for c, current_config in enumerate(hyperparams()):
         transfer_learning_loss_wrapper = LossWrapper(model_config["fine_tune_loss_fns"])
 
         trainer.model.token_length = get_values(current_config, "token_length")
-        fine_tuned_model_ckpt = trainer.train(train_loader_non_batched, val_loader_non_batched, transfer_learning_loss_wrapper, ckpt_path=pre_trained_ckpt, mixed_grad=True, use_wandb=True, name_wandb=f"{model.NAME}_{fold}_fine-tune", use_local_wandb=True, fine_tune=True, val_freq_per_epoch=2)
+        fine_tuned_model_ckpt = trainer.train(train_loader_non_batched, val_loader_non_batched, transfer_learning_loss_wrapper, mixed_grad=True, use_wandb=True, name_wandb=f"{model.NAME}_{fold}_fine-tune", use_local_wandb=True, fine_tune=True, val_freq_per_epoch=2)
         print(f"Transfer Learning Model checkpoint saved to: {fine_tuned_model_ckpt}\n")
 
         # Validate model on non-batched data

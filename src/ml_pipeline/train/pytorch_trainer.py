@@ -43,7 +43,7 @@ class PyTorchTrainer:
         )
         self.model = model_copy
 
-    def train(self, train_loader, val_loader, loss_func, ckpt_path=None, use_wandb=False, name_wandb=None, use_local_wandb=False, fine_tune=False, val_freq_per_epoch=10):
+    def train(self, train_loader, val_loader, loss_func, ckpt_path=None, mixed_grad=None, use_wandb=False, name_wandb=None, use_local_wandb=False, fine_tune=False, val_freq_per_epoch=10):
         # Load model from checkpoint if provided
         if ckpt_path is not None:
             self.model.load_state_dict(torch.load(ckpt_path, map_location=torch.device(self.device)))
@@ -56,7 +56,11 @@ class PyTorchTrainer:
             epochs = self.configs["epochs"]
             learning_rate = self.configs["learning_rate"]
 
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
+        # Initialize optimizer - if mixed_grad is not None, optimizer will only update the parameters that require gradients
+        if mixed_grad:
+            self.optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=learning_rate)
+        else:
+            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
 
         if use_wandb:
             # self.initialize_wandb(use_local_server=use_local_wandb)

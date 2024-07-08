@@ -386,7 +386,7 @@ class MOSCAN(nn.Module):
 
         # Step 4: Optional Kalman Filter expects shape (batch_size, num_branches, output_dim)
         if self.kalman:
-            classification = self.kalman_filter.forward(classification)
+            classification = self.kalman_filter(classification)
 
         return classification
 

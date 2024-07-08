@@ -1,7 +1,9 @@
 import torch
+import torch.nn as nn
 
-class KalmanFilter:
+class KalmanFilter(nn.Module):
     def __init__(self, num_classes, device='cpu'):
+        super(KalmanFilter, self).__init__()
         self.num_classes = num_classes
         self.device = device
         self.x = torch.tensor([0.8] + [0.1] * (num_classes - 1), dtype=torch.float32).reshape(-1, 1).to(device)
@@ -53,4 +55,3 @@ class KalmanFilter:
             output[i] = self.x.flatten()
         
         return output
-    
