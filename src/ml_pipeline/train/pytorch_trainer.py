@@ -234,8 +234,8 @@ class PyTorchTrainer:
                     
                     # Check for label overlaps in the last n segment lengths
                     self.label_buffer.extend(labels.cpu().numpy())
-                    if len(self.label_buffer) > self.model.token_length:
-                        self.label_buffer = self.label_buffer[-self.model.token_length:]
+                    if len(self.label_buffer) > self.model.seq_length:
+                        self.label_buffer = self.label_buffer[-self.model.seq_length:]
 
                     overlap_detected = self._check_label_overlap()
                     if overlap_detected:
@@ -357,7 +357,7 @@ class PyTorchTrainer:
         # Convert self.label_buffer to a set to find unique labels
         unique_labels = set(self.label_buffer)
         
-        # If the number of unique labels is less than self.model.token_length, overlap detected
+        # If the number of unique labels is less than self.model.seq_length, overlap detected
         if len(unique_labels) > 1:
             return True
         else:

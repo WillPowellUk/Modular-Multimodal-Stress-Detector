@@ -1,7 +1,7 @@
 {
     "NAME": "MARCO",
     "num_classes": 2,
-    "token_length": 6,
+    "seq_length": 6,
     "n_bcsa": 1,
     "embed_dim": 16,
     "hidden_dim": 32,

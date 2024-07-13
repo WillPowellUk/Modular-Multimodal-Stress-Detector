@@ -168,13 +168,13 @@ for c, current_config in enumerate(hyperparams()):
         print("Transfer Learning Model on Non-Batched Data with new Kalman Late Fusion Module")
         transfer_learning_loss_wrapper = LossWrapper(model_config["fine_tune_loss_fns"])
 
-        trainer.model.token_length = get_values(current_config, "token_length")
+        trainer.model.seq_length = get_values(current_config, "seq_length")
         fine_tuned_model_ckpt = trainer.train(train_loader_non_batched, val_loader_non_batched, transfer_learning_loss_wrapper, mixed_grad=True, use_wandb=True, name_wandb=f"{model.NAME}_{fold}_fine-tune", use_local_wandb=True, fine_tune=True, val_freq_per_epoch=2)
         print(f"Transfer Learning Model checkpoint saved to: {fine_tuned_model_ckpt}\n")
 
         # Validate model on non-batched data
         print("Validating Transfer Learning Model on Non-Batched Data")
-        trainer.model.token_length = get_values(current_config, "token_length")
+        trainer.model.seq_length = get_values(current_config, "seq_length")
         if DATASET_TYPE == 'losocv':
             result = trainer.validate(val_loader_non_batched, transfer_learning_loss_wrapper, fine_tuned_model_ckpt, subject_id=subject_id, transfer_learning_run=True)
         else: 
