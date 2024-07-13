@@ -250,91 +250,11 @@ class CachedMultiHeadAttention(nn.Module):
         out = self.dropout(out)
         return out
 
-# class SlidingSelfAttentionEncoder(nn.Module):
-#     def __init__(self, d_model, ffn_hidden, n_head, ffn_dropout, attention_dropout=0.1):
-#         super(SlidingSelfAttentionEncoder, self).__init__()
-#         super(SlidingSelfAttentionEncoder, self).__init__()
-#         self.attention = MultiheadAttention(
-#             d_model, n_head, batch_first=True, dropout=attention_dropout
-#         )
-#         self.norm1 = nn.LayerNorm(d_model)
-#         self.dropout1 = nn.Dropout(ffn_dropout)
-#         self.ffn = PositionwiseFeedForward(
-#             d_model=d_model, hidden=ffn_hidden, ffn_dropout=ffn_dropout
-#         )
-#         self.norm2 = nn.LayerNorm(d_model)
-#         self.dropout2 = nn.Dropout(ffn_dropout)
-
-#         # Initialize KV cache
-#         self.kv_cache = None
-
-#     def forward(self, x, seq_length, use_cache=False):
-#     def forward(self, x, seq_length, use_cache=False):
-#         if use_cache and self.kv_cache is not None:
-#             key_cache, value_cache = self.kv_cache
-#         else:
-#             key_cache, value_cache = None, None
-
-#         # Concatenate new tokens with cached tokens and apply windowing
-#         # Concatenate new tokens with cached tokens and apply windowing
-#         if key_cache is not None and value_cache is not None:
-#             keys = torch.cat([key_cache, x], dim=1)
-#             values = torch.cat([value_cache, x], dim=1)
-
-#             # Maintain the sliding window of cache
-#             if keys.size(1) > seq_length:
-#                 keys = keys[:, -seq_length:, :]
-#                 values = values[:, -seq_length:, :]
-
-#             # Perform self-attention over all tokens (cached + new)
-#             x_combined = keys   
-#             if keys.size(1) > seq_length:
-#                 keys = keys[:, -seq_length:, :]
-#                 values = values[:, -seq_length:, :]
-
-#             # Perform self-attention over all tokens (cached + new)
-#             x_combined = keys   
-#         else:
-#             keys, values = x, x
-#             x_combined = x
-            
-#         x, attn_output_weights = self.attention(x_combined, keys, values)
-#             x_combined = x
-            
-#         x, attn_output_weights = self.attention(x_combined, keys, values)
-
-#         # Update cache
-#         if use_cache:
-#             self.kv_cache = (keys.detach(), values.detach())
-
-#         # Use the relevant part of the output (last `L` tokens)
-#         x = x[:, -x.size(1):, :]
-
-#         x = self.norm1(x + x_combined)
-#         # Use the relevant part of the output (last `L` tokens)
-#         x = x[:, -x.size(1):, :]
-
-#         x = self.norm1(x + x_combined)
-#         x = self.dropout1(x)
-
-#         # Feed-forward layer
-#         _x = x
-#         x = self.ffn(x)
-#         x = self.norm2(x + _x)
-#         x = self.dropout2(x)
-#         return x
-
-#     def clear_cache(self):
-#         self.kv_cache = None
-
-class CachedSlidingSelfAttentionEncoder(nn.Module):
+class CachedSlidingAttentionEncoder(nn.Module):
     def __init__(self, d_model, ffn_hidden, n_head, max_batch_size, max_seq_len, ffn_dropout=0.1, attention_dropout=0.1):
-    def __init__(self, d_model, ffn_hidden, n_head, max_batch_size, max_seq_len, ffn_dropout=0.1, attention_dropout=0.1):
-        super(CachedSlidingSelfAttentionEncoder, self).__init__()
+        super(CachedSlidingAttentionEncoder, self).__init__()
         self.attention = CachedMultiHeadAttention(
-            d_model, n_head, max_batch_size, max_seq_len
-        self.attention = CachedMultiHeadAttention(
-            d_model, n_head, max_batch_size, max_seq_len
+            d_model, n_head, max_batch_size, max_seq_len, dropout=attention_dropout
         )
         self.norm1 = nn.LayerNorm(d_model)
         self.dropout1 = nn.Dropout(ffn_dropout)
@@ -344,16 +264,11 @@ class CachedSlidingSelfAttentionEncoder(nn.Module):
         self.norm2 = nn.LayerNorm(d_model)
         self.dropout2 = nn.Dropout(ffn_dropout)
 
-    def forward(self, x, seq_length, use_cache=True):
+    def forward(self, query, key, value, seq_length, use_cache=True):
         # x is of shape [batch_size, seq_length, features/embedding]
 
         # Attention mechanism which will remove the oldest token if cache exceeds seq_length if use_cache is True
-        x = self.attention(query=x, key=x, value=x, use_cache=use_cache)
-    def forward(self, x, seq_length, use_cache=True):
-        # x is of shape [batch_size, seq_length, features/embedding]
-
-        # Attention mechanism which will remove the oldest token if cache exceeds seq_length if use_cache is True
-        x = self.attention(query=x, key=x, value=x, use_cache=use_cache)
+        x = self.attention(query=query, key=key, value=value, use_cache=use_cache)
 
         # Add and norm
         x = x + self.dropout1(self.norm1(x))
@@ -389,7 +304,6 @@ class CachedSlidingCrossAttentionEncoder(nn.Module):
         self.kv_cache = None
         self.query_cache = None
 
-    def forward(self, query, key_value, seq_length, use_cache=False):
     def forward(self, query, key_value, seq_length, use_cache=False):
         if use_cache and self.kv_cache is not None:
             key_cache, value_cache = self.kv_cache

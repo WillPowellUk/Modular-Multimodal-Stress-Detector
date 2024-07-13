@@ -128,125 +128,6 @@ class ModularBCSA(nn.Module):
         final_output = self.output_layer(concat)
         return final_modality_outputs, final_output
 
-
-class MARCONet(nn.Module):
-    NAME = "MARCONet"
-
-    def __init__(self, **kwargs):
-        super(MARCONet, self).__init__()
-        required_params = [
-            "input_dims",
-            "embed_dim",
-            "hidden_dim",
-            "output_dim",
-            "n_head_gen",
-            "dropout",
-            "attention_dropout",
-            "n_bcsa",
-            "batch_size",
-            "seq_length",
-        ]
-
-        for param in required_params:
-            if param not in kwargs:
-                raise ValueError(f"Missing required parameter: {param}")
-
-        self.input_dims = kwargs["input_dims"]
-        self.embed_dim = kwargs["embed_dim"]
-        self.hidden_dim = kwargs["hidden_dim"]
-        self.output_dim = kwargs["output_dim"]
-        self.n_head = kwargs["n_head_gen"]
-        self.dropout = kwargs["dropout"]
-        self.attention_dropout = kwargs["attention_dropout"]
-        self.n_bcsa = kwargs["n_bcsa"]
-        self.batch_size = kwargs["batch_size"]
-        self.seq_length = kwargs["seq_length"]
-
-
-        self.modalities = nn.ModuleDict()
-        self.cross_attention_blocks = nn.ModuleDict()
-        self.self_attention_blocks = nn.ModuleDict()
-
-        for modality in self.input_dims:
-            modality_net = nn.ModuleDict(
-                {
-                    "embedding": nn.Linear(self.input_dims[modality], self.embed_dim),
-                    "pos_enc": PositionalEncoding(self.embed_dim),
-                    "predictor": OG(
-                        self.embed_dim,
-                        self.hidden_dim,
-                        self.output_dim,
-                        self.dropout,
-                    ),
-                }
-            )
-            self.modalities[modality] = modality_net
-            self.self_attention_blocks[modality] = nn.ModuleList(
-                [
-                    CachedSlidingSelfAttentionEncoder(
-                        self.embed_dim, self.hidden_dim, self.n_head, self.dropout, self.attention_dropout
-                    )
-                    for _ in range(self.n_bcsa)
-                ]
-            )
-
-        modalities = list(self.input_dims.keys())
-        for i, modality1 in enumerate(modalities):
-            for j, modality2 in enumerate(modalities):
-                if i != j:
-                    self.cross_attention_blocks[f"{modality1}_to_{modality2}"] = (
-                        nn.ModuleList(
-                            [
-                                CachedSlidingCrossAttentionEncoder(
-                                    d_model=self.embed_dim,
-                                    ffn_hidden=self.hidden_dim,
-                                    n_head=self.n_head,
-                                    ffn_dropout=self.dropout,
-                                    attention_dropout=self.attention_dropout,
-                                )
-                                for _ in range(self.n_bcsa)
-                            ]
-                        )
-                    )
-
-    def forward(self, inputs):
-        # Step 1: Embedding and Positional Encoding for each modality
-        modality_features = {}
-        for modality, net in self.modalities.items():
-            x = inputs[modality]  # Input for the modality
-            x = x.permute(
-                0, 2, 1
-            )  # Change shape to [batch_size, seq_len, features] from [batch_size, features, seq_len]
-            x = net["embedding"](x)
-            x = net["pos_enc"](x)
-            modality_features[modality] = x
-
-        # Step 2: Cross-Attention and Self-Attention Blocks
-        for i in range(self.n_bcsa):
-            for modality1 in modality_features:
-                for modality2 in modality_features:
-                    if modality1 != modality2:
-                        ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
-                        modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], self.seq_length, use_cache=self.seq_length>1)
-
-            for modality, net in self.modalities.items():
-                sa_block = self.self_attention_blocks[modality][i]
-                modality_features[modality] = sa_block(
-                    modality_features[modality],
-                    self.seq_length,
-                    use_cache=self.seq_length > 1,
-                )
-
-        # Step 3: Merge branches into one tensor and call Predictor
-        concatenated_features = torch.cat(list(modality_features.values()), dim=1)
-        concatenated_features = concatenated_features.permute(
-            0, 2, 1
-        )  # change to shape (batch_size, embed_dim, n_branches)
-        final_output = net["predictor"](concatenated_features)
-
-        return final_output
-
-
 class MOSCAN(nn.Module):
     NAME = "MOSCAN"
     def __init__(self, **kwargs):
@@ -294,6 +175,7 @@ class MOSCAN(nn.Module):
         self.cross_attention_blocks = nn.ModuleDict()
         self.self_attention_blocks = nn.ModuleDict()
 
+        # Initialize the self-attention blocks for each modality
         for modality in self.input_dims:
             modality_net = nn.ModuleDict(
                 {
@@ -304,13 +186,14 @@ class MOSCAN(nn.Module):
             self.modalities[modality] = modality_net
             self.self_attention_blocks[modality] = nn.ModuleList(
                 [
-                    CachedSlidingSelfAttentionEncoder(
+                    CachedSlidingAttentionEncoder(
                         self.embed_dim, self.hidden_dim, self.n_head, self.max_batch_size, self.max_seq_length, self.dropout, self.attention_dropout 
                     )
                     for _ in range(self.n_bcsa)
                 ]
             )
 
+        # Initialize the cross-attention blocks for each modality pair
         # modalities = list(self.input_dims.keys())
         # for i, modality1 in enumerate(modalities):
         #     for j, modality2 in enumerate(modalities):
@@ -318,10 +201,12 @@ class MOSCAN(nn.Module):
         #             self.cross_attention_blocks[f"{modality1}_to_{modality2}"] = (
         #                 nn.ModuleList(
         #                     [
-        #                         CachedSlidingCrossAttentionEncoder(
+        #                         CachedSlidingAttentionEncoder(
         #                             d_model=self.embed_dim,
         #                             ffn_hidden=self.hidden_dim,
         #                             n_head=self.n_head,
+        #                             max_batch_size=self.max_batch_size,
+        #                             max_seq_len=self.max_seq_length,
         #                             ffn_dropout=self.dropout,
         #                             attention_dropout=self.attention_dropout,
         #                         )
@@ -329,6 +214,7 @@ class MOSCAN(nn.Module):
         #                     ]
         #                 )
         #             )
+
         match predictor:
             case "avg_pool":
                 self.predictor = ModularPool(self.embed_dim, self.output_dim, self.dropout, pool_type='avg', return_branch_outputs=self.kalman)
@@ -370,20 +256,16 @@ class MOSCAN(nn.Module):
 
         # Step 2: Bidirectional Cross-Attention and Self-Attention Blocks
         for i in range(self.n_bcsa):
-            # Cross-Attention
+            # # Cross-Attention
             # for modality1 in modality_features:
             #     for modality2 in modality_features:
             #         if modality1 != modality2:
             #             ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
-            #             modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], self.seq_length, use_cache=self.seq_length>1)
+            #             modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], modality_features[modality2], self.seq_length, use_cache=self.seq_length>1)
             # Self Attention
             for modality, net in self.modalities.items():
                 sa_block = self.self_attention_blocks[modality][i]
-                modality_features[modality] = sa_block(
-                    modality_features[modality],
-                    self.seq_length,
-                    use_cache=self.seq_length > 1,
-                )
+                modality_features[modality] = sa_block(modality_features[modality], modality_features[modality], modality_features[modality], self.seq_length, use_cache=self.seq_length > 1)
 
         # Step 3: Predictor to merge branches and perform late fusion to produce an overall classification or a per branch classification 
         classification = self.predictor(modality_features)
