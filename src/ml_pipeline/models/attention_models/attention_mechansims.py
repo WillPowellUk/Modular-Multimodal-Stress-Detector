@@ -253,6 +253,7 @@ class CachedMultiHeadAttention(nn.Module):
 # class SlidingSelfAttentionEncoder(nn.Module):
 #     def __init__(self, d_model, ffn_hidden, n_head, ffn_dropout, attention_dropout=0.1):
 #         super(SlidingSelfAttentionEncoder, self).__init__()
+#         super(SlidingSelfAttentionEncoder, self).__init__()
 #         self.attention = MultiheadAttention(
 #             d_model, n_head, batch_first=True, dropout=attention_dropout
 #         )
@@ -268,11 +269,13 @@ class CachedMultiHeadAttention(nn.Module):
 #         self.kv_cache = None
 
 #     def forward(self, x, seq_length, use_cache=False):
+#     def forward(self, x, seq_length, use_cache=False):
 #         if use_cache and self.kv_cache is not None:
 #             key_cache, value_cache = self.kv_cache
 #         else:
 #             key_cache, value_cache = None, None
 
+#         # Concatenate new tokens with cached tokens and apply windowing
 #         # Concatenate new tokens with cached tokens and apply windowing
 #         if key_cache is not None and value_cache is not None:
 #             keys = torch.cat([key_cache, x], dim=1)
@@ -285,8 +288,17 @@ class CachedMultiHeadAttention(nn.Module):
 
 #             # Perform self-attention over all tokens (cached + new)
 #             x_combined = keys   
+#             if keys.size(1) > seq_length:
+#                 keys = keys[:, -seq_length:, :]
+#                 values = values[:, -seq_length:, :]
+
+#             # Perform self-attention over all tokens (cached + new)
+#             x_combined = keys   
 #         else:
 #             keys, values = x, x
+#             x_combined = x
+            
+#         x, attn_output_weights = self.attention(x_combined, keys, values)
 #             x_combined = x
             
 #         x, attn_output_weights = self.attention(x_combined, keys, values)
@@ -295,6 +307,10 @@ class CachedMultiHeadAttention(nn.Module):
 #         if use_cache:
 #             self.kv_cache = (keys.detach(), values.detach())
 
+#         # Use the relevant part of the output (last `L` tokens)
+#         x = x[:, -x.size(1):, :]
+
+#         x = self.norm1(x + x_combined)
 #         # Use the relevant part of the output (last `L` tokens)
 #         x = x[:, -x.size(1):, :]
 
@@ -313,7 +329,10 @@ class CachedMultiHeadAttention(nn.Module):
 
 class CachedSlidingSelfAttentionEncoder(nn.Module):
     def __init__(self, d_model, ffn_hidden, n_head, max_batch_size, max_seq_len, ffn_dropout=0.1, attention_dropout=0.1):
+    def __init__(self, d_model, ffn_hidden, n_head, max_batch_size, max_seq_len, ffn_dropout=0.1, attention_dropout=0.1):
         super(CachedSlidingSelfAttentionEncoder, self).__init__()
+        self.attention = CachedMultiHeadAttention(
+            d_model, n_head, max_batch_size, max_seq_len
         self.attention = CachedMultiHeadAttention(
             d_model, n_head, max_batch_size, max_seq_len
         )
@@ -330,12 +349,23 @@ class CachedSlidingSelfAttentionEncoder(nn.Module):
 
         # Attention mechanism which will remove the oldest token if cache exceeds seq_length if use_cache is True
         x = self.attention(query=x, key=x, value=x, use_cache=use_cache)
+    def forward(self, x, seq_length, use_cache=True):
+        # x is of shape [batch_size, seq_length, features/embedding]
+
+        # Attention mechanism which will remove the oldest token if cache exceeds seq_length if use_cache is True
+        x = self.attention(query=x, key=x, value=x, use_cache=use_cache)
 
         # Add and norm
         x = x + self.dropout1(self.norm1(x))
         
         # Feedforward
+        # Add and norm
+        x = x + self.dropout1(self.norm1(x))
+        
+        # Feedforward
         x = self.ffn(x)
+        x = x + self.dropout2(self.norm2(x))
+
         x = x + self.dropout2(self.norm2(x))
 
         return x
@@ -360,6 +390,7 @@ class CachedSlidingCrossAttentionEncoder(nn.Module):
         self.query_cache = None
 
     def forward(self, query, key_value, seq_length, use_cache=False):
+    def forward(self, query, key_value, seq_length, use_cache=False):
         if use_cache and self.kv_cache is not None:
             key_cache, value_cache = self.kv_cache
             query_cache = self.query_cache
@@ -374,6 +405,10 @@ class CachedSlidingCrossAttentionEncoder(nn.Module):
             queries = torch.cat([query_cache, query], dim=1)
 
             # Maintain the sliding window of cache
+            if keys.size(1) > seq_length:
+                keys = keys[:, -seq_length:, :]
+                values = values[:, -seq_length:, :]
+                queries = queries[:, -seq_length:, :]
             if keys.size(1) > seq_length:
                 keys = keys[:, -seq_length:, :]
                 values = values[:, -seq_length:, :]
