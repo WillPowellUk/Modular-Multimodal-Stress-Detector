@@ -160,7 +160,7 @@ for c, current_config in enumerate(hyperparams()):
         # model_config["kalman"] = False
         # save_json(model_config, current_config)
 
-        # trainer.model.token_length = get_values(current_config, "token_length")
+        # trainer.model.seq_length = get_values(current_config, "seq_length")
         # if DATASET_TYPE == 'losocv':
         #     result = trainer.validate(val_loader_non_batched, loss_wrapper, ckpt_path=pre_trained_ckpt, subject_id=subject_id, pre_trained_run=True, check_overlap=True)
         # else: 
@@ -174,13 +174,13 @@ for c, current_config in enumerate(hyperparams()):
         print("Fine Tuning Model on Non-Batched Data")
         fine_tune_loss_wrapper = LossWrapper(model_config["fine_tune_loss_fns"])
 
-        trainer.model.token_length = get_values(current_config, "token_length")
+        trainer.model.seq_length = get_values(current_config, "seq_length")
         fine_tuned_model_ckpt = trainer.train(train_loader_non_batched, val_loader_non_batched, fine_tune_loss_wrapper, ckpt_path=pre_trained_ckpt, use_wandb=True, name_wandb=f"{model.NAME}_{fold}_fine-tune", use_local_wandb=True, fine_tune=True, val_freq_per_epoch=2)
         print(f"Fine Tuned Model checkpoint saved to: {fine_tuned_model_ckpt}\n")
 
         # Validate model on non-batched data
         print("Validating Fine Tuned Model on Non-Batched Data")
-        trainer.model.token_length = get_values(current_config, "token_length")
+        trainer.model.seq_length = get_values(current_config, "seq_length")
         if DATASET_TYPE == 'losocv':
             result = trainer.validate(val_loader_non_batched, fine_tune_loss_wrapper, fine_tuned_model_ckpt, subject_id=subject_id, fine_tune_run=True)
         else: 

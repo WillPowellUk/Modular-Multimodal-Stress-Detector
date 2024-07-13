@@ -141,7 +141,7 @@ for c, current_config in enumerate(hyperparams()):
         print("Validating Pre-Trained Model on Non-Batched Data")
         save_json(model_config, current_config)
 
-        trainer.model.token_length = get_values(current_config, "token_length")
+        trainer.model.seq_length = get_values(current_config, "seq_length")
         if DATASET_TYPE == 'losocv':
             result = trainer.validate(val_loader_non_batched, loss_wrapper, ckpt_path=pre_trained_ckpt, subject_id=subject_id, pre_trained_run=True, check_overlap=True)
         else: 

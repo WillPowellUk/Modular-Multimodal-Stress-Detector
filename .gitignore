@@ -1,4 +1,5 @@
 src/wesad/WESAD
+src/ubfc_phys/UBFC-PHYS
 *.pyc
 __pycache__/
 **/__pycache__/
