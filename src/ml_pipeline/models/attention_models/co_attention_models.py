@@ -194,26 +194,20 @@ class MOSCAN(nn.Module):
             )
 
         # Initialize the cross-attention blocks for each modality pair
-        # modalities = list(self.input_dims.keys())
-        # for i, modality1 in enumerate(modalities):
-        #     for j, modality2 in enumerate(modalities):
-        #         if i != j:
-        #             self.cross_attention_blocks[f"{modality1}_to_{modality2}"] = (
-        #                 nn.ModuleList(
-        #                     [
-        #                         CachedSlidingAttentionEncoder(
-        #                             d_model=self.embed_dim,
-        #                             ffn_hidden=self.hidden_dim,
-        #                             n_head=self.n_head,
-        #                             max_batch_size=self.max_batch_size,
-        #                             max_seq_len=self.max_seq_length,
-        #                             ffn_dropout=self.dropout,
-        #                             attention_dropout=self.attention_dropout,
-        #                         )
-        #                         for _ in range(self.n_bcsa)
-        #                     ]
-        #                 )
-        #             )
+        modalities = list(self.input_dims.keys())
+        for i, modality1 in enumerate(modalities):
+            for j, modality2 in enumerate(modalities):
+                if i != j:
+                    self.cross_attention_blocks[f"{modality1}_to_{modality2}"] = (
+                        nn.ModuleList(
+                            [
+                                CachedSlidingAttentionEncoder(
+                                    self.embed_dim, self.hidden_dim, self.n_head, self.max_batch_size, self.max_seq_length, self.dropout, self.attention_dropout 
+                                )
+                                for _ in range(self.n_bcsa)
+                            ]
+                        )
+                    )
 
         match predictor:
             case "avg_pool":
@@ -256,12 +250,12 @@ class MOSCAN(nn.Module):
 
         # Step 2: Bidirectional Cross-Attention and Self-Attention Blocks
         for i in range(self.n_bcsa):
-            # # Cross-Attention
-            # for modality1 in modality_features:
-            #     for modality2 in modality_features:
-            #         if modality1 != modality2:
-            #             ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
-            #             modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], modality_features[modality2], self.seq_length, use_cache=self.seq_length>1)
+            # Cross-Attention
+            for modality1 in modality_features:
+                for modality2 in modality_features:
+                    if modality1 != modality2:
+                        ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
+                        modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], modality_features[modality2], self.seq_length, use_cache=self.seq_length>1)
             # Self Attention
             for modality, net in self.modalities.items():
                 sa_block = self.self_attention_blocks[modality][i]
