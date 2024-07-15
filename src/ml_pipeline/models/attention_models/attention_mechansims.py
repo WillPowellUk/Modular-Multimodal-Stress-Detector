@@ -260,7 +260,7 @@ class CachedMultiHeadAttention(nn.Module):
             cached_keys, cached_values, cached_queries = key, value, None
 
         # Perform scaled dot product attention for all attention heads (multi-headed attention)
-        if self.kv_cache.query_cache and cached_values is not None:
+        if self.kv_cache.query_cache and cached_queries is not None:
             out = self.scaled_dot_product_attention(cached_queries, cached_keys, cached_values)
         else:
             out = self.scaled_dot_product_attention(query, cached_keys, cached_values)
