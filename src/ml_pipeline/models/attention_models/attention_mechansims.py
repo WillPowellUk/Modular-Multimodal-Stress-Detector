@@ -93,9 +93,9 @@ class CrossAttentionEncoder(nn.Module):
 
         return x
 
-class SlidingKVCache(nn.Module):
+class SlidingKVQCache(nn.Module):
     """
-    Standalone nn.Module containing a kv-cache to cache past key and values during inference.
+    Standalone nn.Module containing a kv-cache and optional q-cache to cache past key, queries and values during inference.
 
     Args:
         max_batch_size (int): maximum batch size model will be run with
@@ -105,6 +105,7 @@ class SlidingKVCache(nn.Module):
             same shape as the query tensor. See attention.py for more details
         head_dim (int): per-attention head embedding dimension
         dtype (torch.dtype): dtype for the caches
+        query_cache (bool): whether to cache query tensors
     """
 
     def __init__(
@@ -114,6 +115,7 @@ class SlidingKVCache(nn.Module):
         num_heads: int,
         head_dim: int,
         dtype: torch.dtype,
+        query_cache: bool = True
     ) -> None:
         super().__init__()
         cache_shape = (max_batch_size, num_heads, max_seq_len, head_dim)
@@ -123,11 +125,16 @@ class SlidingKVCache(nn.Module):
         self.register_buffer(
             "v_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False
         )
+        self.query_cache = query_cache
+        if self.query_cache:
+            self.register_buffer(
+                "q_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False
+            )
         self.current_seq_len = 0
         self.max_seq_len = max_seq_len
         self.max_batch_size = max_batch_size
 
-    def append_kv(self, key, value):
+    def append_cache(self, key, value, query=None):
         """
         Appends the most recent key and value to the cache. 
         Both tensors are expected with shape [batch_size, num_heads, 1, head_dim].
@@ -137,6 +144,7 @@ class SlidingKVCache(nn.Module):
         Args:
             key (torch.Tensor): The key tensor to be added.
             value (torch.Tensor): The value tensor to be added.
+            query (torch.Tensor, optional): The query tensor to be added, if query_cache is enabled.
         """
 
         # Remove the oldest kv-cache that corresponds to the oldest token and move the buffer forward.
@@ -145,20 +153,26 @@ class SlidingKVCache(nn.Module):
             # Shift the cache left by one position
             self.k_cache[:, :, :-1, :] = self.k_cache[:, :, 1:, :].clone()
             self.v_cache[:, :, :-1, :] = self.v_cache[:, :, 1:, :].clone()
+            if self.query_cache:
+                self.q_cache[:, :, :-1, :] = self.q_cache[:, :, 1:, :].clone()
             self.current_seq_len = self.max_seq_len - 1
 
         batch_size, num_heads, _, head_dim = key.shape
         self.k_cache[:batch_size, :num_heads, self.current_seq_len, :head_dim] = key.squeeze(2)
         self.v_cache[:batch_size, :num_heads, self.current_seq_len, :head_dim] = value.squeeze(2)
+        if self.query_cache and query is not None:
+            self.q_cache[:batch_size, :num_heads, self.current_seq_len, :head_dim] = query.squeeze(2)
         self.current_seq_len += 1
 
-    def retrieve_kv(self):
+    def retrieve_cache(self):
         """
         Retrieves the entire kv cache.
 
         Returns:
-            tuple: A tuple containing the key cache and value cache.
+            tuple: A tuple containing the key cache, value cache and query cache (if enabled).
         """
+        if self.query_cache:
+            return self.k_cache, self.v_cache, self.q_cache
         return self.k_cache, self.v_cache
 
 
@@ -191,7 +205,7 @@ class MultiHeadProjection(nn.Module):
         return query, key, value
     
 class CachedMultiHeadAttention(nn.Module):
-    def __init__(self, embed_dim, num_heads, max_batch_size, max_seq_len, dropout=0.1):
+    def __init__(self, embed_dim, num_heads, max_batch_size, max_seq_len, dropout=0.1, query_cache=True):
         super(CachedMultiHeadAttention, self).__init__()
         self.embed_dim = embed_dim
         self.num_heads = num_heads
@@ -210,7 +224,7 @@ class CachedMultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
         # KV cache
-        self.kv_cache = SlidingKVCache(max_batch_size, max_seq_len, num_heads, self.head_dim, torch.float32)
+        self.kv_cache = SlidingKVQCache(max_batch_size, max_seq_len, num_heads, self.head_dim, torch.float32, query_cache=query_cache)
 
     def scaled_dot_product_attention(self, query, key, value):
         attn_scores = query @ key.transpose(-2,-1) * self.scale
@@ -234,27 +248,31 @@ class CachedMultiHeadAttention(nn.Module):
         query, key, value = self.in_proj(query, key, value)
 
         if use_cache:
-            # Cache latest keys and values which correspond to newest sequence
-            self.kv_cache.append_kv(key, value)
-            # If buffer is too large, remove oldest key and value which correspond to oldest sequence
-            if self.kv_cache.current_seq_len > self.max_seq_len:
-                self.kv_cache.remove_oldest_kv()
-            
-            # Retrieve entire kv cache
-            cached_key, cached_value = self.kv_cache.retrieve_kv()
+            # Cache latest keys, values, (and queries if enabled) which correspond to latest embedding in the sequence
+            if self.kv_cache.query_cache:
+                self.kv_cache.append_cache(key, value, query)
+                cached_keys, cached_values, cached_queries = self.kv_cache.retrieve_cache()
+            else:
+                self.kv_cache.append_cache(key, value)
+                cached_keys, cached_values = self.kv_cache.retrieve_cache()
+        
         else:
-            cached_key, cached_value = key, value
+            cached_keys, cached_values, cached_queries = key, value, None
 
-        # Perform multi-headed attention on each attention block which returns shape 
-        out = self.scaled_dot_product_attention(query, cached_key, cached_value)
+        # Perform scaled dot product attention for all attention heads (multi-headed attention)
+        if self.kv_cache.query_cache and cached_values is not None:
+            out = self.scaled_dot_product_attention(cached_queries, cached_keys, cached_values)
+        else:
+            out = self.scaled_dot_product_attention(query, cached_keys, cached_values)
+
         out = self.dropout(out)
         return out
 
 class CachedSlidingAttentionEncoder(nn.Module):
-    def __init__(self, d_model, ffn_hidden, n_head, max_batch_size, max_seq_len, ffn_dropout=0.1, attention_dropout=0.1):
+    def __init__(self, d_model, ffn_hidden, n_head, max_batch_size, max_seq_len, ffn_dropout=0.1, attention_dropout=0.1, query_cache=True):
         super(CachedSlidingAttentionEncoder, self).__init__()
         self.attention = CachedMultiHeadAttention(
-            d_model, n_head, max_batch_size, max_seq_len, dropout=attention_dropout
+            d_model, n_head, max_batch_size, max_seq_len, dropout=attention_dropout, query_cache=query_cache
         )
         self.norm1 = nn.LayerNorm(d_model)
         self.dropout1 = nn.Dropout(ffn_dropout)

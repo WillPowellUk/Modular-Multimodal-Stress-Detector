@@ -1,5 +1,6 @@
 {
     "NAME": "MOSCAN",
+    "query_cache": true,
     "predictor": "avg_pool",
     "num_classes": 2,
     "seq_length": 6,
@@ -25,7 +26,7 @@
     "early_stopping_patience": 30,
     "early_stopping_metric": "accuracy",
     "fine_tune": false,
-    "fine_tune_sequence_length": 32,
+    "fine_tune_sequence_length": 30,
     "fine_tune_epochs": 10,
     "fine_tune_learning_rate": 0.00005,
     "fine_tune_loss_fns": {
