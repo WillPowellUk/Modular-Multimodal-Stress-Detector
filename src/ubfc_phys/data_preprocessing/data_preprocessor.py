@@ -25,8 +25,8 @@ class UBFCPhysDataPreprocessor:
                     # Create the combined dataframe for this participant and task
                     combined_df = pd.DataFrame({
                         'sid': float(sid),
-                        'BVP': bvp_data[0],
-                        'EDA': eda_interpolated,
+                        'bvp': bvp_data[0],
+                        'eda': eda_interpolated,
                         'label': float(task[1])
                     })
                     
