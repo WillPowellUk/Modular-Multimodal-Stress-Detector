@@ -157,11 +157,11 @@ class SlidingQKVCache(nn.Module):
                 self.q_cache[:, :, :-1, :] = self.q_cache[:, :, 1:, :].clone()
             self.current_seq_len = self.max_seq_len - 1
 
-        batch_size, num_heads, _, head_dim = key.shape
-        self.k_cache[:batch_size, :num_heads, self.current_seq_len, :head_dim] = key.squeeze(2)
-        self.v_cache[:batch_size, :num_heads, self.current_seq_len, :head_dim] = value.squeeze(2)
+        # Append the new key, value, and query to the cache
+        self.k_cache[:, :, self.current_seq_len, :] = key[:, :, 0, :]
+        self.v_cache[:, :, self.current_seq_len, :] = value[:, :, 0, :]
         if self.query_cache and query is not None:
-            self.q_cache[:batch_size, :num_heads, self.current_seq_len, :head_dim] = query.squeeze(2)
+            self.q_cache[:, :, self.current_seq_len, :] = query[:, :, 0, :]
         self.current_seq_len += 1
 
     def retrieve_cache(self):

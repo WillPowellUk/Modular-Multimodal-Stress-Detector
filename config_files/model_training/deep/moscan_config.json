@@ -10,7 +10,7 @@
     "embed_dim": 16,
     "hidden_dim": 32,
     "output_dim": 2,
-    "n_head_gen": 4,
+    "n_head_gen": 8,
     "n_head_per": 1,
     "dropout": 0.3,
     "attention_dropout": 0.5,
