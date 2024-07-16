@@ -2,9 +2,9 @@
     "cv_splits": 5,
     "sensors": {
         "bvp": true,
-        "w_acc": false,
+        "w_acc": true,
         "w_eda": true,
-        "w_temp": false
+        "w_temp": true
     },
     "sampling rate": {
         "bvp": 64,

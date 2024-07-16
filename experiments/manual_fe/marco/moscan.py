@@ -49,7 +49,7 @@ from src.ml_pipeline.utils import (
 )
 
 # CONFIG file for the dataset
-WRIST_CONFIG = "config_files/dataset/wesad_wrist_bvp_w_eda_configuration_wesad.json"
+WRIST_CONFIG = "config_files/dataset/wesad_wrist_bvp_w_eda_configuration.json"
 
 # CONFIG file for the model
 MOSCAN_CONFIG = "config_files/model_training/deep/moscan_config.json"
@@ -83,7 +83,7 @@ NON_BATCHED_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{NON_BATC
 
 # Uncomment parameters to use them in a grid search
 HYPERPARAMETER_GRID = {
-    "epochs": [1],
+    "epochs": [10],
     # "embed_dim": [8, 16, 32],
     # "hidden_dim": [16, 32, 62, 64, 128, 256], 
     # "n_head_gen": [2, 4, 8],
@@ -97,7 +97,6 @@ HYPERPARAMETER_GRID = {
     # "early_stopping_patience": [5, 7, 10, 20],
     # "early_stopping_patience": [5, 7, 10, 20],
     # "early_stopping_metric": ["loss", "accuracy"],
-    # "predictor": ["hard_voting", "avg_pool", 'weighted_avg_pool',  "weighted_max_pool", "avg_pool", "max_pool"], 
     # "predictor": ["hard_voting", "avg_pool", 'weighted_avg_pool',  "weighted_max_pool", "avg_pool", "max_pool"], 
 }
 
