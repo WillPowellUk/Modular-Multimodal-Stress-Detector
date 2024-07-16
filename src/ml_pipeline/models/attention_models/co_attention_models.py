@@ -252,16 +252,16 @@ class MOSCAN(nn.Module):
 
         # Step 2: Bidirectional Cross-Attention and Self-Attention Blocks
         for i in range(self.n_bcsa):
-            # # Cross-Attention
-            # for modality1 in modality_features:
-            #     for modality2 in modality_features:
-            #         if modality1 != modality2:
-            #             ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
-            #             modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], modality_features[modality2], self.seq_length, use_cache=self.seq_length>1)
+            # Cross-Attention
+            for modality1 in modality_features:
+                for modality2 in modality_features:
+                    if modality1 != modality2:
+                        ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
+                        modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], modality_features[modality2], use_cache=self.seq_length>1)
             # Self Attention
             for modality, net in self.modalities.items():
                 sa_block = self.self_attention_blocks[modality][i]
-                modality_features[modality] = sa_block(modality_features[modality], modality_features[modality], modality_features[modality], self.seq_length, use_cache=self.seq_length > 1)
+                modality_features[modality] = sa_block(modality_features[modality], modality_features[modality], modality_features[modality], use_cache=self.seq_length > 1)
 
         # Step 3: Predictor to merge branches and perform late fusion to produce an overall classification or a per branch classification 
         classification = self.predictor(modality_features)

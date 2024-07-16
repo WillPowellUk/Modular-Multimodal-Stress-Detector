@@ -93,7 +93,7 @@ class CrossAttentionEncoder(nn.Module):
 
         return x
 
-class SlidingKVQCache(nn.Module):
+class SlidingQKVCache(nn.Module):
     """
     Standalone nn.Module containing a kv-cache and optional q-cache to cache past key, queries and values during inference.
 
@@ -136,8 +136,8 @@ class SlidingKVQCache(nn.Module):
 
     def append_cache(self, key, value, query=None):
         """
-        Appends the most recent key and value to the cache. 
-        Both tensors are expected with shape [batch_size, num_heads, 1, head_dim].
+        Appends the most recent key, value, and query if given, to the cache. 
+        The tensors are expected to be of shape [batch_size, num_heads, 1, head_dim].
         The key is appended to the last column. 
         The value is appended to the last row.
 
@@ -174,6 +174,16 @@ class SlidingKVQCache(nn.Module):
         if self.query_cache:
             return self.k_cache, self.v_cache, self.q_cache
         return self.k_cache, self.v_cache
+    
+    def clear_cache(self):
+        """
+        Clears the cache.
+        """
+        self.k_cache.zero_()
+        self.v_cache.zero_()
+        if self.query_cache:
+            self.q_cache.zero_()
+        self.current_seq_len = 0
 
 
 class MultiHeadProjection(nn.Module):
@@ -224,7 +234,7 @@ class CachedMultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
         # KV cache
-        self.kv_cache = SlidingKVQCache(max_batch_size, max_seq_len, num_heads, self.head_dim, torch.float32, query_cache=query_cache)
+        self.qkv_cache = SlidingQKVCache(max_batch_size, max_seq_len, num_heads, self.head_dim, torch.float32, query_cache=query_cache)
 
     def scaled_dot_product_attention(self, query, key, value):
         attn_scores = query @ key.transpose(-2,-1) * self.scale
@@ -249,128 +259,140 @@ class CachedMultiHeadAttention(nn.Module):
 
         if use_cache:
             # Cache latest keys, values, (and queries if enabled) which correspond to latest embedding in the sequence
-            if self.kv_cache.query_cache:
-                self.kv_cache.append_cache(key, value, query)
-                cached_keys, cached_values, cached_queries = self.kv_cache.retrieve_cache()
+            if self.qkv_cache.query_cache:
+                self.qkv_cache.append_cache(key, value, query)
+                cached_keys, cached_values, cached_queries = self.qkv_cache.retrieve_cache()
             else:
-                self.kv_cache.append_cache(key, value)
-                cached_keys, cached_values = self.kv_cache.retrieve_cache()
+                self.qkv_cache.append_cache(key, value)
+                cached_keys, cached_values = self.qkv_cache.retrieve_cache()
         
         else:
             cached_keys, cached_values, cached_queries = key, value, None
 
         # Perform scaled dot product attention for all attention heads (multi-headed attention)
-        if self.kv_cache.query_cache and cached_queries is not None:
+        if self.qkv_cache.query_cache and cached_queries is not None:
             out = self.scaled_dot_product_attention(cached_queries, cached_keys, cached_values)
         else:
             out = self.scaled_dot_product_attention(query, cached_keys, cached_values)
 
         out = self.dropout(out)
         return out
+    
+    def clear_cache(self):
+        self.qkv_cache.clear_cache()
+
 
 class CachedSlidingAttentionEncoder(nn.Module):
     def __init__(self, d_model, ffn_hidden, n_head, max_batch_size, max_seq_len, ffn_dropout=0.1, attention_dropout=0.1, query_cache=True):
         super(CachedSlidingAttentionEncoder, self).__init__()
+        # Initialize the multi-head attention layer with caching capabilities
         self.attention = CachedMultiHeadAttention(
             d_model, n_head, max_batch_size, max_seq_len, dropout=attention_dropout, query_cache=query_cache
         )
+        # Layer normalization for the output of the attention layer
         self.norm1 = nn.LayerNorm(d_model)
+        # Dropout for regularization after the first residual connection
         self.dropout1 = nn.Dropout(ffn_dropout)
+        # Position-wise feed-forward network
         self.ffn = PositionwiseFeedForward(
             d_model=d_model, hidden=ffn_hidden, ffn_dropout=ffn_dropout
         )
+        # Layer normalization for the output of the feed-forward network
         self.norm2 = nn.LayerNorm(d_model)
+        # Dropout for regularization after the second residual connection
         self.dropout2 = nn.Dropout(ffn_dropout)
 
-    def forward(self, query, key, value, seq_length, use_cache=True):
-        # x is of shape [batch_size, seq_length, features/embedding]
+    def forward(self, query, key, value, use_cache=True):
+        ''' 
+        Expect query to be of shape [batch_size, seq_length, features/embedding]
+        '''
 
         # Attention mechanism which will remove the oldest token if cache exceeds seq_length if use_cache is True
-        x = self.attention(query=query, key=key, value=value, use_cache=use_cache)
+        attn_output = self.attention(query=query, key=key, value=value, use_cache=use_cache)
+        # Apply dropout and add residual connection
+        query = query + self.dropout1(attn_output)
+        # Apply layer normalization to stabilize the output
+        query = self.norm1(query)
 
-        # Add and norm
-        x = x + self.dropout1(self.norm1(x))
-        
-        # Feedforward
-        # Add and norm
-        x = x + self.dropout1(self.norm1(x))
-        
-        # Feedforward
-        x = self.ffn(x)
-        x = x + self.dropout2(self.norm2(x))
+        # Apply the position-wise feed-forward network
+        ffn_output = self.ffn(query)
+        # Apply dropout and add residual connection
+        query = query + self.dropout2(ffn_output)
+        # Apply layer normalization to stabilize the output
+        query = self.norm2(query)
 
-        x = x + self.dropout2(self.norm2(x))
-
-        return x
-
-
-class CachedSlidingCrossAttentionEncoder(nn.Module):
-    def __init__(self, d_model, ffn_hidden, n_head, ffn_dropout, attention_dropout=0.1):
-        super(CachedSlidingCrossAttentionEncoder, self).__init__()
-        self.attention = MultiheadAttention(
-            d_model, n_head, batch_first=True, dropout=attention_dropout
-        )
-        self.norm1 = nn.LayerNorm(d_model)
-        self.dropout1 = nn.Dropout(ffn_dropout)
-        self.ffn = PositionwiseFeedForward(
-            d_model=d_model, hidden=ffn_hidden, ffn_dropout=ffn_dropout
-        )
-        self.norm2 = nn.LayerNorm(d_model)
-        self.dropout2 = nn.Dropout(ffn_dropout)
-
-        # Initialize KV cache
-        self.kv_cache = None
-        self.query_cache = None
-
-    def forward(self, query, key_value, seq_length, use_cache=False):
-        if use_cache and self.kv_cache is not None:
-            key_cache, value_cache = self.kv_cache
-            query_cache = self.query_cache
-        else:
-            key_cache, value_cache = None, None
-            query_cache = None
-
-        # Concatenate new tokens with cached tokens and apply windowing
-        if key_cache is not None and value_cache is not None:
-            keys = torch.cat([key_cache, key_value], dim=1)
-            values = torch.cat([value_cache, key_value], dim=1)
-            queries = torch.cat([query_cache, query], dim=1)
-
-            # Maintain the sliding window of cache
-            if keys.size(1) > seq_length:
-                keys = keys[:, -seq_length:, :]
-                values = values[:, -seq_length:, :]
-                queries = queries[:, -seq_length:, :]
-            if keys.size(1) > seq_length:
-                keys = keys[:, -seq_length:, :]
-                values = values[:, -seq_length:, :]
-                queries = queries[:, -seq_length:, :]
-
-        else:
-            keys, values = key_value, key_value
-            queries = query
-
-        # Perform cross-attention over all tokens (cached + new)
-        x, attn_output_weights = self.attention(queries, keys, values)
-
-        # Update cache
-        if use_cache:
-            self.kv_cache = (keys.detach(), values.detach())
-            self.query_cache = queries.detach()
-
-        # Use the relevant part of the output (last `L` tokens)
-        x = x[:, -queries.size(1):, :]
-
-        x = self.norm1(x + queries)
-        x = self.dropout1(x)
-
-        # Feed-forward layer
-        _x = x
-        x = self.ffn(x)
-        x = self.norm2(x + _x)
-        x = self.dropout2(x)
-        return x
-
+        return query
+    
     def clear_cache(self):
-        self.kv_cache = None
-        self.query_cache = None
+        self.attention.clear_cache()
+
+# class CachedSlidingCrossAttentionEncoder(nn.Module):
+#     def __init__(self, d_model, ffn_hidden, n_head, ffn_dropout, attention_dropout=0.1):
+#         super(CachedSlidingCrossAttentionEncoder, self).__init__()
+#         self.attention = MultiheadAttention(
+#             d_model, n_head, batch_first=True, dropout=attention_dropout
+#         )
+#         self.norm1 = nn.LayerNorm(d_model)
+#         self.dropout1 = nn.Dropout(ffn_dropout)
+#         self.ffn = PositionwiseFeedForward(
+#             d_model=d_model, hidden=ffn_hidden, ffn_dropout=ffn_dropout
+#         )
+#         self.norm2 = nn.LayerNorm(d_model)
+#         self.dropout2 = nn.Dropout(ffn_dropout)
+
+#         # Initialize KV cache
+#         self.qkv_cache = None
+#         self.query_cache = None
+
+#     def forward(self, query, key_value, seq_length, use_cache=False):
+#         if use_cache and self.qkv_cache is not None:
+#             key_cache, value_cache = self.qkv_cache
+#             query_cache = self.query_cache
+#         else:
+#             key_cache, value_cache = None, None
+#             query_cache = None
+
+#         # Concatenate new tokens with cached tokens and apply windowing
+#         if key_cache is not None and value_cache is not None:
+#             keys = torch.cat([key_cache, key_value], dim=1)
+#             values = torch.cat([value_cache, key_value], dim=1)
+#             queries = torch.cat([query_cache, query], dim=1)
+
+#             # Maintain the sliding window of cache
+#             if keys.size(1) > seq_length:
+#                 keys = keys[:, -seq_length:, :]
+#                 values = values[:, -seq_length:, :]
+#                 queries = queries[:, -seq_length:, :]
+#             if keys.size(1) > seq_length:
+#                 keys = keys[:, -seq_length:, :]
+#                 values = values[:, -seq_length:, :]
+#                 queries = queries[:, -seq_length:, :]
+
+#         else:
+#             keys, values = key_value, key_value
+#             queries = query
+
+#         # Perform cross-attention over all tokens (cached + new)
+#         x, attn_output_weights = self.attention(queries, keys, values)
+
+#         # Update cache
+#         if use_cache:
+#             self.qkv_cache = (keys.detach(), values.detach())
+#             self.query_cache = queries.detach()
+
+#         # Use the relevant part of the output (last `L` tokens)
+#         x = x[:, -queries.size(1):, :]
+
+#         x = self.norm1(x + queries)
+#         x = self.dropout1(x)
+
+#         # Feed-forward layer
+#         _x = x
+#         x = self.ffn(x)
+#         x = self.norm2(x + _x)
+#         x = self.dropout2(x)
+#         return x
+
+#     def clear_cache(self):
+#         self.qkv_cache = None
+#         self.query_cache = None

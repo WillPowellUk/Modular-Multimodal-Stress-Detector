@@ -1,0 +1,105 @@
+{
+    "cv_splits": 5,
+    "sensors": {
+        "bvp": true,
+        "w_acc": false,
+        "w_eda": true,
+        "w_temp": false
+    },
+    "sampling rate": {
+        "bvp": 64,
+        "w_acc_x": 32,
+        "w_acc_y": 32,
+        "w_acc_z": 32,
+        "w_eda": 4,
+        "w_temp": 4
+    },
+    "subjects": {
+        "2.0": true,
+        "3.0": true,
+        "4.0": true,
+        "5.0": true,
+        "6.0": true,
+        "7.0": true,
+        "8.0": true,
+        "9.0": true,
+        "10.0": true,
+        "11.0": true,
+        "13.0": true,
+        "14.0": true,
+        "15.0": true,
+        "16.0": true,
+        "17.0": true
+    },
+    "labels": {
+        "0.0": false,
+        "1.0": true,
+        "2.0": true,
+        "3.0": false,
+        "4.0": false,
+        "5.0": false,
+        "6.0": false,
+        "7.0": false
+    },
+    "features": {
+        "bvp": [
+          "mean_EDA",
+          "std_EDA",
+          "HRV_MeanNN",
+          "HRV_SDNN",
+          "HRV_pNN50",
+          "HRV_TINN",
+          "HRV_RMSSD",
+          "HRV_ULF",
+          "HRV_LF",
+          "HRV_HF",
+          "HRV_VHF",
+          "HRV_LFHF",
+          "HRV_TP",
+          "HRV_HFn",
+          "HRV_LFn"
+        ],
+        "w_acc": [
+          "abs_integral_acc_all",
+          "abs_integral_acc_x",
+          "abs_integral_acc_y",
+          "abs_integral_acc_z",
+          "mean_acc_all",
+          "mean_acc_x",
+          "mean_acc_y",
+          "mean_acc_z",
+          "peak_freq_acc_x",
+          "peak_freq_acc_y",
+          "peak_freq_acc_z",
+          "std_acc_all",
+          "std_acc_x",
+          "std_acc_y",
+          "std_acc_z"
+        ],
+        "w_eda": [
+          "area_SCR",
+          "corr_SCL_t",
+          "max_EDA",
+          "mean_EDA",
+          "mean_SCL",
+          "mean_SCR",
+          "min_EDA",
+          "num_SCR",
+          "range_EDA",
+          "slope_EDA",
+          "std_EDA",
+          "std_SCL",
+          "std_SCR",
+          "sum_amp_SCR",
+          "sum_t_SCR"
+        ],
+        "w_temp": [
+          "max_temp",
+          "mean_temp",
+          "min_temp",
+          "range_temp",
+          "slope_temp",
+          "std_temp"
+        ]
+    }
+}
