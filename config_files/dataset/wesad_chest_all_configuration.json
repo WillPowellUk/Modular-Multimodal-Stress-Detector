@@ -1,8 +1,6 @@
 {
   "sensors": {
-    "acc1": true,
-    "acc2": true,
-    "acc3": true,
+    "acc": true,
     "ecg": true,
     "emg": true,
     "eda": true,
@@ -91,6 +89,23 @@
       "RSP_Phase_Duration_Inspiration",
       "RSP_Phase_Duration_Expiration",
       "RSP_Phase_Duration_Ratio"
+    ],
+    "acc": [
+        "mean_acc_x",
+        "std_acc_x",
+        "mean_acc_y",
+        "std_acc_y",
+        "mean_acc_z",
+        "std_acc_z",
+        "mean_acc_all",
+        "std_acc_all",
+        "abs_integral_acc_x",
+        "abs_integral_acc_y",
+        "abs_integral_acc_z",
+        "abs_integral_acc_all",
+        "peak_freq_acc_x",
+        "peak_freq_acc_y",
+        "peak_freq_acc_z"
     ]
   }
 }

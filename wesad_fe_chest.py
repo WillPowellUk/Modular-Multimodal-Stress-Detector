@@ -3,9 +3,9 @@ from src.ml_pipeline.feature_extraction import ManualFE
 
 print("boobs")
 
-WINDOW_LENGTH = 30
-SPLIT_LENGTH = int(WINDOW_LENGTH / 6) # this will sub-split the data 6 times each of 5 seconds
-SLIDING_LENGTH = SPLIT_LENGTH # this will create 6 samples per 30 seconds since 30/5 = 6 with 5:1 ratio of synthetic to real samples
+# WINDOW_LENGTH = 30
+# SPLIT_LENGTH = int(WINDOW_LENGTH / 6) # this will sub-split the data 6 times each of 5 seconds
+# SLIDING_LENGTH = SPLIT_LENGTH # this will create 6 samples per 30 seconds since 30/5 = 6 with 5:1 ratio of synthetic to real samples
 
 CHEST_CONFIG = "config_files/dataset/wesad_chest_all_configuration.json"
 
