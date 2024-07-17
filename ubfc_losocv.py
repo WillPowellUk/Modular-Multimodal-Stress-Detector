@@ -21,7 +21,7 @@ losocv_loader = LOSOCVSensorDataLoader(FE, CONFIG, **dataloader_params)
 
 # Prepare the datasets
 DATASETS_PATH = losocv_loader.prepare_datasets(
-    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s"
+    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s", n_folds=7
 )
 
 ############################################################################################################
@@ -45,7 +45,7 @@ losocv_loader = LOSOCVSensorDataLoader(FE, CONFIG, **dataloader_params)
 
 # Prepare the datasets
 DATASETS_PATH = losocv_loader.prepare_datasets(
-    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s"
+    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s", n_folds=7
 )
 
 '''
@@ -68,7 +68,7 @@ losocv_loader = LOSOCVSensorDataLoader(FE, CONFIG, **dataloader_params)
 
 # Prepare the datasets
 DATASETS_PATH = losocv_loader.prepare_datasets(
-    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s"
+    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s", n_folds=7
 )
 
 ############################################################################################################
@@ -92,7 +92,7 @@ losocv_loader = LOSOCVSensorDataLoader(FE, CONFIG, **dataloader_params)
 
 # Prepare the datasets
 DATASETS_PATH = losocv_loader.prepare_datasets(
-    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s"
+    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s", n_folds=7
 )
 
 
@@ -116,7 +116,7 @@ losocv_loader = LOSOCVSensorDataLoader(FE, CONFIG, **dataloader_params)
 
 # Prepare the datasets
 DATASETS_PATH = losocv_loader.prepare_datasets(
-    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s"
+    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s", n_folds=7
 )
 
 ############################################################################################################
@@ -140,5 +140,5 @@ losocv_loader = LOSOCVSensorDataLoader(FE, CONFIG, **dataloader_params)
 
 # Prepare the datasets
 DATASETS_PATH = losocv_loader.prepare_datasets(
-    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s"
+    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s", n_folds=7
 )
