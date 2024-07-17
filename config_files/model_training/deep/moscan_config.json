@@ -1,5 +1,4 @@
 {
-    "NAME": "MOSCAN",
     "query_cache": true,
     "predictor": "avg_pool",
     "num_classes": 2,
