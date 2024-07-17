@@ -294,6 +294,7 @@ class ManualFE:
         for i, batch in enumerate(self.batches):
             try:
                 if i % 100 == 0 and i != 0:
+                    break
                     elapsed_time = time.time() - start_time
                     average_time_per_batch = elapsed_time / (i + 1)
                     remaining_batches = total_batches - (i + 1)
