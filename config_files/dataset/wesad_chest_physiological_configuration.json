@@ -1,0 +1,94 @@
+{
+    "sensors": {
+      "ecg": true,
+      "emg": true,
+      "eda": true,
+      "temp": true,
+      "resp": true
+    },
+    "sampling rate": {
+      "acc1": 700,
+      "acc2": 700,
+      "acc3": 700,
+      "ecg": 700,
+      "emg": 700,
+      "eda": 700,
+      "temp": 700,
+      "resp": 700
+    },
+    "subjects": {
+      "2.0": true,
+      "3.0": true,
+      "4.0": true,
+      "5.0": true,
+      "6.0": true,
+      "7.0": true,
+      "8.0": true,
+      "9.0": true,
+      "10.0": true,
+      "11.0": true,
+      "13.0": true,
+      "14.0": true,
+      "15.0": true,
+      "16.0": true,
+      "17.0": true
+    },
+    "labels": {
+      "0.0": false,
+      "1.0": true,
+      "2.0": true,
+      "3.0": true,
+      "4.0": false,
+      "5.0": false,
+      "6.0": false,
+      "7.0": false
+    },
+    "features": {
+      "ecg": [
+        "HRV_MeanNN", "HRV_SDNN", "HRV_SDANN1", "HRV_SDNNI1", "HRV_SDANN2",
+        "HRV_SDNNI2", "HRV_SDANN5", "HRV_SDNNI5", "HRV_RMSSD", "HRV_SDSD",
+        "HRV_CVNN", "HRV_CVSD", "HRV_MedianNN", "HRV_MadNN", "HRV_MCVNN",
+        "HRV_IQRNN", "HRV_SDRMSSD", "HRV_Prc20NN", "HRV_Prc80NN", "HRV_pNN50",
+        "HRV_pNN20", "HRV_MinNN", "HRV_MaxNN", "HRV_HTI", "HRV_TINN", "HRV_ULF",
+        "HRV_VLF", "HRV_LF", "HRV_HF", "HRV_VHF", "HRV_TP", "HRV_LFHF", "HRV_LFn",
+        "HRV_HFn", "HRV_LnHF", "ECG_P_Peaks_Interval_Mean", "ECG_P_Peaks_Interval_SD",
+        "ECG_Q_Peaks_Interval_Mean", "ECG_Q_Peaks_Interval_SD", "ECG_S_Peaks_Interval_Mean",
+        "ECG_S_Peaks_Interval_SD", "ECG_T_Peaks_Interval_Mean", "ECG_T_Peaks_Interval_SD",
+        "EDR_Distance"
+      ],
+      "emg": [
+        "mean_EMG", "std_EMG", "range_EMG", "abs_integral_EMG", "median_EMG",
+        "P10_EMG", "P90_EMG", "mean_freq_EMG", "median_freq_EMG", "peak_freq_EMG",
+        "energy_band_0_EMG", "energy_band_4_EMG", "energy_band_8_EMG", "energy_band_12_EMG",
+        "energy_band_16_EMG", "energy_band_20_EMG", "energy_band_24_EMG", "energy_band_28_EMG",
+        "num_peaks_EMG", "mean_peak_amp_EMG", "std_peak_amp_EMG", "sum_peak_amp_EMG",
+        "norm_sum_peak_amp_EMG"
+      ],
+      "temp": [
+        "mean_temp", "std_temp", "min_temp", "max_temp", "slope_temp", "range_temp"
+      ],
+      "eda": [
+        "mean_EMG", "std_EMG", "range_EMG", "abs_integral_EMG", "median_EMG",
+        "P10_EMG", "P90_EMG", "mean_freq_EMG", "median_freq_EMG", "peak_freq_EMG",
+        "energy_band_0_EMG", "energy_band_4_EMG", "energy_band_8_EMG", "energy_band_12_EMG",
+        "energy_band_16_EMG", "energy_band_20_EMG", "energy_band_24_EMG", "energy_band_28_EMG",
+        "num_peaks_EMG", "mean_peak_amp_EMG", "std_peak_amp_EMG", "sum_peak_amp_EMG",
+        "norm_sum_peak_amp_EMG"
+      ],
+      "resp": [
+        "Mean_Inhalation_Duration",
+        "STD_Inhalation_Duration",
+        "Mean_Exhalation_Duration",
+        "STD_Exhalation_Duration",
+        "Inhalation_Exhalation_Ratio",
+        "RAV_Mean",
+        "RAV_SD",
+        "RSP_RVT",
+        "RSP_Rate_Mean",
+        "RSP_Phase_Duration_Inspiration",
+        "RSP_Phase_Duration_Expiration",
+        "RSP_Phase_Duration_Ratio"
+      ]
+    }
+  }
+  

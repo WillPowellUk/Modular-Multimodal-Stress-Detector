@@ -1,13 +1,15 @@
 {
     "sensors": {
-        "acc1": true,
-        "acc2": true,
-        "acc3": true,
+        "acc": true,
         "ecg": true,
         "emg": true,
         "eda": true,
         "temp": true,
-        "resp": true
+        "resp": true,
+        "bvp": true,
+        "w_acc": true,
+        "w_eda": true,
+        "w_temp": true
     },
     "sampling rate": {
         "acc1": 700,
