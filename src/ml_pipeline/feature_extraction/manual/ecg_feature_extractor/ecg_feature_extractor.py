@@ -70,9 +70,10 @@ class ECGFeatureExtractor:
         df = pd.DataFrame()
         for peak in peaks:
             intervals = (
-                np.diff(np.where(np.array(ecg_processed[peak] == 1)))
+                np.diff(np.where(np.atleast_1d(np.array(ecg_processed[peak]) == 1)))
                 * self.sampling_rate
             )
+
             intervals = intervals[
                 (intervals >= min_interval) & (intervals <= max_interval)
             ]
@@ -85,8 +86,9 @@ class ECGFeatureExtractor:
         waves = ["P", "R", "T"]
         max_duration = [120000, 120000, 200000]
         for w, wave in enumerate(waves):
-            onsets = np.where(np.array(ecg_processed[f"ECG_{wave}_Onsets"] == 1))[0]
-            offsets = np.where(np.array(ecg_processed[f"ECG_{wave}_Offsets"] == 1))[0]
+            onsets = np.where(np.atleast_1d(np.array(ecg_processed[f"ECG_{wave}_Onsets"]) == 1))[0]
+            offsets = np.where(np.atleast_1d(np.array(ecg_processed[f"ECG_{wave}_Offsets"]) == 1))[0]
+
             if len(onsets) == 0 or len(offsets) == 0:
                 continue
             idx_offset = np.where(offsets >= onsets[0])[0][0]

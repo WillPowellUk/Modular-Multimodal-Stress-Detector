@@ -1,14 +1,10 @@
 Extracting features...
-Error processing batch 7. Error: cannot convert float NaN to integer
-Error processing batch 13. Error: cannot convert float NaN to integer
-Error processing batch 24. Error: cannot convert float NaN to integer
-Error processing batch 29. Error: cannot convert float NaN to integer
-Error processing batch 39. Error: cannot convert float NaN to integer
-Error processing batch 44. Error: cannot convert float NaN to integer
-Error processing batch 53. Error: cannot convert float NaN to integer
-Error processing batch 58. Error: cannot convert float NaN to integer
-Error processing batch 68. Error: cannot convert float NaN to integer
-Error processing batch 73. Error: cannot convert float NaN to integer
-Error processing batch 83. Error: cannot convert float NaN to integer
-Error processing batch 88. Error: cannot convert float NaN to integer
-Extracting features from batch 101/4278 | ETA: 0h 45m 49.31s
+Extracting features from batch 101/6606 | ETA: 3h 9m 34.11s
+Extracting features from batch 201/6606 | ETA: 2h 17m 1.31s
+Extracting features from batch 301/6606 | ETA: 2h 4m 21.44s
+Extracting features from batch 401/6606 | ETA: 1h 54m 51.54s
+Extracting features from batch 501/6606 | ETA: 1h 48m 16.76s
+Extracting features from batch 601/6606 | ETA: 1h 43m 49.71s
+Extracting features from batch 701/6606 | ETA: 1h 40m 53.50s
+Extracting features from batch 801/6606 | ETA: 1h 38m 42.51s
+Extracting features from batch 901/6606 | ETA: 1h 35m 18.76s
