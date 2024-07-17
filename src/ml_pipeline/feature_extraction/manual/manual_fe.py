@@ -10,7 +10,7 @@ import gc
 import h5py
 from sklearn.preprocessing import StandardScaler
 
-from src.ml_pipeline.utils.utils import get_max_sampling_rate, get_active_key, print2
+from src.ml_pipeline.utils.utils import get_max_sampling_rate, get_active_key, print2, load_json
 from .eda_feature_extractor import EDAFeatureExtractor
 from .bvp_feature_extractor import BVPFeatureExtractor
 from .acc_feature_extractor import AccFeatureExtractor
@@ -26,6 +26,8 @@ class ManualFE:
     def __init__(self, batches, save_path: str, config_path: str):
         self.batches = batches
         self.save_path = save_path
+        self.config = load_json(config_path)
+        self.features = get_active_key(config_path, "features", recursive=True)
         self.sensors = get_active_key(config_path, "sensors")
         self.sampling_rate = get_max_sampling_rate(config_path)
 
@@ -35,6 +37,19 @@ class ManualFE:
 
         # Ignore runtime warning for mean of empty slice
         warnings.filterwarnings("ignore", message="Mean of empty slice")
+
+    def extract_features_from_batch(self, batch):
+        features_dict = {}
+
+        for sensor in self.sensors:
+            match sensor:
+                case "resp":
+                    resp_features = RespFeatureExtractor(
+                        batch["resp"], self.sampling_rate
+                    ).extract_features()
+                    features_dict["resp"] = resp_features
+
+        return features_dict
 
     def extract_features_from_split(self, split):
         features_dict = {}
@@ -74,6 +89,8 @@ class ManualFE:
                     ).extract_features()
                     features_dict["emg"] = emg_features
                 case "resp":
+                    if self.slow_feautres_flag:
+                        continue
                     resp_features = RespFeatureExtractor(
                         split["resp"], self.sampling_rate
                     ).extract_features()
@@ -249,6 +266,19 @@ class ManualFE:
 
         print2(LOG_FILE_PATH, "Scaling and imputation complete")
         return all_batches_features
+    
+    def impute_missing_features(self):
+        features_dict = {}
+
+        for sensor in self.sensors:
+            match sensor:
+                case "resp":
+                    features = self.config['features']['resp']
+                    # Create a dictionary with features as keys and np.nan as values
+                    sensor_features = {feature: np.nan for feature in features}
+                    features_dict[sensor] = sensor_features
+
+        return features_dict
 
     def extract_features(self):
         print(f"Extracting Features. Writing to log file: {LOG_FILE_PATH}...")
@@ -260,6 +290,7 @@ class ManualFE:
         total_batches = len(self.batches)
         start_time = time.time()
 
+        slow_buffer = pd.DataFrame()
         for i, batch in enumerate(self.batches):
             try:
                 if i % 100 == 0 and i != 0:
@@ -277,9 +308,44 @@ class ManualFE:
                         f"Extracting features from batch {i+1}/{total_batches} | ETA: {hours}h {minutes}m {seconds:.2f}s",
                     )
 
+                slow_features_length_s = 40 # 10s 
+
+                # Complete slow signals such as resp from batch and copy features to each split
+                if len(batch[0]) / self.sampling_rate < slow_features_length_s:
+                    self.slow_feautres_flag = True
+                    # Concatenate DataFrames together
+                    batch_concat = pd.concat(batch, axis=0)
+                    batch_concat.reset_index(drop=True, inplace=True)
+
+                    # Fill up buffer
+                    slow_buffer = pd.concat([slow_buffer, batch_concat], axis=0)
+
+                    # If buffer is not full, impute missing values
+                    if len(slow_buffer) / self.sampling_rate < slow_features_length_s:
+                        # Impute missing contents
+                        slow_features = self.impute_missing_features()
+
+                    # If buffer is full, extract features from buffer and move buffer forward
+                    else:
+                        # Extract features
+                        slow_features = self.extract_features_from_batch(slow_buffer)
+
+                        # Calculate the number of samples to remove to maintain the buffer size
+                        max_buffer_length = slow_features_length_s * self.sampling_rate
+                        excess_samples = len(slow_buffer) - max_buffer_length
+
+                        # Remove the oldest data points
+                        if excess_samples > 0:
+                            slow_buffer = slow_buffer.iloc[excess_samples:].reset_index(drop=True)
+
+                else:
+                    self.slow_feautres_flag = False
+
                 batch_features = []
                 for split in batch:
                     split_features = self.extract_features_from_split(split)
+                    if self.slow_feautres_flag:
+                        split_features.update(slow_features)
                     batch_features.append(split_features)
                 all_batches_features.append(batch_features)
             except Exception as e:
