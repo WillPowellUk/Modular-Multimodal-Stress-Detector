@@ -223,6 +223,7 @@ class ManualFE:
                 combined_df.replace([np.inf, -np.inf], np.nan, inplace=True)
 
                 # Normalize and impute features in place
+                combined_df.columns = combined_df.columns.astype(str)
                 normalized_df = pd.DataFrame(
                     scaler.fit_transform(combined_df), columns=combined_df.columns
                 )
@@ -276,7 +277,9 @@ class ManualFE:
                     features = self.config['features']['resp']
                     # Create a dictionary with features as keys and np.nan as values
                     sensor_features = {feature: np.nan for feature in features}
-                    features_dict[sensor] = sensor_features
+                    # Convert dictionary to DataFrame
+                    features_df = pd.DataFrame([sensor_features])
+                    features_dict[sensor] = features_df
 
         return features_dict
 
@@ -294,7 +297,6 @@ class ManualFE:
         for i, batch in enumerate(self.batches):
             try:
                 if i % 100 == 0 and i != 0:
-                    break
                     elapsed_time = time.time() - start_time
                     average_time_per_batch = elapsed_time / (i + 1)
                     remaining_batches = total_batches - (i + 1)

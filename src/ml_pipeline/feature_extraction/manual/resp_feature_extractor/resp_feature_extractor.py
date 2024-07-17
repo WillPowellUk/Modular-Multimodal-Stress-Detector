@@ -20,9 +20,6 @@ class RespFeatureExtractor:
             self.resp_data, sampling_rate=self.sampling_rate
         )
 
-        # Extract respiratory rate variability features
-        rrv_features = nk.rsp_rrv(rsp_processed, sampling_rate=self.sampling_rate)
-
         # Extract mean and standard deviation of inhalation and exhalation
         interval_related = nk.rsp_intervalrelated(
             rsp_processed, sampling_rate=self.sampling_rate
@@ -45,9 +42,6 @@ class RespFeatureExtractor:
             [
                 pd.DataFrame([features]),  # Extracted simple features as DataFrame
                 interval_related.reset_index(drop=True),  # Interval related features
-                rrv_features.reset_index(
-                    drop=True
-                ),  # Respiratory rate variability features
             ],
             axis=1,
         )
