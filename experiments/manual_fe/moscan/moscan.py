@@ -59,15 +59,15 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
 
     # Uncomment parameters to use them in a grid search
     HYPERPARAMETER_GRID = {
-        "epochs": [10],
-        "kalman": [False],
+        "epochs": [20],
+        "kalman": [False, True],
         # "embed_dim": [8, 16, 32],
         # "hidden_dim": [16, 32, 62, 64, 128, 256], 
-        # "n_head_gen": [2, 4, 8],
-        # "dropout": [0.3, 0.5, 0.7],
-        # "attention_dropout": [0.3, 0.5, 0.7],
-        # "learning_rate": [0.0001, 0.001, 0.01],
-        # "batch_size": [8, 16, 32, 64],
+        "n_head_gen": [4, 8],
+        "dropout": [0.5],
+        "attention_dropout": [0.5],
+        "learning_rate": [0.0001, 0.001, 0.01],
+        "batch_size": [16, 32],
         # "epochs": [5, 10, 15, 20],
         # "fine_tune_epochs": [1, 3, 5],
         # "fine_tune_learning_rate": [0.001, 0.0001, 0.00005],
@@ -263,25 +263,65 @@ if __name__ == '__main__':
     from src.ml_pipeline.utils.utils import modify_key
     from src.ml_pipeline.models.attention_models import MOSCAN
 
-    MOSCAN_CONFIG = "config_files/model_training/deep/moscan_config.json"
-    SENSORS = "bvp_w_eda"
-    DATASET_CONFIG = f"config_files/dataset/wesad_wrist_{SENSORS}_configuration.json"
-    DATASET_TYPE = "losocv"
+    # dataset = "wesad"
+    dataset = "ubfc"
 
-    # Load Train Dataloaders for LOSOCV
-    BATCHED_WINDOW_LENGTH = 30
-    BATCHED_SPLIT_LENGTH = int(
-        BATCHED_WINDOW_LENGTH / 6
-    )  # this will sub-split the data 6 times each of 5 seconds
-    BATCHED_SLIDING_LENGTH = BATCHED_SPLIT_LENGTH  # this will create 6 samples per 30 seconds since 30/5 = 6 with 5:1 ratio of synthetic to real samples
-    BATCHED_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{BATCHED_WINDOW_LENGTH}s_{BATCHED_SLIDING_LENGTH}s_{BATCHED_SPLIT_LENGTH}s/wrist_features.hdf5"
-    BATCHED_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{BATCHED_WINDOW_LENGTH}s_{BATCHED_SLIDING_LENGTH}s_{BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
+    if dataset == "wesad":
+        MOSCAN_CONFIG = "config_files/model_training/deep/moscan_config.json"
+        SENSORS = "bvp_w_eda"
+        DATASET_CONFIG = f"config_files/dataset/wesad_wrist_{SENSORS}_configuration.json"
+        DATASET_TYPE = "losocv"
 
-    # Load Val Dataloaders for LOSOCV
-    NON_BATCHED_WINDOW_LENGTH = 5
-    NON_BATCHED_SLIDING_LENGTH = NON_BATCHED_WINDOW_LENGTH  # this will create no overlap between segments i.e. no augmented / synthetic data.
-    NON_BATCHED_SPLIT_LENGTH = NON_BATCHED_WINDOW_LENGTH  # this will not sub-split the data
-    NON_BATCHED_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/wrist_features.hdf5"
-    NON_BATCHED_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
+        # Load Train Dataloaders for LOSOCV
+        BATCHED_WINDOW_LENGTH = 30
+        BATCHED_SPLIT_LENGTH = int(
+            BATCHED_WINDOW_LENGTH / 6
+        )  # this will sub-split the data 6 times each of 5 seconds
+        BATCHED_SLIDING_LENGTH = BATCHED_SPLIT_LENGTH  # this will create 6 samples per 30 seconds since 30/5 = 6 with 5:1 ratio of synthetic to real samples
+        BATCHED_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{BATCHED_WINDOW_LENGTH}s_{BATCHED_SLIDING_LENGTH}s_{BATCHED_SPLIT_LENGTH}s/wrist_features.hdf5"
+        BATCHED_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{BATCHED_WINDOW_LENGTH}s_{BATCHED_SLIDING_LENGTH}s_{BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
 
-    moscan(MOSCAN, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH, GROUP_LABELS=None, NAME='MOSCAN-TEST')
+        # Load Val Dataloaders for LOSOCV
+        NON_BATCHED_WINDOW_LENGTH = 5
+        NON_BATCHED_SLIDING_LENGTH = NON_BATCHED_WINDOW_LENGTH  # this will create no overlap between segments i.e. no augmented / synthetic data.
+        NON_BATCHED_SPLIT_LENGTH = NON_BATCHED_WINDOW_LENGTH  # this will not sub-split the data
+        NON_BATCHED_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/wrist_features.hdf5"
+        NON_BATCHED_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
+
+        moscan(MOSCAN, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH, GROUP_LABELS=None, NAME='MOSCAN-TEST-WESAD')
+
+    elif dataset == "ubfc":
+        # Set either losocv or kfold
+        # DATASET_TYPE = "losocv"
+        DATASET_TYPE = "cv_7"
+
+        # Load Train Dataloaders for LOSOCV
+        BATCHED_WINDOW_LENGTH = 30
+        BATCHED_SPLIT_LENGTH = int(
+            BATCHED_WINDOW_LENGTH / 6
+        )  # this will sub-split the data 6 times each of 5 seconds
+        BATCHED_SLIDING_LENGTH = BATCHED_SPLIT_LENGTH  # this will create 6 samples per 30 seconds since 30/5 = 6 with 5:1 ratio of synthetic to real samples
+        BATCHED_FE = f"src/ubfc_phys/UBFC-PHYS/manual_fe/{BATCHED_WINDOW_LENGTH}s_{BATCHED_SLIDING_LENGTH}s_{BATCHED_SPLIT_LENGTH}s/all_features.hdf5"
+
+        # Load Val Dataloaders for LOSOCV
+        NON_BATCHED_WINDOW_LENGTH = 5
+        NON_BATCHED_SLIDING_LENGTH = NON_BATCHED_WINDOW_LENGTH  # this will create no overlap between segments i.e. no augmented / synthetic data.
+        NON_BATCHED_SPLIT_LENGTH = NON_BATCHED_WINDOW_LENGTH  # this will not sub-split the data
+        NON_BATCHED_FE = f"src/ubfc_phys/UBFC-PHYS/manual_fe/wrist_manual_fe/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/wrist_features.hdf5"
+
+        MOSCAN_CONFIG = "config_files/model_training/deep/moscan_config.json"
+
+        # T1 v (T2 + T3)
+        # Configure labels for group
+        GROUP_LABELS = {
+            2: [3]  # Label 3 is merged into label 2
+        }
+        modify_key(MOSCAN_CONFIG, "num_classes", 2)
+
+        #### Both modalities
+        SENSORS = 'bvp_eda'
+        DATASET_CONFIG = f"config_files/dataset/ubfc_{SENSORS}_configuration.json"
+        BATCHED_DATASETS_PATH = f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/{SENSORS}/{BATCHED_WINDOW_LENGTH}s_{BATCHED_SLIDING_LENGTH}s_{BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
+        NON_BATCHED_DATASETS_PATH = f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/{SENSORS}/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
+        DATASET_CONFIG = "config_files/dataset/ubfc_bvp_eda_configuration.json"
+        moscan(MOSCAN, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH, GROUP_LABELS=GROUP_LABELS, NAME="MOSCAN-TEST-UBFC")
