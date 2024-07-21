@@ -101,7 +101,7 @@ class LOSOCVSensorDataLoader:
         print(f"Datasets saved at: {dataset_save_path}")
         return dataset_save_path
 
-    def get_data_loaders(self, datasets_path, dataset_type=None, train_only=False, val_only=False):
+    def get_data_loaders(self, datasets_path, dataset_type=None, train_only=False, val_only=False, group_labels=None):
         with open(datasets_path, "rb") as f:
             datasets_path = pickle.load(f)
 
@@ -116,6 +116,7 @@ class LOSOCVSensorDataLoader:
                     train_dataset = SensorDataset(
                         datasets_path[subject_id]["train"],
                         self.dataset_config["include_sensors"],
+                        group_labels=group_labels
                     )
                     train_loader = DataLoader(train_dataset, **self.params)
                     dataloaders[subject_id] = {"train": train_loader}
@@ -125,6 +126,7 @@ class LOSOCVSensorDataLoader:
                     val_dataset = SensorDataset(
                         datasets_path[subject_id]["val"],
                         self.dataset_config["include_sensors"],
+                        group_labels=group_labels
                     )
                     val_loader = DataLoader(val_dataset, **self.params)
                     dataloaders[subject_id] = {"val": val_loader}
@@ -134,10 +136,12 @@ class LOSOCVSensorDataLoader:
                     train_dataset = SensorDataset(
                         datasets_path[subject_id]["train"],
                         self.dataset_config["include_sensors"],
+                        group_labels=group_labels
                     )
                     val_dataset = SensorDataset(
                         datasets_path[subject_id]["val"],
                         self.dataset_config["include_sensors"],
+                        group_labels=group_labels
                     )
                     train_loader = DataLoader(train_dataset, **self.params)
                     val_loader = DataLoader(val_dataset, **self.params)
@@ -151,6 +155,7 @@ class LOSOCVSensorDataLoader:
                     train_dataset = SensorDataset(
                         datasets_path[fold]["train"],
                         self.dataset_config["include_sensors"],
+                        group_labels=group_labels
                     )
                     train_loader = DataLoader(train_dataset, **self.params)
                     dataloaders[fold] = {"train": train_loader}
@@ -160,6 +165,7 @@ class LOSOCVSensorDataLoader:
                     val_dataset = SensorDataset(
                         datasets_path[fold]["val"],
                         self.dataset_config["include_sensors"],
+                        group_labels=group_labels
                     )
                     val_loader = DataLoader(val_dataset, **self.params)
                     dataloaders[fold] = {"val": val_loader}
@@ -169,10 +175,12 @@ class LOSOCVSensorDataLoader:
                     train_dataset = SensorDataset(
                         datasets_path[fold]["train"],
                         self.dataset_config["include_sensors"],
+                        group_labels=group_labels
                     )
                     val_dataset = SensorDataset(
                         datasets_path[fold]["val"],
                         self.dataset_config["include_sensors"],
+                        group_labels=group_labels
                     )
                     train_loader = DataLoader(train_dataset, **self.params)
                     val_loader = DataLoader(val_dataset, **self.params)

@@ -295,9 +295,10 @@ class PerSensorDataset(Dataset):
 
 
 class SensorDataset(Dataset):
-    def __init__(self, features_path, include_sensors):
+    def __init__(self, features_path, include_sensors, group_labels=None):
         self.features_path = features_path
         self.include_sensors = include_sensors
+        self.group_labels = group_labels
         with h5py.File(self.features_path, "r") as hdf5_file:
             self.data_keys = list(hdf5_file.keys())
         self.data_keys = sorted(self.data_keys, key=int)
@@ -329,5 +330,12 @@ class SensorDataset(Dataset):
             label = torch.tensor(
                 int(hdf5_file[sample_key][sensor][f"label"][()]), dtype=torch.long
             )
+
+        # Merge labels if necessary
+        if self.group_labels is not None:
+            for group, labels in self.group_labels.items():
+                if label.item() in labels:
+                    label = torch.tensor(group, dtype=torch.long)
+                    break
 
         return data_dict, label

@@ -1,5 +1,5 @@
 
-def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, BATCHED_FE, DATASET_TYPE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, name=None):
+def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH, GROUP_LABELS=None, NAME=None):
     import os
     import sys
     from datetime import datetime
@@ -91,7 +91,7 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, BATCHED_FE, DATASET_TYPE
             BATCHED_FE, DATASET_CONFIG, **batched_dataloader_params
         )
         batched_dataloaders, batched_input_dims = batched_losocv_loader.get_data_loaders(
-            BATCHED_DATASETS_PATH, dataset_type=DATASET_TYPE
+            BATCHED_DATASETS_PATH, dataset_type=DATASET_TYPE, group_labels=GROUP_LABELS
         )
 
         non_batched_dataloader_params = {
@@ -103,7 +103,7 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, BATCHED_FE, DATASET_TYPE
             NON_BATCHED_FE, DATASET_CONFIG, **non_batched_dataloader_params
         )
         non_batched_dataloaders, non_batched_input_dims = non_batched_losocv_loader.get_data_loaders(
-            NON_BATCHED_DATASETS_PATH, dataset_type=DATASET_TYPE
+            NON_BATCHED_DATASETS_PATH, dataset_type=DATASET_TYPE, group_labels=GROUP_LABELS
         )
 
         assert (
@@ -150,8 +150,8 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, BATCHED_FE, DATASET_TYPE
             model_config["device"] = str(device)
             model_config["input_dims"] = batched_input_dims
             model_config["active_sensors"] = active_sensors
-            if name is not None:
-                model_config["name"] = name
+            if NAME is not None:
+                model_config["name"] = NAME
             save_json(model_config, current_config)
 
             # Initialize model
@@ -219,8 +219,8 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, BATCHED_FE, DATASET_TYPE
     del hyperparams
 
 
-if __name__ == '__main__':
-    from src.ml_pipeline.models.attention_models import MOSCAN
-    MOSCAN_CONFIG = "config_files/model_training/deep/moscan_config.json"
-    DATASET_CONFIG = "config_files/dataset/wesad_wrist_bvp_w_eda_configuration.json"
-    moscan(MOSCAN, MOSCAN_CONFIG, DATASET_CONFIG)
+# if __NAME__ == '__main__':
+#     from src.ml_pipeline.models.attention_models import MOSCAN
+#     MOSCAN_CONFIG = "config_files/model_training/deep/moscan_config.json"
+#     DATASET_CONFIG = "config_files/dataset/wesad_wrist_bvp_w_eda_configuration.json"
+#     moscan(MOSCAN, MOSCAN_CONFIG, DATASET_CONFIG)
