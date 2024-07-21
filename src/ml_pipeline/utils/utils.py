@@ -37,7 +37,7 @@ def modify_key(config_path, key, value):
 
     # Step 2: Modify the key in the dictionary
     if key in data:
-        data[value] = value
+        data[key] = value
 
     # Step 3: Write the updated dictionary back to the JSON file
     with open(config_path, 'w') as file:

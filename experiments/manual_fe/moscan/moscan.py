@@ -59,7 +59,8 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
 
     # Uncomment parameters to use them in a grid search
     HYPERPARAMETER_GRID = {
-        "epochs": [1],
+        "epochs": [10],
+        "kalman": [False],
         # "embed_dim": [8, 16, 32],
         # "hidden_dim": [16, 32, 62, 64, 128, 256], 
         # "n_head_gen": [2, 4, 8],
@@ -219,8 +220,68 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
     del hyperparams
 
 
-# if __NAME__ == '__main__':
-#     from src.ml_pipeline.models.attention_models import MOSCAN
-#     MOSCAN_CONFIG = "config_files/model_training/deep/moscan_config.json"
-#     DATASET_CONFIG = "config_files/dataset/wesad_wrist_bvp_w_eda_configuration.json"
-#     moscan(MOSCAN, MOSCAN_CONFIG, DATASET_CONFIG)
+if __name__ == '__main__':
+    import os
+    import sys
+    from datetime import datetime
+    import torch
+    import json
+
+
+    # Get the current script's directory
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Traverse up to find the desired directory
+    target_dir = current_dir
+    while "src" not in os.listdir(target_dir) and target_dir != os.path.dirname(target_dir):
+        target_dir = os.path.dirname(target_dir)
+
+    # Append the target directory to sys.path
+    if "src" in os.listdir(target_dir):
+        sys.path.append(target_dir)
+    else:
+        raise ImportError("Could not find 'src' directory in the path hierarchy")
+
+    # Get the current script's directory
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Traverse up to find the desired directory
+    target_dir = current_dir
+    while "experiments" not in os.listdir(target_dir) and target_dir != os.path.dirname(
+        target_dir
+    ):
+        target_dir = os.path.dirname(target_dir)
+
+    # Append the target directory to sys.path
+    if "experiments" in os.listdir(target_dir):
+        sys.path.append(target_dir)
+    else:
+        raise ImportError("Could not find 'experiments' directory in the path hierarchy")
+
+    from experiments.manual_fe.moscan.moscan import moscan
+    from src.ml_pipeline.models.attention_models.ablation_study_models import *
+    from src.ml_pipeline.utils.utils import modify_key
+    from src.ml_pipeline.models.attention_models import MOSCAN
+
+    MOSCAN_CONFIG = "config_files/model_training/deep/moscan_config.json"
+    SENSORS = "bvp_w_eda"
+    DATASET_CONFIG = f"config_files/dataset/wesad_wrist_{SENSORS}_configuration.json"
+    DATASET_TYPE = "losocv"
+
+    # Load Train Dataloaders for LOSOCV
+    BATCHED_WINDOW_LENGTH = 30
+    BATCHED_SPLIT_LENGTH = int(
+        BATCHED_WINDOW_LENGTH / 6
+    )  # this will sub-split the data 6 times each of 5 seconds
+    BATCHED_SLIDING_LENGTH = BATCHED_SPLIT_LENGTH  # this will create 6 samples per 30 seconds since 30/5 = 6 with 5:1 ratio of synthetic to real samples
+    BATCHED_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{BATCHED_WINDOW_LENGTH}s_{BATCHED_SLIDING_LENGTH}s_{BATCHED_SPLIT_LENGTH}s/wrist_features.hdf5"
+    BATCHED_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{BATCHED_WINDOW_LENGTH}s_{BATCHED_SLIDING_LENGTH}s_{BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
+
+    # Load Val Dataloaders for LOSOCV
+    NON_BATCHED_WINDOW_LENGTH = 5
+    NON_BATCHED_SLIDING_LENGTH = NON_BATCHED_WINDOW_LENGTH  # this will create no overlap between segments i.e. no augmented / synthetic data.
+    NON_BATCHED_SPLIT_LENGTH = NON_BATCHED_WINDOW_LENGTH  # this will not sub-split the data
+    NON_BATCHED_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/wrist_features.hdf5"
+    NON_BATCHED_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
+
+    moscan(MOSCAN, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH, GROUP_LABELS=None, NAME='MOSCAN-TEST')

@@ -20,9 +20,9 @@
         "bce": false,
         "focal": true
     },
-    "kalman": false,
+    "kalman": true,
     "early_stopping": true,
-    "early_stopping_patience": 30,
+    "early_stopping_patience": 100,
     "early_stopping_metric": "accuracy",
     "fine_tune": false,
     "fine_tune_sequence_length": 30,
@@ -31,6 +31,5 @@
     "fine_tune_loss_fns": {
         "bce": true,
         "focal": false
-    },
-    "2": 2
+    }
 }

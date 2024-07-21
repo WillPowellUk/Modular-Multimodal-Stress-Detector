@@ -67,6 +67,6 @@ DATASET_CONFIG = "config_files/dataset/ubfc_w_eda_configuration.json"
 moscan(MOSCANSelfAttention, MOSCAN_CONFIG, DATASET_CONFIG, name="MoscanSelfAttention_EDA_Unimodal")
 
 #### Both modalities
-DATASET_CONFIG = "config_files/dataset/ubfc_bvp_w_eda_configuration.json"
+DATASET_CONFIG = "config_files/dataset/ubfc_bvp_eda_configuration.json"
 for model in models:
     moscan(model, MOSCAN_CONFIG, name=model.__name__)

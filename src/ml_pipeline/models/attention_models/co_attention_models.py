@@ -234,7 +234,7 @@ class MOSCAN(nn.Module):
                 raise ValueError(f"Predictor {predictor} not supported")
         
         if self.kalman:
-            self.kalman_filter = KalmanFilter(self.output_dim, device=self.device)
+            self.kalman_filter = KalmanFilter(self.output_dim, device=self.device, num_branches=len(self.input_dims))
 
     def forward(self, inputs):
         # Step 1: Embedding and Positional Encoding for each modality

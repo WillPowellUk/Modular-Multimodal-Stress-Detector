@@ -2,56 +2,61 @@ import torch
 import torch.nn as nn
 
 class KalmanFilter(nn.Module):
-    def __init__(self, num_classes, device='cpu'):
+    def __init__(self, num_classes, num_branches, device='cpu'):
         super(KalmanFilter, self).__init__()
         self.num_classes = num_classes
+        self.num_branches = num_branches
         self.device = device
-        self.x = torch.tensor([0.8] + [0.1] * (num_classes - 1), dtype=torch.float32).reshape(-1, 1).to(device)
-        self.P = (0.01 * torch.eye(num_classes, dtype=torch.float32)).to(device)
-        self.F = torch.eye(num_classes, dtype=torch.float32).to(device)
-        self.H = torch.eye(num_classes, dtype=torch.float32).to(device)
-        self.Q = (5e-4 * torch.eye(num_classes, dtype=torch.float32)).to(device)
+
+        # Learnable parameters
+        self.F = nn.Parameter(torch.eye(num_classes, dtype=torch.float32))
+        self.H = nn.Parameter(torch.eye(num_classes, dtype=torch.float32))
+        self.Q = nn.Parameter(torch.diag(torch.ones(num_classes, dtype=torch.float32) * 1e-4))
+        self.R = nn.Parameter(torch.diag(torch.ones(num_classes, dtype=torch.float32) * 0.01))
         
+        # Initial state and covariance
+        self.initial_x = nn.Parameter(torch.zeros(num_classes, 1, dtype=torch.float32))
+        self.initial_P = nn.Parameter(torch.eye(num_classes, dtype=torch.float32) * 0.01)
+
         if num_classes == 3:
-            self.epsilon = 0.4
-            self.gamma = torch.tensor([0.278, 1, 1], dtype=torch.float32).reshape(-1, 1).to(device)
+            self.epsilon = nn.Parameter(torch.tensor(0.4))
+            self.gamma = nn.Parameter(torch.tensor([0.278, 1.0, 1.0], dtype=torch.float32).reshape(-1, 1))
         elif num_classes == 2:
-            self.epsilon = 0.7
-            self.gamma = torch.tensor([0.667, 1.1], dtype=torch.float32).reshape(-1, 1).to(device)
+            self.epsilon = nn.Parameter(torch.tensor(0.7))
+            self.gamma = nn.Parameter(torch.tensor([0.667, 1.1], dtype=torch.float32).reshape(-1, 1))
         else:
             raise ValueError("Only 2-class and 3-class problems are supported")
-    
-    def process_measurement_noise(self, z):
-        R = ((1 - z) * 2 * torch.eye(self.num_classes, dtype=torch.float32).to(self.device)) ** 2
-        return R
-    
-    def update(self, z):
-        R = self.process_measurement_noise(z)
+
+    def predict(self, x, P):
+        x = self.F @ x
+        P = self.F @ P @ self.F.t() + self.Q
+        return x, P
+
+    def update(self, x, P, z):
+        y = z - self.H @ x
+        S = self.H @ P @ self.H.t() + self.R
+        K = P @ self.H.t() @ torch.inverse(S)
         
-        # Kalman gain
-        S = self.H @ self.P @ self.H.T + R
-        K = self.P @ self.H.T @ torch.inverse(S)
-        
-        # Update state estimate and error covariance
-        self.x = self.x + K @ (z - self.H @ self.x)
-        self.P = (torch.eye(self.num_classes, device=self.device) - K @ self.H) @ self.P
-    
+        x = x + K @ y
+        P = (torch.eye(self.num_classes, device=self.device) - K @ self.H) @ P
+        return x, P
+
     def forward(self, z_batch):
-        device = z_batch.device
         batch_size, num_branches, output_dim = z_batch.shape
-        output = torch.zeros((batch_size, output_dim), dtype=torch.float32, device=device)
+        output = torch.zeros((batch_size, output_dim), dtype=torch.float32, device=self.device)
         
         for i in range(batch_size):
-            self.x = torch.tensor([0.8] + [0.1] * (self.num_classes - 1), dtype=torch.float32).reshape(-1, 1).to(device)
-            self.P = (0.01 * torch.eye(self.num_classes, dtype=torch.float32)).to(device)
+            x = self.initial_x.clone()
+            P = self.initial_P.clone()
             
             for j in range(num_branches):
                 z = z_batch[i, j].reshape(-1, 1)
                 
                 if z.max() > self.epsilon:
                     z = z * self.gamma
-                    self.update(z)
+                    x, P = self.predict(x, P)
+                    x, P = self.update(x, P, z)
             
-            output[i] = self.x.flatten()
+            output[i] = x.flatten()
         
         return output
