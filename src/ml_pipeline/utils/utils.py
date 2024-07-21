@@ -30,6 +30,20 @@ def get_key(config_path, key):
 
     return config[key]
 
+def modify_key(config_path, key, value):
+    # Step 1: Open and read the JSON file
+    with open(config_path, 'r') as file:
+        data = json.load(file)
+
+    # Step 2: Modify the key in the dictionary
+    if key in data:
+        data[value] = value
+
+    # Step 3: Write the updated dictionary back to the JSON file
+    with open(config_path, 'w') as file:
+        json.dump(data, file, indent=4)
+    
+    return data
 
 def copy_json(src, dst):
     shutil.copy(src, dst)

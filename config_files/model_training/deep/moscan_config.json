@@ -27,9 +27,10 @@
     "fine_tune": false,
     "fine_tune_sequence_length": 30,
     "fine_tune_epochs": 10,
-    "fine_tune_learning_rate": 0.00005,
+    "fine_tune_learning_rate": 5e-05,
     "fine_tune_loss_fns": {
         "bce": true,
         "focal": false
-    }
+    },
+    "2": 2
 }

@@ -59,7 +59,7 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
 
     # Uncomment parameters to use them in a grid search
     HYPERPARAMETER_GRID = {
-        "epochs": [10],
+        "epochs": [1],
         # "embed_dim": [8, 16, 32],
         # "hidden_dim": [16, 32, 62, 64, 128, 256], 
         # "n_head_gen": [2, 4, 8],
