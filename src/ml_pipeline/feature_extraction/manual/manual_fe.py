@@ -48,6 +48,11 @@ class ManualFE:
                         batch["resp"], self.sampling_rate
                     ).extract_features()
                     features_dict["resp"] = resp_features
+                case "bvp":
+                    bvp_features = BVPFeatureExtractor(
+                        batch["bvp"], self.sampling_rate
+                    ).extract_features()
+                    features_dict["bvp"] = bvp_features
 
         return features_dict
 
@@ -64,6 +69,8 @@ class ManualFE:
                     ).extract_features()
                     features_dict["w_eda"] = eda_features
                 case "bvp":
+                    if self.slow_feautres_flag:
+                        continue
                     bvp_features = BVPFeatureExtractor(
                         split["bvp"], self.sampling_rate
                     ).extract_features()
@@ -281,6 +288,14 @@ class ManualFE:
                     features_df = pd.DataFrame([sensor_features])
                     features_dict[sensor] = features_df
 
+                case "bvp":
+                    features = self.config['features']['bvp']
+                    # Create a dictionary with features as keys and np.nan as values
+                    sensor_features = {feature: np.nan for feature in features}
+                    # Convert dictionary to DataFrame
+                    features_df = pd.DataFrame([sensor_features])
+                    features_dict[sensor] = features_df
+
         return features_dict
 
     def extract_features(self):
@@ -363,137 +378,4 @@ class ManualFE:
 
         # Save the features to HDF5
         self.save_to_hdf5(all_batches_features)
-
-    def extract_features_concurrently(self):
-        warnings.warn_explicit = warnings.warn = lambda *_, **__: None
-        warnings.filterwarnings("ignore")
-
-        all_batches_features = []
-        total_batches = len(self.batches)
-        start_time = time.time()
-
-        def process_batch(i, batch):
-            batch_features = []
-            for split in batch:
-                split_features = self.extract_features_from_split(split)
-                batch_features.append(split_features)
-            return i, batch_features
-
-        # Limit to the first 201 batches for testing
-        test_batches = self.batches[:201]
-
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_to_batch = {
-                executor.submit(process_batch, i, batch): i
-                for i, batch in enumerate(test_batches)
-            }
-
-            for i, future in enumerate(
-                concurrent.futures.as_completed(future_to_batch)
-            ):
-                index, batch_features = future.result()
-                all_batches_features.append((index, batch_features))
-
-                if i % 100 == 0 and i != 0:
-                    elapsed_time = time.time() - start_time
-                    average_time_per_batch = elapsed_time / (i + 1)
-                    remaining_batches = len(test_batches) - (i + 1)
-                    eta = average_time_per_batch * remaining_batches
-                    hours = math.floor(eta / 3600)
-                    minutes = math.floor((eta % 3600) / 60)
-                    seconds = eta % 60
-
-                    # print2 LOG_FILE_PATH, the formatted string
-                    print2(
-                        LOG_FILE_PATH,
-                        f"Extracting features from batch {i+1}/{len(test_batches)} | ETA: {hours}h {minutes}m {seconds:.2f}s",
-                    )
-
-        all_batches_features.sort(key=lambda x: x[0])  # Sort by original index
-        all_batches_features = [
-            batch[1] for batch in all_batches_features
-        ]  # Remove index
-
-        all_batches_features = self.impute_and_normalize_features(all_batches_features)
-
-        # Ensure the directory exists
-        dir_name = os.path.dirname(self.save_path)
-        if not os.path.exists(dir_name):
-            os.makedirs(dir_name, exist_ok=True)
-
-        # Save the features to HDF5
-        self.save_to_hdf5(all_batches_features)
-
-    @staticmethod
-    def process_batch(i, batch, extractor):
-        batch_start_time = time.time()
-        batch_features = []
-        for split in batch:
-            split_features = extractor.extract_features_from_split(split)
-            batch_features.append(split_features)
-        batch_end_time = time.time()
-        print2(
-            LOG_FILE_PATH,
-            f"Batch {i} processed in {batch_end_time - batch_start_time:.2f} seconds",
-        )
-        return i, batch_features
-
-    def extract_features_parallel(self):
-        warnings.warn_explicit = warnings.warn = lambda *_, **__: None
-        warnings.filterwarnings("ignore")
-
-        all_batches_features = []
-        total_batches = len(self.batches)
-        start_time = time.time()
-
-        # Limit to the first 201 batches for testing
-        test_batches = self.batches[:201]
-
-        with concurrent.futures.ProcessPoolExecutor(
-            max_workers=cpu_count()
-        ) as executor:
-            future_to_batch = {
-                executor.submit(ManualFE.process_batch, i, batch, self): i
-                for i, batch in enumerate(test_batches)
-            }
-
-            for i, future in enumerate(
-                concurrent.futures.as_completed(future_to_batch)
-            ):
-                index, batch_features = future.result()
-                all_batches_features.append((index, batch_features))
-
-                if i % 100 == 0 and i != 0:
-                    elapsed_time = time.time() - start_time
-                    average_time_per_batch = elapsed_time / (i + 1)
-                    remaining_batches = len(test_batches) - (i + 1)
-                    eta = average_time_per_batch * remaining_batches
-                    hours = math.floor(eta / 3600)
-                    minutes = math.floor((eta % 3600) / 60)
-                    seconds = eta % 60
-
-                    # print2 LOG_FILE_PATH, the formatted string
-                    print2(
-                        LOG_FILE_PATH,
-                        f"Extracting features from batch {i+1}/{len(test_batches)} | ETA: {hours}h {minutes}m {seconds:.2f}s",
-                    )
-
-        all_batches_features.sort(key=lambda x: x[0])  # Sort by original index
-        all_batches_features = [
-            batch[1] for batch in all_batches_features
-        ]  # Remove index
-
-        all_batches_features = self.impute_and_normalize_features(all_batches_features)
-
-        # Ensure the directory exists
-        dir_name = os.path.dirname(self.save_path)
-        if not os.path.exists(dir_name):
-            os.makedirs(dir_name, exist_ok=True)
-
-        # Save the features to HDF5
-        self.save_to_hdf5(all_batches_features)
-        total_end_time = time.time()
-        print2(
-            LOG_FILE_PATH,
-            f"Total time taken: {total_end_time - start_time:.2f} seconds",
-        )
+        print2(LOG_FILE_PATH, "Feature extraction complete")
