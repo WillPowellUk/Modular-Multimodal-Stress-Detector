@@ -1,5 +1,5 @@
 {
-    "cv_splits": 5,
+    "cv_splits": 7,
     "sensors": {
         "bvp": true,
         "eda": true
@@ -69,7 +69,7 @@
     "labels": {
         "1.0": true,
         "2.0": true,
-        "3.0": true
+        "3.0": false
     },
     "features": {
         "bvp": [

@@ -39,7 +39,6 @@ from experiments.manual_fe.moscan.moscan import moscan
 from src.ml_pipeline.models.attention_models.ablation_study_models import *
 from src.ml_pipeline.utils.utils import modify_key
 
-
 models = [MOSCANSelfAttention, MOSCANCrossAttention, MOSCANSlidingCasualBCSA,MOSCANSlidingCasualBCSACached, MOSCANSlidingBCSACached]
 
 # Set either losocv or kfold

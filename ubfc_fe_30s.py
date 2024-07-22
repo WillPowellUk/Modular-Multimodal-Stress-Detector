@@ -21,6 +21,7 @@ FE = f"src/ubfc_phys/UBFC-PHYS/manual_fe/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPL
 manual_fe = ManualFE(splitted_segments, FE, CONFIG)
 manual_fe.extract_features()
 
+
 ############################################################################################################
 
 
