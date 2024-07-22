@@ -59,10 +59,10 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
 
     # Uncomment parameters to use them in a grid search
     HYPERPARAMETER_GRID = {
-        "epochs": [50],
+        "epochs": [10],
         "kalman": [False],
         "embed_dim": [32],
-        "hidden_dim": [32], 
+        "hidden_dim": [16], 
         "n_head_gen": [4],
         "dropout": [0.5],
         "attention_dropout": [0.5],
@@ -321,7 +321,7 @@ if __name__ == '__main__':
         #### Both modalities
         SENSORS = 'bvp_eda'
         DATASET_CONFIG = f"config_files/dataset/ubfc_{SENSORS}_configuration.json"
-        BATCHED_DATASETS_PATH = f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/{SENSORS}/{BATCHED_WINDOW_LENGTH}s_{BATCHED_SLIDING_LENGTH}s_{BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
-        NON_BATCHED_DATASETS_PATH = f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/{SENSORS}/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
+        BATCHED_DATASETS_PATH = f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/slow/{SENSORS}/{BATCHED_WINDOW_LENGTH}s_{BATCHED_SLIDING_LENGTH}s_{BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
+        NON_BATCHED_DATASETS_PATH = f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/slow/{SENSORS}/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
         DATASET_CONFIG = "config_files/dataset/ubfc_bvp_eda_configuration.json"
         moscan(MOSCAN, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH, GROUP_LABELS=GROUP_LABELS, NAME="MOSCAN-TEST-UBFC")
