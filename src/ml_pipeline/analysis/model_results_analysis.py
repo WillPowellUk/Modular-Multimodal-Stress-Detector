@@ -18,11 +18,12 @@ class ModelResultsAnalysis:
             print(f"{model}:")
             if "subject_id" in metric:
                 print(f"  Subject ID: {metric['subject_id']}")
-            print(f"  Accuracy: {metric['accuracy']:.5f}")
-            print(f"  Precision: {metric['precision']:.5f}")
-            print(f"  Recall: {metric['recall']:.5f}")
-            print(f"  F1 Score: {metric['f1_score']:.5f}")
-            print(f"  Inference Time (ms): {metric['inference_time_ms']:.5f}")
+            print(f"  Accuracy: {metric['accuracy']:.5f} ± {metric['std_accuracy']:.5f}")
+            print(f"  Precision: {metric['precision']:.5f} ± {metric['std_precision']:.5f}")
+            print(f"  Recall: {metric['recall']:.5f} ± {metric['std_recall']:.5f}")
+            print(f"  F1 Score: {metric['f1_score']:.5f} ± {metric['std_f1_score']:.5f}")
+            print(f"  Inference Time (ms): {metric['inference_time_ms']:.5f} ± {metric['std_inference_time_ms']:.5f}")
+
 
     def analyze_subject(self, subject_id):
         if subject_id < 0 or subject_id >= len(self.results):
@@ -110,11 +111,19 @@ class ModelResultsAnalysis:
                 all_results.append(result_entry)
                 model_results.append(result_entry)
 
+            # Calculate averages
             avg_accuracy = np.mean(accuracies)
             avg_precision = np.mean(precisions)
             avg_recall = np.mean(recalls)
             avg_f1_score = np.mean(f1_scores)
             avg_inference_time = np.mean(inference_times)
+
+            # Calculate standard deviations
+            std_accuracy = np.std(accuracies)
+            std_precision = np.std(precisions)
+            std_recall = np.std(recalls)
+            std_f1_score = np.std(f1_scores)
+            std_inference_time = np.std(inference_times)
 
             collective_metrics[model_name] = {
                 "accuracy": avg_accuracy,
@@ -122,6 +131,11 @@ class ModelResultsAnalysis:
                 "recall": avg_recall,
                 "f1_score": avg_f1_score,
                 "inference_time_ms": avg_inference_time,
+                "std_accuracy": std_accuracy,
+                "std_precision": std_precision,
+                "std_recall": std_recall,
+                "std_f1_score": std_f1_score,
+                "std_inference_time_ms": std_inference_time,
             }
 
             # Convert model-specific results to DataFrame

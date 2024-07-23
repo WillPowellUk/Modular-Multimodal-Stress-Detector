@@ -58,23 +58,26 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
     FINE_TUNE = get_values(MOSCAN_CONFIG, "fine_tune")
 
     # Uncomment parameters to use them in a grid search
+    # HYPERPARAMETER_GRID = {
+    #     "epochs": [10],
+    #     "kalman": [False],
+    #     "embed_dim": [32],
+    #     "hidden_dim": [16], 
+    #     "n_head_gen": [4],
+    #     "dropout": [0.5],
+    #     "attention_dropout": [0.5],
+    #     "learning_rate": [0.0005],
+    #     "batch_size": [16],
+    #     # "epochs": [5, 10, 15, 20],
+    #     # "fine_tune_epochs": [1, 3, 5],
+    #     # "fine_tune_learning_rate": [0.001, 0.0001, 0.00005],
+    #     # "early_stopping_patience": [5, 7, 10, 20],
+    #     # "early_stopping_patience": [5, 7, 10, 20],
+    #     # "early_stopping_metric": ["loss", "accuracy"],
+    #     # "predictor": ["hard_voting", "avg_pool", 'weighted_avg_pool',  "weighted_max_pool", "avg_pool", "max_pool"], 
+    # }
     HYPERPARAMETER_GRID = {
-        "epochs": [10],
-        "kalman": [False],
-        "embed_dim": [32],
-        "hidden_dim": [16], 
-        "n_head_gen": [4],
-        "dropout": [0.5],
-        "attention_dropout": [0.5],
-        "learning_rate": [0.0005],
-        "batch_size": [16],
-        # "epochs": [5, 10, 15, 20],
-        # "fine_tune_epochs": [1, 3, 5],
-        # "fine_tune_learning_rate": [0.001, 0.0001, 0.00005],
-        # "early_stopping_patience": [5, 7, 10, 20],
-        # "early_stopping_patience": [5, 7, 10, 20],
-        # "early_stopping_metric": ["loss", "accuracy"],
-        # "predictor": ["hard_voting", "avg_pool", 'weighted_avg_pool',  "weighted_max_pool", "avg_pool", "max_pool"], 
+        "epochs": [10]
     }
 
     # Grid Search Parameters
@@ -170,7 +173,7 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
             trainer.model.seq_length = 1
             pre_trained_model_ckpt = trainer.train(train_loader_batched, val_loader_batched, loss_wrapper, 
                 use_wandb=True,
-                name_wandb=f"{model.NAME}_{fold}",
+                name_wandb=f"{NAME}_{fold}",
             )
             print(f"Pre-Trained Model checkpoint saved to: {pre_trained_model_ckpt}\n")
 
@@ -292,8 +295,8 @@ if __name__ == '__main__':
 
     elif dataset == "ubfc":
         # Set either losocv or kfold
-        # DATASET_TYPE = "losocv"
-        DATASET_TYPE = "cv_7"
+        DATASET_TYPE = "losocv"
+        # DATASET_TYPE = "cv_7"
 
         # Load Train Dataloaders for LOSOCV
         BATCHED_WINDOW_LENGTH = 30
@@ -312,7 +315,7 @@ if __name__ == '__main__':
         MOSCAN_CONFIG = "config_files/model_training/deep/moscan_config.json"
 
         # T1 v (T2 + T3)
-        # Configure labels for group
+        # Configure labels for group;
         GROUP_LABELS = {
             2: [3]  # Label 3 is merged into label 2
         }

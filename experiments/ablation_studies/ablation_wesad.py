@@ -35,38 +35,110 @@ else:
 
 from experiments.manual_fe.moscan.moscan import moscan
 from src.ml_pipeline.models.attention_models.ablation_study_models import *
+from src.ml_pipeline.utils.utils import modify_nested_key
 
 
 models = [MOSCANSelfAttention, MOSCANCrossAttention, MOSCANSlidingCasualBCSA,MOSCANSlidingCasualBCSACached, MOSCANSlidingBCSACached]
 
+DATASET_TYPE = "losocv"
 
 # Load Train Dataloaders for LOSOCV
+TYPE = "chest"
+SENSORS = "bvp_w_eda_temp_w_acc"
+
 BATCHED_WINDOW_LENGTH = 30
 BATCHED_SPLIT_LENGTH = int(
     BATCHED_WINDOW_LENGTH / 6
 )  # this will sub-split the data 6 times each of 5 seconds
 BATCHED_SLIDING_LENGTH = BATCHED_SPLIT_LENGTH  # this will create 6 samples per 30 seconds since 30/5 = 6 with 5:1 ratio of synthetic to real samples
-BATCHED_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{BATCHED_WINDOW_LENGTH}s_{BATCHED_SLIDING_LENGTH}s_{BATCHED_SPLIT_LENGTH}s/wrist_features.hdf5"
-BATCHED_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{BATCHED_WINDOW_LENGTH}s_{BATCHED_SLIDING_LENGTH}s_{BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
+BATCHED_FE = f"src/wesad/WESAD/manual_fe/{TYPE}_manual_fe/{BATCHED_WINDOW_LENGTH}s_{BATCHED_SLIDING_LENGTH}s_{BATCHED_SPLIT_LENGTH}s/{TYPE}_features.hdf5"
+BATCHED_DATASETS_PATH = f"src/wesad/WESAD/datasets/{TYPE}/{SENSORS}/{BATCHED_WINDOW_LENGTH}s_{BATCHED_SLIDING_LENGTH}s_{BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
 
 # Load Val Dataloaders for LOSOCV
 NON_BATCHED_WINDOW_LENGTH = 5
 NON_BATCHED_SLIDING_LENGTH = NON_BATCHED_WINDOW_LENGTH  # this will create no overlap between segments i.e. no augmented / synthetic data.
 NON_BATCHED_SPLIT_LENGTH = NON_BATCHED_WINDOW_LENGTH  # this will not sub-split the data
-NON_BATCHED_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/wrist_features.hdf5"
-NON_BATCHED_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
-
+NON_BATCHED_FE = f"src/wesad/WESAD/manual_fe/{TYPE}_manual_fe/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/{TYPE}_features.hdf5"
+NON_BATCHED_DATASETS_PATH = f"src/wesad/WESAD/datasets/{TYPE}/{SENSORS}/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
 
 
 MOSCAN_CONFIG = "config_files/model_training/deep/moscan_config.json"
 
 ### Unimodal first:
-DATASET_CONFIG = "config_files/dataset/ubfc_bvp_configuration.json"
-moscan(MOSCANSelfAttention, MOSCAN_CONFIG, DATASET_CONFIG, name='MoscanSelfAttention_BVP_Unimodal')
-DATASET_CONFIG = "config_files/dataset/ubfc_w_eda_configuration.json"
-moscan(MOSCANSelfAttention, MOSCAN_CONFIG, DATASET_CONFIG, name="MoscanSelfAttention_EDA_Unimodal")
+# DATASET_CONFIG = f"config_files/dataset/wesad_{TYPE}_all_configuration.json"
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'bvp'], True)
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'w_eda'], False)
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'w_temp'], False)
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'w_acc'], False)
+# moscan(MOSCANSelfAttention, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH, GROUP_LABELS=None, NAME='MoscanSelfAttention_BVP_Unimodal_WESAD')
 
-#### Both modalities
-DATASET_CONFIG = "config_files/dataset/ubfc_bvp_eda_configuration.json"
-for model in models:
-    moscan(model, MOSCAN_CONFIG, name=model.__name__)
+# DATASET_CONFIG = f"config_files/dataset/wesad_{TYPE}_all_configuration.json"
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'bvp'], False)
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'w_eda'], True)
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'w_temp'], False)
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'w_acc'], False)
+# moscan(MOSCANSelfAttention, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH, GROUP_LABELS=None, NAME='MoscanSelfAttention_w_EDA_Unimodal_WESAD')
+
+# DATASET_CONFIG = f"config_files/dataset/wesad_{TYPE}_all_configuration.json"
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'bvp'], False)
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'w_eda'], False)
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'w_temp'], True)
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'w_acc'], False)
+# moscan(MOSCANSelfAttention, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH, GROUP_LABELS=None, NAME='MoscanSelfAttention_temp_Unimodal_WESAD')
+
+# DATASET_CONFIG = f"config_files/dataset/wesad_{TYPE}_all_configuration.json"
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'bvp'], False)
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'w_eda'], False)
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'w_temp'], False)
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'w_acc'], True)
+# moscan(MOSCANSelfAttention, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH, GROUP_LABELS=None, NAME='MoscanSelfAttention_w_acc_Unimodal_WESAD')
+
+### Unimodal first:
+DATASET_CONFIG = f"config_files/dataset/wesad_{TYPE}_all_configuration.json"
+modify_nested_key(DATASET_CONFIG, ['sensors', 'acc'], True)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'ecg'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'emg'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'eda'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'resp'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'temp'], False)
+moscan(MOSCANSelfAttention, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH)
+
+modify_nested_key(DATASET_CONFIG, ['sensors', 'acc'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'ecg'], True)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'emg'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'eda'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'resp'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'temp'], False)
+moscan(MOSCANSelfAttention, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH)
+
+modify_nested_key(DATASET_CONFIG, ['sensors', 'acc'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'ecg'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'emg'], True)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'eda'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'resp'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'temp'], False)
+moscan(MOSCANSelfAttention, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH)
+
+modify_nested_key(DATASET_CONFIG, ['sensors', 'acc'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'ecg'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'emg'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'eda'], True)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'resp'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'temp'], False)
+moscan(MOSCANSelfAttention, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH)
+
+modify_nested_key(DATASET_CONFIG, ['sensors', 'acc'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'ecg'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'emg'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'eda'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'resp'], True)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'temp'], False)
+moscan(MOSCANSelfAttention, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH)
+
+modify_nested_key(DATASET_CONFIG, ['sensors', 'acc'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'ecg'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'emg'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'eda'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'resp'], False)
+modify_nested_key(DATASET_CONFIG, ['sensors', 'temp'], True)
+moscan(MOSCANSelfAttention, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH)

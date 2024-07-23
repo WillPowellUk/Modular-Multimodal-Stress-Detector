@@ -45,6 +45,25 @@ def modify_key(config_path, key, value):
     
     return data
 
+def modify_nested_key(config_path, key_path, value):
+    # Step 1: Open and read the JSON file
+    with open(config_path, 'r') as file:
+        data = json.load(file)
+
+    # Step 2: Navigate to the specified nested key and modify it
+    nested_dict = data
+    for key in key_path[:-1]:
+        nested_dict = nested_dict.get(key, {})
+    
+    if key_path[-1] in nested_dict:
+        nested_dict[key_path[-1]] = value
+
+    # Step 3: Write the updated dictionary back to the JSON file
+    with open(config_path, 'w') as file:
+        json.dump(data, file, indent=4)
+    
+    return data
+
 def copy_json(src, dst):
     shutil.copy(src, dst)
 

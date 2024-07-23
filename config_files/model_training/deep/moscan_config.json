@@ -20,7 +20,7 @@
         "bce": false,
         "focal": true
     },
-    "kalman": true,
+    "kalman": false,
     "early_stopping": true,
     "early_stopping_patience": 100,
     "early_stopping_metric": "accuracy",
