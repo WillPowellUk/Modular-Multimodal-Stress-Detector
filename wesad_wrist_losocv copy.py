@@ -23,6 +23,7 @@ DATASETS_PATH = losocv_loader.prepare_datasets(
     f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s"
 )
 
+
 WINDOW_LENGTH = 30
 SPLIT_LENGTH = int(
     WINDOW_LENGTH / 6
