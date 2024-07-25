@@ -105,8 +105,10 @@ class MOSCANSlidingBCSACached(nn.Module):
                 self.predictor = ModularHardVoting(
                     self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='avg'
                 )
-            case "og":
-                self.predictor = OG(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout)
+            case "stacked_avg_pool":
+                self.predictor = StackedModularPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout)
+            case "stacked_max_pool":
+                self.predictor = StackedModularPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout, pool_type='max')
             case _:
                 raise ValueError(f"Predictor {predictor} not supported")
         
@@ -242,8 +244,10 @@ class MOSCANSelfAttention(nn.Module):
                 self.predictor = ModularHardVoting(
                     self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='avg'
                 )
-            case "og":
-                self.predictor = OG(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout)
+            case "stacked_avg_pool":
+                self.predictor = StackedModularPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout)
+            case "stacked_max_pool":
+                self.predictor = StackedModularPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout, pool_type='max')
             case _:
                 raise ValueError(f"Predictor {predictor} not supported")
         
@@ -388,8 +392,10 @@ class MOSCANSlidingCasualBCSACached(nn.Module):
                 self.predictor = ModularHardVoting(
                     self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='avg'
                 )
-            case "og":
-                self.predictor = OG(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout)
+            case "stacked_avg_pool":
+                self.predictor = StackedModularPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout)
+            case "stacked_max_pool":
+                self.predictor = StackedModularPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout, pool_type='max')
             case _:
                 raise ValueError(f"Predictor {predictor} not supported")
         
@@ -522,8 +528,10 @@ class MOSCANCrossAttention(nn.Module):
                 self.predictor = ModularHardVoting(
                     self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='avg'
                 )
-            case "og":
-                self.predictor = OG(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout)
+            case "stacked_avg_pool":
+                self.predictor = StackedModularPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout)
+            case "stacked_max_pool":
+                self.predictor = StackedModularPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout, pool_type='max')
             case _:
                 raise ValueError(f"Predictor {predictor} not supported")
         
@@ -670,8 +678,10 @@ class MOSCANSlidingCasualBCSA(nn.Module):
                 self.predictor = ModularHardVoting(
                     self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='avg'
                 )
-            case "og":
-                self.predictor = OG(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout)
+            case "stacked_avg_pool":
+                self.predictor = StackedModularPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout)
+            case "stacked_max_pool":
+                self.predictor = StackedModularPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout, pool_type='max')
             case _:
                 raise ValueError(f"Predictor {predictor} not supported")
         

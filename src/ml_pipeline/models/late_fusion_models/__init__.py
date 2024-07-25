@@ -1,2 +1,2 @@
-from .soft_voting import ModularPool, ModularWeightedPool, OG
+from .soft_voting import ModularPool, ModularWeightedPool, StackedModularPool
 from .kalman import KalmanFilter

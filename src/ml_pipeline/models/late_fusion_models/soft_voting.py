@@ -2,16 +2,19 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class OG(nn.Module):
-    def __init__(self, embed_dim, hidden_dim, output_dim, dropout):
-        super(OG, self).__init__()
+class StackedModularPool(nn.Module):
+    def __init__(self, embed_dim, hidden_dim, output_dim, dropout, pool_type='avg'):
+        super(StackedModularPool, self).__init__()
         self.embed_dim = embed_dim
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
         self.dropout = dropout
 
         # Define the average pooling layer
-        self.avg_pool = nn.AdaptiveAvgPool1d(1)
+        if pool_type == 'avg':
+            self.pool = nn.AdaptiveAvgPool1d(1)
+        elif pool_type == 'max':
+            self.pool = nn.AdaptiveMaxPool1d(1)
 
         # Define the first linear layer
         self.linear1 = nn.Linear(embed_dim, hidden_dim)
@@ -30,7 +33,7 @@ class OG(nn.Module):
         )  # change to shape (batch_size, embed_dim, n_branches)
 
         # Apply average pooling
-        x = self.avg_pool(concatenated_features)
+        x = self.pool(concatenated_features)
 
         # Remove the last dimension (which is 1 after avg pooling)
         x = x.squeeze(-1)
@@ -169,3 +172,4 @@ class ModularWeightedPool(nn.Module):
         weighted_output = (branch_outputs * gate_weights.unsqueeze(0).unsqueeze(-1)).sum(dim=1)  # Shape: (batch_size, output_dim)
 
         return weighted_output
+

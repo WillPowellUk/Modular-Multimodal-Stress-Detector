@@ -95,13 +95,13 @@ MOSCAN_CONFIG = "config_files/model_training/deep/moscan_config.json"
 
 ### Unimodal first:
 DATASET_CONFIG = f"config_files/dataset/wesad_{TYPE}_all_configuration.json"
-modify_nested_key(DATASET_CONFIG, ['sensors', 'acc'], True)
-modify_nested_key(DATASET_CONFIG, ['sensors', 'ecg'], False)
-modify_nested_key(DATASET_CONFIG, ['sensors', 'emg'], False)
-modify_nested_key(DATASET_CONFIG, ['sensors', 'eda'], False)
-modify_nested_key(DATASET_CONFIG, ['sensors', 'resp'], False)
-modify_nested_key(DATASET_CONFIG, ['sensors', 'temp'], False)
-moscan(MOSCANSelfAttention, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH)
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'acc'], True)
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'ecg'], False)
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'emg'], False)
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'eda'], False)
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'resp'], False)
+# modify_nested_key(DATASET_CONFIG, ['sensors', 'temp'], False)
+# moscan(MOSCANSelfAttention, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH)
 
 modify_nested_key(DATASET_CONFIG, ['sensors', 'acc'], False)
 modify_nested_key(DATASET_CONFIG, ['sensors', 'ecg'], True)
