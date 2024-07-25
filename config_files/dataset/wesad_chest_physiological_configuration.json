@@ -1,5 +1,6 @@
 {
     "sensors": {
+      "acc": false,
       "ecg": true,
       "emg": true,
       "eda": true,

@@ -44,7 +44,7 @@ DATASET_TYPE = "losocv"
 
 # Load Train Dataloaders for LOSOCV
 TYPE = "chest"
-SENSORS = "bvp_w_eda_temp_w_acc"
+SENSORS = "all"
 
 BATCHED_WINDOW_LENGTH = 30
 BATCHED_SPLIT_LENGTH = int(
