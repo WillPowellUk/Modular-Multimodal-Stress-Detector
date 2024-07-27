@@ -23,6 +23,8 @@ class PyTorchTrainer:
         self.save_path = self.configs["save_path"]
         self.device = self.configs["device"]
         self.model = model.to(self.device)
+        self.batch_size = self.configs["batch_size"]
+        self.print_summary = True
 
     def __del__(self):
         if wandb.run is not None:
@@ -33,12 +35,13 @@ class PyTorchTrainer:
             configs = json.load(f)
         return configs
 
-    def print_model_summary(self, train_loader):
+    def print_model_summary(self, token_length, batch_size):
         model_copy = self.model
         print_model_summary(
             self.model,
             self.model.input_dims,
-            batch_size=train_loader.batch_size,
+            token_length,
+            batch_size,
             device=self.device,
         )
         self.model = model_copy
@@ -91,6 +94,10 @@ class PyTorchTrainer:
             )
 
             for step, data in progress_bar:
+                if epoch == 0 and step == 10:
+                    # self.print_model_summary(6, 32)
+                    break
+
                 # Reset attention cache if new segment
                 if fine_tune:
                     batch_x, batch_y, new_segment_flag = data
@@ -205,6 +212,10 @@ class PyTorchTrainer:
                     torch.cuda.synchronize()  # Synchronize CUDA operations before starting the timer
                 start_time = time.time()
                 final_output = self.model(inputs)
+                if i == 0 and self.print_summary:
+                    self.print_summary = False
+                    self.batch_size = -1
+                    self.print_model_summary(1, -1)
                 if self.device == "cuda":
                     torch.cuda.synchronize()  # Synchronize CUDA operations after model inference
                 end_time = time.time()

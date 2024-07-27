@@ -242,6 +242,7 @@ class MOSCAN(nn.Module):
         # Step 1: Embedding and Positional Encoding for each modality
         modality_features = {}
         for modality, net in self.modalities.items():
+
             # For modularity: only process the modality if it is present in the input
             if modality in inputs:
                 x = inputs[modality]  # Input for the modality
@@ -254,12 +255,13 @@ class MOSCAN(nn.Module):
 
         # Step 2: Bidirectional Cross-Attention and Self-Attention Blocks
         for i in range(self.n_bcsa):
-            # Cross-Attention
+            # Bidirectional Cross-Attention (will be skipped if unimodal)
             for modality1 in modality_features:
                 for modality2 in modality_features:
                     if modality1 != modality2:
                         ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
                         modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], modality_features[modality2], use_cache=self.seq_length>1)
+        
             # Self Attention
             for modality, net in self.modalities.items():
                 sa_block = self.self_attention_blocks[modality][i]

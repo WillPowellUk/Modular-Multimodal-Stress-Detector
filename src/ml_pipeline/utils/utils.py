@@ -110,7 +110,7 @@ def save_json(data, file_path):
     with open(file_path, "w") as f:
         json.dump(data, f, indent=4)
 
-def print_model_summary(model, input_dims, batch_size=-1, device="cuda"):
+def print_model_summary(model, input_dims, seq_length, batch_size=-1, device="cuda"):
     def register_hook(module):
         def hook(module, input, output):
             class_name = str(module.__class__).split(".")[-1].split("'")[0]
@@ -167,7 +167,7 @@ def print_model_summary(model, input_dims, batch_size=-1, device="cuda"):
     # Create input dictionary with tensors of appropriate shape
     x = {}
     for key, dim in input_dims.items():
-        x[key] = torch.rand(2, dim, 10).type(dtype)  # assuming Z dimension to be 10
+        x[key] = torch.rand(2, dim, seq_length).type(dtype)  # assuming Z dimension to be seq_length
 
     # create properties
     summary = OrderedDict()
@@ -203,7 +203,7 @@ def print_model_summary(model, input_dims, batch_size=-1, device="cuda"):
         if "trainable" in summary[layer]:
             if summary[layer]["trainable"] == True:
                 trainable_params += summary[layer]["nb_params"]
-        print(line_new)
+        # print(line_new)
 
     # assume 4 bytes/number (float on cuda).
     total_input_size = abs(
@@ -221,7 +221,7 @@ def print_model_summary(model, input_dims, batch_size=-1, device="cuda"):
     print("Input size (MB): %0.2f" % total_input_size)
     print("Forward/backward pass size (MB): %0.2f" % total_output_size)
     print("Params size (MB): %0.2f" % total_params_size)
-    print("Estimated Total Size (MB): %0.2f" % total_size)
+    print("Estimated Total Size (MB): %0.5f" % total_size)
     print("----------------------------------------------------------------")
     # return summary
 

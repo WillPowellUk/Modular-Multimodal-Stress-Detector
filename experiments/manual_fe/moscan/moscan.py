@@ -77,7 +77,7 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
     #     # "predictor": ["hard_voting", "avg_pool", 'weighted_avg_pool',  "weighted_max_pool", "avg_pool", "max_pool"], 
     # }
     HYPERPARAMETER_GRID = {
-        "epochs": [10]
+        "epochs": [1]
     }
 
     # Grid Search Parameters
@@ -166,8 +166,6 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
                 model,
                 current_config,
             )
-            # if idx == 0:
-            #     trainer.print_model_summary()
 
             # Train the model on the batched data without the sliding co-attention buffer
             trainer.model.seq_length = 1
@@ -204,6 +202,8 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
             results.append(result)
 
             del trainer  # delete the trainer object to finish wandb
+
+            break
 
         # save the results to pkl
         save_path = get_values(current_config, "save_path")
