@@ -96,7 +96,8 @@ class PyTorchTrainer:
             for step, data in progress_bar:
                 if epoch == 0 and step == 10:
                     # self.print_model_summary(6, 32)
-                    break
+                    # break
+                    pass
 
                 # Reset attention cache if new segment
                 if fine_tune:

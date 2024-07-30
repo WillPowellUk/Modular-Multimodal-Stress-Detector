@@ -77,7 +77,7 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
     #     # "predictor": ["hard_voting", "avg_pool", 'weighted_avg_pool',  "weighted_max_pool", "avg_pool", "max_pool"], 
     # }
     HYPERPARAMETER_GRID = {
-        "epochs": [1]
+        "epochs": [5]
     }
 
     # Grid Search Parameters

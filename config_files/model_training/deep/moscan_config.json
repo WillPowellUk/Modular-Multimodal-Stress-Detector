@@ -4,7 +4,7 @@
     "num_classes": 2,
     "seq_length": 6,
     "max_seq_length": 6,
-    "max_batch_size": 1,
+    "max_batch_size": 32,
     "n_bcsa": 1,
     "embed_dim": 16,
     "hidden_dim": 32,
@@ -15,7 +15,7 @@
     "attention_dropout": 0.5,
     "learning_rate": 0.001,
     "epochs": 10,
-    "batch_size": 1,
+    "batch_size": 32,
     "loss_fns": {
         "bce": false,
         "focal": true
@@ -24,7 +24,7 @@
     "early_stopping": true,
     "early_stopping_patience": 100,
     "early_stopping_metric": "accuracy",
-    "fine_tune": false,
+    "fine_tune": true,
     "fine_tune_sequence_length": 30,
     "fine_tune_epochs": 10,
     "fine_tune_learning_rate": 5e-05,
