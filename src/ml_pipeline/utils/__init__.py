@@ -13,5 +13,6 @@ from .utils import (
     print_weights_and_biases,
     plot_attention,
     create_temp_file,
+    modify_nested_key,
     HyperParamsIterator,
 )

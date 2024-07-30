@@ -285,10 +285,11 @@ class CachedMultiHeadAttention(nn.Module):
 
         # Retreive the cached query, key and value projection tensors (old and new projected embeddings)
         q, k, v = self.sliding_cache.retrieve_projections()
+        q, k, v = q.detach(), k.detach(), v.detach()
 
         # Element-wise multiplication to produce last column and last row of attn_score
-        q_t = query @ k.transpose(-2, -1) * self.scale # [batch_size, num_heads, 1, max_seq_length]
-        k_t = q @ key.transpose(-2, -1) * self.scale # [batch_size, num_heads, max_seq_length, 1]
+        q_t = query @ k.transpose(-2, -1) * self.scale  # [batch_size, num_heads, 1, max_seq_length]
+        k_t = q @ key.transpose(-2, -1) * self.scale    # [batch_size, num_heads, max_seq_length, 1]
 
         # Update the attention scores with the new query-key attention scores i.e. the new query and key will reattend to the old tokens
         self.sliding_cache.update_attn_score(q_t, k_t)
@@ -298,6 +299,7 @@ class CachedMultiHeadAttention(nn.Module):
 
         # Retrieve the new cache (old and new attention scores)
         attn_scores = self.sliding_cache.retrieve_attn_score()
+        attn_scores = attn_scores.detach()
 
         # Compute the scaled dot product attention 
         attn_weights = F.softmax(attn_scores, dim=-1)
@@ -335,7 +337,6 @@ class CachedMultiHeadAttention(nn.Module):
     
     def clear_cache(self):
         self.sliding_cache.clear_cache()
-
 
 class CachedSlidingAttentionEncoder(nn.Module):
     def __init__(self, d_model, ffn_hidden, n_head, max_batch_size, max_seq_len, ffn_dropout=0.1, attention_dropout=0.1, query_cache=True):

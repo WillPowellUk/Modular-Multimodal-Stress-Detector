@@ -213,10 +213,10 @@ class PyTorchTrainer:
                     torch.cuda.synchronize()  # Synchronize CUDA operations before starting the timer
                 start_time = time.time()
                 final_output = self.model(inputs)
-                if i == 0 and self.print_summary:
-                    self.print_summary = False
-                    self.batch_size = -1
-                    self.print_model_summary(1, -1)
+                # if i == 0 and self.print_summary:
+                #     self.print_summary = False
+                #     self.batch_size = -1
+                #     self.print_model_summary(1, -1)
                 if self.device == "cuda":
                     torch.cuda.synchronize()  # Synchronize CUDA operations after model inference
                 end_time = time.time()

@@ -45,25 +45,30 @@ from src.ml_pipeline.utils import (
     save_json,
     copy_json,
     get_values,
+    modify_nested_key,
     HyperParamsIterator,
 )
 
-PRE_TRAINED_CKPTS = ["src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/5s_5s_5s/generalized/2024_07_05_13_15_50/fold_0/checkpoint_final.pth"]
-# PRE_TRAINED_CKPTS = ["src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/checkpoint_final.pth"]
+PRE_TRAINED_CKPTS = ["src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/5s_5s_5s/generalized/2024_07_30_08_29_01/subject_2/checkpoint_final.pth"]
 
 # CONFIG file for the dataset
-WRIST_CONFIG = "config_files/dataset/wesad_wrist_bvp_w_eda_configuration.json"
+WRIST_CONFIG = "config_files/dataset/wesad_wrist_all_configuration.json"
+
+modify_nested_key(WRIST_CONFIG, ['sensors', 'bvp'], True)
+modify_nested_key(WRIST_CONFIG, ['sensors', 'w_eda'], True)
+modify_nested_key(WRIST_CONFIG, ['sensors', 'w_temp'], True)
+modify_nested_key(WRIST_CONFIG, ['sensors', 'w_acc'], True)
 
 # CONFIG file for the model
 MOSCAN_CONFIG = "config_files/model_training/deep/moscan_config.json"
 
 # Set either losocv or kfold
-# DATASET_TYPE = "losocv"
-DATASET_TYPE = "cv_5"
+DATASET_TYPE = "losocv"
+# DATASET_TYPE = "cv_5"
 
 # Set the sensors to use
 active_sensors = get_active_key(WRIST_CONFIG, "sensors")
-SENSORS = '_'.join(active_sensors)
+SENSORS = 'bvp_w_eda_temp_w_acc'
 
 # Load Val Dataloaders for LOSOCV
 NON_BATCHED_WINDOW_LENGTH = 5
@@ -86,7 +91,8 @@ HYPERPARAMETER_GRID = {
     # "fine_tune_learning_rate": [0.0005, 0.0001, 0.00005],
     # "early_stopping_patience": [5,8,10,20],
     # "early_stopping_metric": ["loss", "accuracy"],
-    "predictor": ["avg_pool"], # ['weighted_avg_pool', "avg_pool", "stacked_avg_pool"], 
+    # "predictor": ["avg_pool"], # ['weighted_avg_pool', "avg_pool", "stacked_avg_pool"], 
+    "fine_tune_epochs": [3],
 }
 
 # Grid Search Parameters
