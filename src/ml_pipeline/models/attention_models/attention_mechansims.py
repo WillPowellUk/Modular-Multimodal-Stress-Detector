@@ -116,22 +116,27 @@ class SlidingQKVCache(nn.Module):
         dtype: torch.dtype,
     ) -> None:
         super().__init__()
-        cache_shape = (max_batch_size, num_heads, max_seq_len, head_dim)
+        proj_cache_shape = (max_batch_size, num_heads, max_seq_len, head_dim)
+        attn_score_cache_shape = (max_batch_size, num_heads, max_seq_len, max_seq_len)
         self.register_buffer(
-            "attn_score_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False
+            "attn_score_cache", torch.zeros(attn_score_cache_shape, dtype=dtype), persistent=False
         )
         self.register_buffer(
-            "q_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False
+            "q_cache", torch.zeros(proj_cache_shape, dtype=dtype), persistent=False
         )
         self.register_buffer(
-            "k_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False
+            "k_cache", torch.zeros(proj_cache_shape, dtype=dtype), persistent=False
         )
         self.register_buffer(
-            "v_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False
+            "v_cache", torch.zeros(proj_cache_shape, dtype=dtype), persistent=False
         )
         self.current_seq_len = 0
         self.max_seq_len = max_seq_len
         self.max_batch_size = max_batch_size
+
+    def increment_current_seq_len(self):
+        if self.current_seq_len < self.max_seq_len - 1:
+            self.current_seq_len += 1
 
     def append_projections(self, q, k, v):
         """
@@ -143,35 +148,35 @@ class SlidingQKVCache(nn.Module):
             value (torch.Tensor): The value tensor to be added.
         """
         # Remove the oldest kv-cache that corresponds to the oldest token and move the buffer forward.
-        if self.current_seq_len >= self.max_seq_len:
+        if self.current_seq_len >= self.max_seq_len - 1:
             # Shift the cache left by one position
             self.q_cache[:, :, :-1, :] = self.q_cache[:, :, 1:, :].clone()
             self.k_cache[:, :, :-1, :] = self.k_cache[:, :, 1:, :].clone()
             self.v_cache[:, :, :-1, :] = self.v_cache[:, :, 1:, :].clone()
+            self.attn_score_cache[:, :, :-1, :] = self.attn_score_cache[:, :, 1:, :].clone()
+            self.attn_score_cache[:, :, :, :-1] = self.attn_score_cache[:, :, :, 1:].clone()
             self.current_seq_len = self.max_seq_len - 1
 
         # Append the new scaled query-key pair and value to the cache
         self.q_cache[:, :, self.current_seq_len, :] = q[:, :, 0, :]
         self.k_cache[:, :, self.current_seq_len, :] = k[:, :, 0, :]
         self.v_cache[:, :, self.current_seq_len, :] = v[:, :, 0, :]
-        self.current_seq_len += 1
 
-    def append_attn_score(self, qk):
-        """
-        Appends the most recent scaled query-key pair (attention score) to the cache. 
-        The tensors are expected to be of shape [batch_size, num_heads, 1, head_dim].
-        Args:
-            query-key pair (torch.Tensor): The query-key pair tensor to be added.
-        """
-        # Remove the oldest kv-cache that corresponds to the oldest token and move the buffer forward.
-        if self.current_seq_len >= self.max_seq_len:
-            # Shift the cache left by one position
-            self.attn_score_cache[:, :, :-1, :] = self.attn_score_cache[:, :, 1:, :].clone()
-            self.current_seq_len = self.max_seq_len - 1
+    def update_attn_score(self, q_t, k_t):
+            """
+            Appends the most recent scaled query (column) and key (row) pair of the attention score to the cache. 
+            Args:
+                q_t (torch.Tensor): The query tensor to be added to the last column of size [batch_size, num_heads, 1, seq_length]
+                k_t (torch.Tensor): The key tensor to be added to the last row of size [batch_size, num_heads, seq_length, 1]
+            """
+            if self.current_seq_len >= self.max_seq_len -1:
+                # If the sequence length exceeds the maximum, shift the cache left by one position in both dimensions
+                self.attn_score_cache[:, :, :-1, :] = self.attn_score_cache[:, :, 1:, :].clone()
+                self.attn_score_cache[:, :, :, :-1] = self.attn_score_cache[:, :, :, 1:].clone()
 
-        # Append the new scaled query-key pair and value to the cache
-        self.attn_score_cache[:, :, self.current_seq_len, :] = qk[:, :, 0, :]
-        self.current_seq_len += 1
+            # Add the new column and row to the attention score cache
+            self.attn_score_cache[:, :, self.current_seq_len, :] = q_t[:, :, 0, :]
+            self.attn_score_cache[:, :, :, self.current_seq_len] = k_t[:, :, :, 0]
 
     def retrieve_projections(self):
         """
@@ -187,7 +192,7 @@ class SlidingQKVCache(nn.Module):
         Retrieves the entire QK (attention score) cache
 
         Returns:
-            tuple: A tuple containing the query-key cache
+            torch.Tensor: The attention score cache
         """
         return self.attn_score_cache
     
@@ -196,9 +201,22 @@ class SlidingQKVCache(nn.Module):
         Clears the cache.
         """
         self.attn_score_cache.zero_()
+        self.q_cache.zero_()
+        self.k_cache.zero_()
         self.v_cache.zero_()
         self.current_seq_len = 0
 
+class AttentionPooling(nn.Module):
+    def __init__(self, embed_dim, seq_length=1):
+        super(AttentionPooling, self).__init__()
+        self.attention = nn.Linear(embed_dim, 1)
+        self.seq_length = seq_length
+
+    def forward(self, x):
+        # x shape: [batch_size, max_seq_length, embed_dim]
+        weights = torch.softmax(self.attention(x), dim=1)  # [batch_size, max_seq_length, 1]
+        pooled = torch.sum(weights * x, dim=1)  # [batch_size, embed_dim]
+        return pooled.unsqueeze(1).expand(-1, self.seq_length, -1)
 
 class MultiHeadProjection(nn.Module):
     def __init__(self, embed_dim, head_dim, num_heads):
@@ -241,8 +259,8 @@ class CachedMultiHeadAttention(nn.Module):
         # Input projection that projects each key, value and query for each number of heads
         self.in_proj = MultiHeadProjection(embed_dim, self.head_dim, num_heads)
         
-        # Output projection weight once single headed attention blocks are concatenated
-        self.out_proj = nn.Linear(self.head_dim * num_heads, self.embed_dim)
+        # Output projection weights for downsampling the context window during caching
+        self.out_proj = AttentionPooling(embed_dim)
 
         # Dropout
         self.dropout = nn.Dropout(dropout)
@@ -261,18 +279,22 @@ class CachedMultiHeadAttention(nn.Module):
 
         return output
     
-    def cached_scaled_dot_product_attention(self, query, key, value):
-        # Cache latest queries, keys and values which correspond to latest embedding in the sequence
+    def cached_scaled_dot_product_attention(self, query, key, value, casual_attn=False):
+        # Cache latest queries, keys and values which correspond to latest embedding in the sequence so that they can be reattended
         self.sliding_cache.append_projections(query, key, value)
 
         # Retreive the cached query, key and value projection tensors (old and new projected embeddings)
-        query, key, value = self.sliding_cache.retrieve_projections()
+        q, k, v = self.sliding_cache.retrieve_projections()
 
-        # Element-wise multiplication
-        attn_score = query @ key.transpose(-2, -1) * self.scale
+        # Element-wise multiplication to produce last column and last row of attn_score
+        q_t = query @ k.transpose(-2, -1) * self.scale # [batch_size, num_heads, 1, max_seq_length]
+        k_t = q @ key.transpose(-2, -1) * self.scale # [batch_size, num_heads, max_seq_length, 1]
 
-        # Append the new query-key attention scores to the cache
-        self.sliding_cache.append_attn_score(attn_score)
+        # Update the attention scores with the new query-key attention scores i.e. the new query and key will reattend to the old tokens
+        self.sliding_cache.update_attn_score(q_t, k_t)
+
+        # Move the buffer forward by one position
+        self.sliding_cache.increment_current_seq_len()
 
         # Retrieve the new cache (old and new attention scores)
         attn_scores = self.sliding_cache.retrieve_attn_score()
@@ -280,9 +302,9 @@ class CachedMultiHeadAttention(nn.Module):
         # Compute the scaled dot product attention 
         attn_weights = F.softmax(attn_scores, dim=-1)
         attn_weights = self.dropout(attn_weights)
-        output = attn_weights @ value 
+        output = attn_weights @ v 
         
-        # [batch_size, num_heads, seq_length, head_dim] -> [batch_size, seq_length, embed_dim]
+        # [batch_size, num_heads, max_seq_length, head_dim] -> [batch_size, max_seq_length, embed_dim]
         output = output.transpose(1, 2).contiguous().view(output.size(0), output.size(2), -1)
 
         return output
@@ -298,8 +320,11 @@ class CachedMultiHeadAttention(nn.Module):
         query, key, value = self.in_proj(query, key, value)
 
         if use_cache:            
-            # Perform scaled dot product attention with the sliding caching mechanism
+            # Perform scaled dot product attention with the sliding caching mechanism of shape [batch_size, max_seq_length, embed_dim]
             out = self.cached_scaled_dot_product_attention(query, key, value)
+
+            # attention pooling layer to downsample the context window from max_seq_length back to seq_length
+            out = self.out_proj(out)
             
         else:
             # Perform scaled dot product attention for all attention heads (multi-headed attention)
