@@ -6,5 +6,6 @@ from .attention_mechansims import (
     SelfAttentionEncoder,
     CachedSlidingAttentionEncoder,
     CrossAttentionEncoder,
+    AttentionPooling,
 )
 from .ablation_study_models import *

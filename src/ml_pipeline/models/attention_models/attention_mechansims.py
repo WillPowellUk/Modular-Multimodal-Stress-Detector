@@ -93,9 +93,9 @@ class CrossAttentionEncoder(nn.Module):
 
         return x
 
-class SlidingQKVCache(nn.Module):
+class SlidingAttnScoreCache(nn.Module):
     """
-    Standalone nn.Module containing a qk and v cache to cache past key, queries and values during inference.
+    Standalone nn.Module containing a sliding projection and attention score cache.
 
     Args:
         max_batch_size (int): maximum batch size model will be run with
@@ -214,8 +214,12 @@ class AttentionPooling(nn.Module):
 
     def forward(self, x):
         # x shape: [batch_size, max_seq_length, embed_dim]
-        weights = torch.softmax(self.attention(x), dim=1)  # [batch_size, max_seq_length, 1]
+        attention_scores = self.attention(x)  # [batch_size, max_seq_length, 1]
+        
+        weights = torch.softmax(attention_scores, dim=1)  # [batch_size, max_seq_length, 1]
         pooled = torch.sum(weights * x, dim=1)  # [batch_size, embed_dim]
+        
+        # Expand to [batch_size, seq_length, embed_dim]
         return pooled.unsqueeze(1).expand(-1, self.seq_length, -1)
 
 class MultiHeadProjection(nn.Module):
@@ -257,16 +261,16 @@ class CachedMultiHeadAttention(nn.Module):
         self.scale = self.head_dim ** -0.5
 
         # Input projection that projects each key, value and query for each number of heads
-        self.in_proj = MultiHeadProjection(embed_dim, self.head_dim, num_heads)
-        
+        self.in_proj = MultiHeadProjection(embed_dim, self.head_dim, num_heads)    
+            
         # Output projection weights for downsampling the context window during caching
-        self.out_proj = AttentionPooling(embed_dim)
+        self.attn_pool = AttentionPooling(embed_dim)
 
         # Dropout
         self.dropout = nn.Dropout(dropout)
 
         # KV cache
-        self.sliding_cache = SlidingQKVCache(max_batch_size, max_seq_len, num_heads, self.head_dim, torch.float32)
+        self.sliding_cache = SlidingAttnScoreCache(max_batch_size, max_seq_len, num_heads, self.head_dim, torch.float32)
 
     def scaled_dot_product_attention(self, query, key, value):
         attn_scores = query @ key.transpose(-2,-1) * self.scale
@@ -304,7 +308,7 @@ class CachedMultiHeadAttention(nn.Module):
         # Compute the scaled dot product attention 
         attn_weights = F.softmax(attn_scores, dim=-1)
         attn_weights = self.dropout(attn_weights)
-        output = attn_weights @ v 
+        output = attn_weights @ v
         
         # [batch_size, num_heads, max_seq_length, head_dim] -> [batch_size, max_seq_length, embed_dim]
         output = output.transpose(1, 2).contiguous().view(output.size(0), output.size(2), -1)
@@ -325,9 +329,9 @@ class CachedMultiHeadAttention(nn.Module):
             # Perform scaled dot product attention with the sliding caching mechanism of shape [batch_size, max_seq_length, embed_dim]
             out = self.cached_scaled_dot_product_attention(query, key, value)
 
-            # attention pooling layer to downsample the context window from max_seq_length back to seq_length
-            out = self.out_proj(out)
-            
+            # Attention pooling layer to downsample the context window from max_seq_length back to seq_length
+            out = self.attn_pool(out)
+
         else:
             # Perform scaled dot product attention for all attention heads (multi-headed attention)
             out = self.scaled_dot_product_attention(query, key, value)

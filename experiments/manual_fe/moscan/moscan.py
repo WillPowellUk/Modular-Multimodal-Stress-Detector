@@ -38,7 +38,7 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
     from src.ml_pipeline.train import PyTorchTrainer
     from src.ml_pipeline.models.attention_models import MOSCAN
     from src.ml_pipeline.losses import LossWrapper
-    from src.ml_pipeline.data_loader import LOSOCVSensorDataLoader
+    from src.ml_pipeline.data_loader import LOSOCVSensorDataLoader, SeqToSeqDataLoader
     from src.utils import save_var
     from src.ml_pipeline.utils import (
         get_active_key,
@@ -186,6 +186,12 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
             # Fine Tune on non-batched (Optional)
             if FINE_TUNE:
                 print("Fine Tuning Model on Non-Batched Data")
+
+                # perform seq-to-seq training
+                # Mix the dataloaders so there are randomised segments whilst ensuring the sequential format is maintained.
+                train_loader_non_batched = SeqToSeqDataLoader(train_loader_non_batched, model_config['fine_tune_sequence_length']) 
+
+
                 fine_tune_loss_wrapper = LossWrapper(model_config["fine_tune_loss_fns"])
 
                 trainer.model.seq_length = get_values(current_config, "seq_length")

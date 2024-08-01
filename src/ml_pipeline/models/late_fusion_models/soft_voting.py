@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from src.ml_pipeline.models.attention_models.attention_mechansims import AttentionPooling
 
 class StackedModularPool(nn.Module):
     def __init__(self, embed_dim, hidden_dim, output_dim, dropout, pool_type='avg'):
@@ -123,8 +124,10 @@ class ModularWeightedPool(nn.Module):
             self.pool = nn.AdaptiveAvgPool1d(1)
         elif pool_type == 'max':
             self.pool = nn.AdaptiveMaxPool1d(1)
+        elif pool_type == 'attention':
+            self.pool = AttentionPooling(embed_dim, seq_length=1)
         else:
-            raise ValueError("pool_type must be either 'avg' or 'max'")
+            raise ValueError("pool_type must be either 'avg', 'max', or 'attention'")
 
         # Define the linear layer for branch processing
         self.branch_linear = nn.Linear(embed_dim, output_dim)
@@ -142,14 +145,18 @@ class ModularWeightedPool(nn.Module):
 
         for key in sorted(x.keys()):
             branch = x[key]
-            # Permute to shape (batch_size, embed_dim, seq_len)
-            branch = branch.permute(0, 2, 1)
+            if self.pool_type == 'attention':
+                # AttentionPooling expects input of shape [batch_size, max_seq_length, embed_dim]
+                branch = self.pool(branch)
+            else:
+                # Permute to shape (batch_size, embed_dim, seq_len)
+                branch = branch.permute(0, 2, 1)
 
-            # Apply pooling
-            branch = self.pool(branch)
+                # Apply pooling
+                branch = self.pool(branch)
 
-            # Remove the last dimension (which is 1 after pooling)
-            branch = branch.squeeze(-1)
+                # Remove the last dimension (which is 1 after pooling)
+                branch = branch.squeeze(-1)
 
             # Apply linear layer
             branch = self.branch_linear(branch)
@@ -172,4 +179,3 @@ class ModularWeightedPool(nn.Module):
         weighted_output = (branch_outputs * gate_weights.unsqueeze(0).unsqueeze(-1)).sum(dim=1)  # Shape: (batch_size, output_dim)
 
         return weighted_output
-

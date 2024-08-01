@@ -102,7 +102,7 @@ for ckpt in ckpts:
         print(f"Using device: {device}")
 
         fold = '0'
-        val_loader_batched = batched_dataloaders[0]['val']
+        val_loader_batched = batched_dataloaders[2]['val']
 
         # Load Model Parameters
         model_config = load_json(MOSCAN_CONFIG)

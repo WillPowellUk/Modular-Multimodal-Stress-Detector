@@ -7,17 +7,14 @@ class KalmanFilter(nn.Module):
         self.num_classes = num_classes
         self.num_branches = num_branches
         self.device = device
-
         # Learnable parameters
         self.F = nn.Parameter(torch.eye(num_classes, dtype=torch.float32))
         self.H = nn.Parameter(torch.eye(num_classes, dtype=torch.float32))
         self.Q = nn.Parameter(torch.diag(torch.ones(num_classes, dtype=torch.float32) * 1e-4))
-        self.R = nn.Parameter(torch.diag(torch.ones(num_classes, dtype=torch.float32) * 0.01))
         
         # Initial state and covariance
         self.initial_x = nn.Parameter(torch.zeros(num_classes, 1, dtype=torch.float32))
         self.initial_P = nn.Parameter(torch.eye(num_classes, dtype=torch.float32) * 0.01)
-
         if num_classes == 3:
             self.epsilon = nn.Parameter(torch.tensor(0.4))
             self.gamma = nn.Parameter(torch.tensor([0.278, 1.0, 1.0], dtype=torch.float32).reshape(-1, 1))
@@ -34,7 +31,14 @@ class KalmanFilter(nn.Module):
 
     def update(self, x, P, z):
         y = z - self.H @ x
-        S = self.H @ P @ self.H.t() + self.R
+        
+        # Calculate R dynamically based on z
+        if self.num_classes == 3:
+            R = ((1 - z) * 2 * torch.eye(self.num_classes, device=self.device)) ** 2
+        elif self.num_classes == 2:
+            R = (((1 - z) / 2) * torch.eye(self.num_classes, device=self.device)) ** 2
+        
+        S = self.H @ P @ self.H.t() + R
         K = P @ self.H.t() @ torch.inverse(S)
         
         x = x + K @ y
