@@ -1,5 +1,4 @@
 {
-    "query_cache": true,
     "predictor": "avg_pool",
     "num_classes": 2,
     "seq_length": 6,

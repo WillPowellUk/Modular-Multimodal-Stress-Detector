@@ -6,7 +6,7 @@ WINDOW_LENGTH = 5
 SLIDING_LENGTH = WINDOW_LENGTH  # this will create no overlap between segments i.e. no augmented / synthetic data.
 SPLIT_LENGTH = WINDOW_LENGTH  # this will not sub-split the data
 
-SENSORS = 'bvp_w_eda'
+SENSORS = "bvp_w_eda"
 # SENSORS = 'bvp_w_eda_temp'
 # SENSORS = 'bvp_w_eda_temp_w_acc'
 
@@ -50,7 +50,6 @@ DATASETS_PATH = losocv_loader.prepare_datasets(
 )
 
 
-
 from src.ml_pipeline.data_loader import LOSOCVSensorDataLoader
 
 n_folds = 5
@@ -60,7 +59,7 @@ SLIDING_LENGTH = WINDOW_LENGTH  # this will create no overlap between segments i
 SPLIT_LENGTH = WINDOW_LENGTH  # this will not sub-split the data
 
 # SENSORS = 'bvp_w_eda'
-SENSORS = 'bvp_w_eda_temp'
+SENSORS = "bvp_w_eda_temp"
 # SENSORS = 'bvp_w_eda_temp_w_acc'
 
 # WRIST_CONFIG = 'config_files/dataset/wesad_wrist_configuration.json'
@@ -103,7 +102,6 @@ DATASETS_PATH = losocv_loader.prepare_datasets(
 )
 
 
-
 from src.ml_pipeline.data_loader import LOSOCVSensorDataLoader
 
 n_folds = 5
@@ -114,7 +112,7 @@ SPLIT_LENGTH = WINDOW_LENGTH  # this will not sub-split the data
 
 # SENSORS = 'bvp_w_eda'
 # SENSORS = 'bvp_w_eda_temp'
-SENSORS = 'bvp_w_eda_temp_w_acc'
+SENSORS = "bvp_w_eda_temp_w_acc"
 
 # WRIST_CONFIG = 'config_files/dataset/wesad_wrist_configuration.json'
 WRIST_CONFIG = f"config_files/dataset/wesad_wrist_{SENSORS}_configuration.json"

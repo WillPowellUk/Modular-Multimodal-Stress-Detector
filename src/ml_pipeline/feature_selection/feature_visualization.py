@@ -1,4 +1,3 @@
-
 import os
 import sys
 from datetime import datetime
@@ -45,6 +44,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 
+
 class FeatureVisualization:
     def __init__(self, features_path, config_path):
         self.features_path = features_path
@@ -71,15 +71,20 @@ class FeatureVisualization:
                     for label in hdf5_file[subject][aug].keys():
                         for batch in hdf5_file[subject][aug][label].keys():
                             for sensor in hdf5_file[subject][aug][label][batch].keys():
-                                if sensor not in self.include_sensors:  # skip unwanted sensors
+                                if (
+                                    sensor not in self.include_sensors
+                                ):  # skip unwanted sensors
                                     continue
-                                for feature in hdf5_file[subject][aug][label][batch][sensor].keys():
+                                for feature in hdf5_file[subject][aug][label][batch][
+                                    sensor
+                                ].keys():
                                     # if feature not in self.include_features:  # skip unwanted features
                                     #     continue
-                                    feature_data = hdf5_file[subject][aug][label][batch][sensor][feature][:]
+                                    feature_data = hdf5_file[subject][aug][label][
+                                        batch
+                                    ][sensor][feature][:]
                                     data.append(feature_data)
-                
-            
+
         # Convert lists to arrays
         all_data = np.array(all_data)
         all_labels = np.array(all_labels)
@@ -90,18 +95,25 @@ class FeatureVisualization:
 
         # Plot the 2D visualization
         plt.figure(figsize=(10, 8))
-        scatter = plt.scatter(reduced_data[:, 0], reduced_data[:, 1], c=all_labels, cmap='viridis', alpha=0.7)
-        plt.colorbar(scatter, label='Labels')
-        plt.title('2D Visualization of High-Dimensional Features')
-        plt.xlabel('PCA Component 1')
-        plt.ylabel('PCA Component 2')
+        scatter = plt.scatter(
+            reduced_data[:, 0],
+            reduced_data[:, 1],
+            c=all_labels,
+            cmap="viridis",
+            alpha=0.7,
+        )
+        plt.colorbar(scatter, label="Labels")
+        plt.title("2D Visualization of High-Dimensional Features")
+        plt.xlabel("PCA Component 1")
+        plt.ylabel("PCA Component 2")
         plt.show()
+
 
 WINDOW_LENGTH = 60
 SLIDING_LENGTH = 5
-SPLIT_LENGTH = 10 # this will split each 60 second segments into 6 x 10 second segments
-WRIST_CONFIG = 'config_files/dataset/wesad_wrist_configuration.json'
-WRIST_FE = f'src/wesad/WESAD/manual_fe/wrist_manual_fe/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s/wrist_features.hdf5'
+SPLIT_LENGTH = 10  # this will split each 60 second segments into 6 x 10 second segments
+WRIST_CONFIG = "config_files/dataset/wesad_wrist_configuration.json"
+WRIST_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s/wrist_features.hdf5"
 
 visualizer = FeatureVisualization(WRIST_CONFIG, WRIST_FE)
 visualizer.visualize()

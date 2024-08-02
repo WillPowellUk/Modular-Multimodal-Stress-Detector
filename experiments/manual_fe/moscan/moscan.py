@@ -1,5 +1,18 @@
-
-def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH, GROUP_LABELS=None, NAME=None):
+def moscan(
+    moscan_model,
+    MOSCAN_CONFIG,
+    DATASET_CONFIG,
+    DATASET_TYPE,
+    BATCHED_FE,
+    BATCHED_DATASETS_PATH,
+    NON_BATCHED_FE,
+    NON_BATCHED_DATASETS_PATH,
+    NON_BATCHED_WINDOW_LENGTH,
+    NON_BATCHED_SLIDING_LENGTH,
+    NON_BATCHED_SPLIT_LENGTH,
+    GROUP_LABELS=None,
+    NAME=None,
+):
     import os
     import sys
     from datetime import datetime
@@ -10,7 +23,9 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
 
     # Traverse up to find the desired directory
     target_dir = current_dir
-    while "src" not in os.listdir(target_dir) and target_dir != os.path.dirname(target_dir):
+    while "src" not in os.listdir(target_dir) and target_dir != os.path.dirname(
+        target_dir
+    ):
         target_dir = os.path.dirname(target_dir)
 
     # Append the target directory to sys.path
@@ -33,7 +48,9 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
     if "experiments" in os.listdir(target_dir):
         sys.path.append(target_dir)
     else:
-        raise ImportError("Could not find 'experiments' directory in the path hierarchy")
+        raise ImportError(
+            "Could not find 'experiments' directory in the path hierarchy"
+        )
 
     from src.ml_pipeline.train import PyTorchTrainer
     from src.ml_pipeline.models.attention_models import MOSCAN
@@ -52,7 +69,7 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
 
     # Set the sensors to use
     active_sensors = get_active_key(DATASET_CONFIG, "sensors")
-    SENSORS = '_'.join(active_sensors)
+    SENSORS = "_".join(active_sensors)
 
     # Optional fine tune on non-batched data
     FINE_TUNE = get_values(MOSCAN_CONFIG, "fine_tune")
@@ -62,7 +79,7 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
     #     "epochs": [10],
     #     "kalman": [False],
     #     "embed_dim": [32],
-    #     "hidden_dim": [16], 
+    #     "hidden_dim": [16],
     #     "n_head_gen": [4],
     #     "dropout": [0.5],
     #     "attention_dropout": [0.5],
@@ -74,17 +91,17 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
     #     # "early_stopping_patience": [5, 7, 10, 20],
     #     # "early_stopping_patience": [5, 7, 10, 20],
     #     # "early_stopping_metric": ["loss", "accuracy"],
-    #     # "predictor": ["hard_voting", "avg_pool", 'weighted_avg_pool',  "weighted_max_pool", "avg_pool", "max_pool"], 
+    #     # "predictor": ["hard_voting", "avg_pool", 'weighted_avg_pool',  "weighted_max_pool", "avg_pool", "max_pool"],
     # }
-    HYPERPARAMETER_GRID = {
-        "epochs": [1]
-    }
+    HYPERPARAMETER_GRID = {"epochs": [1]}
 
     # Grid Search Parameters
     hyperparams = HyperParamsIterator(MOSCAN_CONFIG, HYPERPARAMETER_GRID)
 
     for c, current_config in enumerate(hyperparams()):
-        print(f"\n\nCurrent Configuration: {c+1} out of {len(hyperparams.combinations)}\n\n")
+        print(
+            f"\n\nCurrent Configuration: {c+1} out of {len(hyperparams.combinations)}\n\n"
+        )
 
         batched_dataloader_params = {
             "batch_size": get_values(current_config, "batch_size"),
@@ -94,7 +111,10 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
         batched_losocv_loader = LOSOCVSensorDataLoader(
             BATCHED_FE, DATASET_CONFIG, **batched_dataloader_params
         )
-        batched_dataloaders, batched_input_dims = batched_losocv_loader.get_data_loaders(
+        (
+            batched_dataloaders,
+            batched_input_dims,
+        ) = batched_losocv_loader.get_data_loaders(
             BATCHED_DATASETS_PATH, dataset_type=DATASET_TYPE, group_labels=GROUP_LABELS
         )
 
@@ -106,8 +126,13 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
         non_batched_losocv_loader = LOSOCVSensorDataLoader(
             NON_BATCHED_FE, DATASET_CONFIG, **non_batched_dataloader_params
         )
-        non_batched_dataloaders, non_batched_input_dims = non_batched_losocv_loader.get_data_loaders(
-            NON_BATCHED_DATASETS_PATH, dataset_type=DATASET_TYPE, group_labels=GROUP_LABELS
+        (
+            non_batched_dataloaders,
+            non_batched_input_dims,
+        ) = non_batched_losocv_loader.get_data_loaders(
+            NON_BATCHED_DATASETS_PATH,
+            dataset_type=DATASET_TYPE,
+            group_labels=GROUP_LABELS,
         )
 
         assert (
@@ -128,7 +153,7 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
             val_loader_batched = batched_loader["val"]
             train_loader_non_batched = val_loader["train"]
             val_loader_non_batched = val_loader["val"]
-            if DATASET_TYPE == 'losocv':
+            if DATASET_TYPE == "losocv":
                 print(f"\nSubject: {subject_id}")
                 fold = f"subject_{subject_id}"
             else:
@@ -142,15 +167,19 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
 
             # Load Model Parameters
             model_config = load_json(current_config)
-            model_config = {**model_config, }
+            model_config = {
+                **model_config,
+            }
 
             # Configure LossWrapper for the model
             loss_wrapper = LossWrapper(model_config["loss_fns"])
 
-            # Modify Current Config with 
+            # Modify Current Config with
             model_config = load_json(current_config)
             current_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-            model_config["save_path"] = f"src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/generalized/{current_time}/{fold}"
+            model_config[
+                "save_path"
+            ] = f"src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/generalized/{current_time}/{fold}"
             model_config["device"] = str(device)
             model_config["input_dims"] = batched_input_dims
             model_config["active_sensors"] = active_sensors
@@ -169,7 +198,10 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
 
             # Train the model on the batched data without the sliding co-attention buffer
             trainer.model.seq_length = 1
-            pre_trained_model_ckpt = trainer.train(train_loader_batched, val_loader_batched, loss_wrapper, 
+            pre_trained_model_ckpt = trainer.train(
+                train_loader_batched,
+                val_loader_batched,
+                loss_wrapper,
                 use_wandb=True,
                 name_wandb=f"{NAME}_{fold}",
             )
@@ -178,10 +210,24 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
             # Validate model on non-batched data
             print("Validating Pre-Trained Model on Non-Batched Data")
             trainer.model.seq_length = get_values(current_config, "seq_length")
-            if DATASET_TYPE == 'losocv':
-                result = trainer.validate(val_loader_non_batched, loss_wrapper, ckpt_path=pre_trained_model_ckpt, subject_id=subject_id, pre_trained_run=True, check_overlap=True)
-            else: 
-                result = trainer.validate(val_loader_non_batched, loss_wrapper, ckpt_path=pre_trained_model_ckpt, subject_id=idx, pre_trained_run=True, check_overlap=True)
+            if DATASET_TYPE == "losocv":
+                result = trainer.validate(
+                    val_loader_non_batched,
+                    loss_wrapper,
+                    ckpt_path=pre_trained_model_ckpt,
+                    subject_id=subject_id,
+                    pre_trained_run=True,
+                    check_overlap=True,
+                )
+            else:
+                result = trainer.validate(
+                    val_loader_non_batched,
+                    loss_wrapper,
+                    ckpt_path=pre_trained_model_ckpt,
+                    subject_id=idx,
+                    pre_trained_run=True,
+                    check_overlap=True,
+                )
 
             # Fine Tune on non-batched (Optional)
             if FINE_TUNE:
@@ -189,22 +235,45 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
 
                 # perform seq-to-seq training
                 # Mix the dataloaders so there are randomised segments whilst ensuring the sequential format is maintained.
-                train_loader_non_batched = SeqToSeqDataLoader(train_loader_non_batched, model_config['fine_tune_sequence_length']) 
-
+                train_loader_non_batched = SeqToSeqDataLoader(
+                    train_loader_non_batched, model_config["fine_tune_sequence_length"]
+                )
 
                 fine_tune_loss_wrapper = LossWrapper(model_config["fine_tune_loss_fns"])
 
                 trainer.model.seq_length = get_values(current_config, "seq_length")
-                fine_tuned_model_ckpt = trainer.train(train_loader_non_batched, val_loader_non_batched, fine_tune_loss_wrapper, ckpt_path=pre_trained_model_ckpt, use_wandb=True, name_wandb=f"{model.NAME}_{fold}", fine_tune=True)
-                print(f"Fine Tuned Model checkpoint saved to: {fine_tuned_model_ckpt}\n")
+                fine_tuned_model_ckpt = trainer.train(
+                    train_loader_non_batched,
+                    val_loader_non_batched,
+                    fine_tune_loss_wrapper,
+                    ckpt_path=pre_trained_model_ckpt,
+                    use_wandb=True,
+                    name_wandb=f"{model.NAME}_{fold}",
+                    fine_tune=True,
+                )
+                print(
+                    f"Fine Tuned Model checkpoint saved to: {fine_tuned_model_ckpt}\n"
+                )
                 # Validate model on non-batched data
                 print("Validating Fine Tuned Model on Non-Batched Data")
                 trainer.model.seq_length = get_values(current_config, "seq_length")
-                if DATASET_TYPE == 'losocv':
-                    result = trainer.validate(val_loader_non_batched, fine_tune_loss_wrapper, fine_tuned_model_ckpt, subject_id=subject_id, fine_tune_run=True)
-                else: 
-                    result = trainer.validate(val_loader_non_batched, fine_tune_loss_wrapper, fine_tuned_model_ckpt, subject_id=idx, fine_tune_run=True)
-            
+                if DATASET_TYPE == "losocv":
+                    result = trainer.validate(
+                        val_loader_non_batched,
+                        fine_tune_loss_wrapper,
+                        fine_tuned_model_ckpt,
+                        subject_id=subject_id,
+                        fine_tune_run=True,
+                    )
+                else:
+                    result = trainer.validate(
+                        val_loader_non_batched,
+                        fine_tune_loss_wrapper,
+                        fine_tuned_model_ckpt,
+                        subject_id=idx,
+                        fine_tune_run=True,
+                    )
+
             results.append(result)
 
             del trainer  # delete the trainer object to finish wandb
@@ -229,20 +298,21 @@ def moscan(moscan_model, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE
     del hyperparams
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import os
     import sys
     from datetime import datetime
     import torch
     import json
 
-
     # Get the current script's directory
     current_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Traverse up to find the desired directory
     target_dir = current_dir
-    while "src" not in os.listdir(target_dir) and target_dir != os.path.dirname(target_dir):
+    while "src" not in os.listdir(target_dir) and target_dir != os.path.dirname(
+        target_dir
+    ):
         target_dir = os.path.dirname(target_dir)
 
     # Append the target directory to sys.path
@@ -265,7 +335,9 @@ if __name__ == '__main__':
     if "experiments" in os.listdir(target_dir):
         sys.path.append(target_dir)
     else:
-        raise ImportError("Could not find 'experiments' directory in the path hierarchy")
+        raise ImportError(
+            "Could not find 'experiments' directory in the path hierarchy"
+        )
 
     from experiments.manual_fe.moscan.moscan import moscan
     from src.ml_pipeline.models.attention_models.ablation_study_models import *
@@ -278,7 +350,9 @@ if __name__ == '__main__':
     if dataset == "wesad":
         MOSCAN_CONFIG = "config_files/model_training/deep/moscan_config.json"
         SENSORS = "bvp_w_eda"
-        DATASET_CONFIG = f"config_files/dataset/wesad_wrist_{SENSORS}_configuration.json"
+        DATASET_CONFIG = (
+            f"config_files/dataset/wesad_wrist_{SENSORS}_configuration.json"
+        )
         DATASET_TYPE = "losocv"
 
         # Load Train Dataloaders for LOSOCV
@@ -293,11 +367,27 @@ if __name__ == '__main__':
         # Load Val Dataloaders for LOSOCV
         NON_BATCHED_WINDOW_LENGTH = 5
         NON_BATCHED_SLIDING_LENGTH = NON_BATCHED_WINDOW_LENGTH  # this will create no overlap between segments i.e. no augmented / synthetic data.
-        NON_BATCHED_SPLIT_LENGTH = NON_BATCHED_WINDOW_LENGTH  # this will not sub-split the data
+        NON_BATCHED_SPLIT_LENGTH = (
+            NON_BATCHED_WINDOW_LENGTH  # this will not sub-split the data
+        )
         NON_BATCHED_FE = f"src/wesad/WESAD/manual_fe/wrist_manual_fe/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/wrist_features.hdf5"
         NON_BATCHED_DATASETS_PATH = f"src/wesad/WESAD/datasets/wrist/{SENSORS}/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
 
-        moscan(MOSCAN, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH, GROUP_LABELS=None, NAME='MOSCAN-TEST-WESAD')
+        moscan(
+            MOSCAN,
+            MOSCAN_CONFIG,
+            DATASET_CONFIG,
+            DATASET_TYPE,
+            BATCHED_FE,
+            BATCHED_DATASETS_PATH,
+            NON_BATCHED_FE,
+            NON_BATCHED_DATASETS_PATH,
+            NON_BATCHED_WINDOW_LENGTH,
+            NON_BATCHED_SLIDING_LENGTH,
+            NON_BATCHED_SPLIT_LENGTH,
+            GROUP_LABELS=None,
+            NAME="MOSCAN-TEST-WESAD",
+        )
 
     elif dataset == "ubfc":
         # Set either losocv or kfold
@@ -315,22 +405,36 @@ if __name__ == '__main__':
         # Load Val Dataloaders for LOSOCV
         NON_BATCHED_WINDOW_LENGTH = 5
         NON_BATCHED_SLIDING_LENGTH = NON_BATCHED_WINDOW_LENGTH  # this will create no overlap between segments i.e. no augmented / synthetic data.
-        NON_BATCHED_SPLIT_LENGTH = NON_BATCHED_WINDOW_LENGTH  # this will not sub-split the data
+        NON_BATCHED_SPLIT_LENGTH = (
+            NON_BATCHED_WINDOW_LENGTH  # this will not sub-split the data
+        )
         NON_BATCHED_FE = f"src/ubfc_phys/UBFC-PHYS/manual_fe/wrist_manual_fe/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/wrist_features.hdf5"
 
         MOSCAN_CONFIG = "config_files/model_training/deep/moscan_config.json"
 
         # T1 v (T2 + T3)
         # Configure labels for group;
-        GROUP_LABELS = {
-            2: [3]  # Label 3 is merged into label 2
-        }
+        GROUP_LABELS = {2: [3]}  # Label 3 is merged into label 2
         modify_key(MOSCAN_CONFIG, "num_classes", 2)
 
         #### Both modalities
-        SENSORS = 'bvp_eda'
+        SENSORS = "bvp_eda"
         DATASET_CONFIG = f"config_files/dataset/ubfc_{SENSORS}_configuration.json"
         BATCHED_DATASETS_PATH = f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/slow/{SENSORS}/{BATCHED_WINDOW_LENGTH}s_{BATCHED_SLIDING_LENGTH}s_{BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
         NON_BATCHED_DATASETS_PATH = f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/slow/{SENSORS}/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
         DATASET_CONFIG = "config_files/dataset/ubfc_bvp_eda_configuration.json"
-        moscan(MOSCAN, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH, GROUP_LABELS=GROUP_LABELS, NAME="MOSCAN-TEST-UBFC")
+        moscan(
+            MOSCAN,
+            MOSCAN_CONFIG,
+            DATASET_CONFIG,
+            DATASET_TYPE,
+            BATCHED_FE,
+            BATCHED_DATASETS_PATH,
+            NON_BATCHED_FE,
+            NON_BATCHED_DATASETS_PATH,
+            NON_BATCHED_WINDOW_LENGTH,
+            NON_BATCHED_SLIDING_LENGTH,
+            NON_BATCHED_SPLIT_LENGTH,
+            GROUP_LABELS=GROUP_LABELS,
+            NAME="MOSCAN-TEST-UBFC",
+        )

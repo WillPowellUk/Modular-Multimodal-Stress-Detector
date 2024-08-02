@@ -48,7 +48,9 @@ from src.ml_pipeline.utils import (
     HyperParamsIterator,
 )
 
-PRE_TRAINED_CKPTS = ["src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/5s_5s_5s/generalized/2024_07_05_13_15_50/fold_0/checkpoint_final.pth"]
+PRE_TRAINED_CKPTS = [
+    "src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/5s_5s_5s/generalized/2024_07_05_13_15_50/fold_0/checkpoint_final.pth"
+]
 
 # CONFIG file for the dataset
 WRIST_CONFIG = "config_files/dataset/wesad_wrist_bvp_w_eda_configuration.json"
@@ -62,7 +64,7 @@ DATASET_TYPE = "cv_5"
 
 # Set the sensors to use
 active_sensors = get_active_key(WRIST_CONFIG, "sensors")
-SENSORS = '_'.join(active_sensors)
+SENSORS = "_".join(active_sensors)
 
 # Load Val Dataloaders for LOSOCV
 NON_BATCHED_WINDOW_LENGTH = 5
@@ -85,15 +87,17 @@ HYPERPARAMETER_GRID = {
     # "transfer_learning_learning_rate": [0.001, 0.0001, 0.00005],
     # "early_stopping_patience": [5,8,10,20],
     # "early_stopping_metric": ["loss", "accuracy"],
-    "predictor": ["avg_pool"], # ['weighted_avg_pool', "avg_pool", "stacked_avg_pool"], 
-    "kalman": [True]
+    "predictor": ["avg_pool"],  # ['weighted_avg_pool', "avg_pool", "stacked_avg_pool"],
+    "kalman": [True],
 }
 
 # Grid Search Parameters
 hyperparams = HyperParamsIterator(MOSCAN_CONFIG, HYPERPARAMETER_GRID)
 
 for c, current_config in enumerate(hyperparams()):
-    print(f"\n\nCurrent Configuration: {c+1} out of {len(hyperparams.combinations)}\n\n")
+    print(
+        f"\n\nCurrent Configuration: {c+1} out of {len(hyperparams.combinations)}\n\n"
+    )
 
     non_batched_dataloader_params = {
         "batch_size": 1,
@@ -103,7 +107,10 @@ for c, current_config in enumerate(hyperparams()):
     non_batched_losocv_loader = LOSOCVSensorDataLoader(
         NON_BATCHED_FE, WRIST_CONFIG, **non_batched_dataloader_params
     )
-    non_batched_dataloaders, non_batched_input_dims = non_batched_losocv_loader.get_data_loaders(
+    (
+        non_batched_dataloaders,
+        non_batched_input_dims,
+    ) = non_batched_losocv_loader.get_data_loaders(
         NON_BATCHED_DATASETS_PATH, dataset_type=DATASET_TYPE
     )
 
@@ -115,7 +122,7 @@ for c, current_config in enumerate(hyperparams()):
     for idx, (subject_id, data_loader) in enumerate(non_batched_dataloaders.items()):
         train_loader_non_batched = data_loader["train"]
         val_loader_non_batched = data_loader["val"]
-        if DATASET_TYPE == 'losocv':
+        if DATASET_TYPE == "losocv":
             print(f"\nSubject: {subject_id}")
             fold = f"subject_{subject_id}"
         else:
@@ -127,21 +134,27 @@ for c, current_config in enumerate(hyperparams()):
 
         # Load Model Parameters
         model_config = load_json(current_config)
-        model_config = {**model_config, }
+        model_config = {
+            **model_config,
+        }
 
         # Mix the dataloaders so there are randomised segments whilst ensuring the sequential format is maintained.
-        train_loader_non_batched = SeqToSeqDataLoader(train_loader_non_batched, model_config['fine_tune_sequence_length']) 
+        train_loader_non_batched = SeqToSeqDataLoader(
+            train_loader_non_batched, model_config["fine_tune_sequence_length"]
+        )
 
         # Configure LossWrapper for the model
         loss_wrapper = LossWrapper(model_config["loss_fns"])
 
         # Load Pre-Trained Model
         pre_trained_ckpt = PRE_TRAINED_CKPTS[idx]
-        
-        # Modify Current Config with 
+
+        # Modify Current Config with
         model_config = load_json(current_config)
         current_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-        model_config["save_path"] = f"src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/generalized/{current_time}/{fold}"
+        model_config[
+            "save_path"
+        ] = f"src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/generalized/{current_time}/{fold}"
         model_config["device"] = str(device)
         model_config["input_dims"] = non_batched_input_dims
         model_config["active_sensors"] = active_sensors
@@ -151,12 +164,14 @@ for c, current_config in enumerate(hyperparams()):
         model = MOSCAN(**model_config)
 
         # Load the pre-trained checkpoint
-        checkpoint = torch.load(pre_trained_ckpt, map_location=torch.device(str(device)))
+        checkpoint = torch.load(
+            pre_trained_ckpt, map_location=torch.device(str(device))
+        )
         model.load_state_dict(checkpoint)
 
         # Freeze all layers except for the predictor and the last layers
         for name, param in model.named_parameters():
-            if 'predictor' not in name:
+            if "predictor" not in name:
                 param.requires_grad = False
 
         # Initialize trainer
@@ -165,21 +180,45 @@ for c, current_config in enumerate(hyperparams()):
             current_config,
         )
 
-        print("Transfer Learning Model on Non-Batched Data with new Kalman Late Fusion Module")
+        print(
+            "Transfer Learning Model on Non-Batched Data with new Kalman Late Fusion Module"
+        )
         transfer_learning_loss_wrapper = LossWrapper(model_config["fine_tune_loss_fns"])
 
         trainer.model.seq_length = get_values(current_config, "seq_length")
-        fine_tuned_model_ckpt = trainer.train(train_loader_non_batched, val_loader_non_batched, transfer_learning_loss_wrapper, mixed_grad=True, use_wandb=True, name_wandb=f"{model.NAME}_{fold}_fine-tune", use_local_wandb=True, fine_tune=True, val_freq_per_epoch=2)
+        fine_tuned_model_ckpt = trainer.train(
+            train_loader_non_batched,
+            val_loader_non_batched,
+            transfer_learning_loss_wrapper,
+            mixed_grad=True,
+            use_wandb=True,
+            name_wandb=f"{model.NAME}_{fold}_fine-tune",
+            use_local_wandb=True,
+            fine_tune=True,
+            val_freq_per_epoch=2,
+        )
         print(f"Transfer Learning Model checkpoint saved to: {fine_tuned_model_ckpt}\n")
 
         # Validate model on non-batched data
         print("Validating Transfer Learning Model on Non-Batched Data")
         trainer.model.seq_length = get_values(current_config, "seq_length")
-        if DATASET_TYPE == 'losocv':
-            result = trainer.validate(val_loader_non_batched, transfer_learning_loss_wrapper, fine_tuned_model_ckpt, subject_id=subject_id, transfer_learning_run=True)
-        else: 
-            result = trainer.validate(val_loader_non_batched, transfer_learning_loss_wrapper, fine_tuned_model_ckpt, subject_id=idx, transfer_learning_run=True)
-        
+        if DATASET_TYPE == "losocv":
+            result = trainer.validate(
+                val_loader_non_batched,
+                transfer_learning_loss_wrapper,
+                fine_tuned_model_ckpt,
+                subject_id=subject_id,
+                transfer_learning_run=True,
+            )
+        else:
+            result = trainer.validate(
+                val_loader_non_batched,
+                transfer_learning_loss_wrapper,
+                fine_tuned_model_ckpt,
+                subject_id=idx,
+                transfer_learning_run=True,
+            )
+
         results.append(result)
 
         del trainer  # delete the trainer object to finish wandb

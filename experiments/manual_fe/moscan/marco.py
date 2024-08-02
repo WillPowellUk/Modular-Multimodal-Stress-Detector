@@ -93,7 +93,7 @@ HYPERPARAMETER_GRID = {
     # "epochs": [5, 7, 10],
     # "fine_tune_epochs": [1, 3, 5],
     # "fine_tune_learning_rate": [0.001, 0.0001, 0.00005],
-    "early_stopping_patience": [5,8,10,20],
+    "early_stopping_patience": [5, 8, 10, 20],
     "early_stopping_metric": ["loss", "accuracy"],
 }
 
@@ -101,7 +101,9 @@ HYPERPARAMETER_GRID = {
 hyperparams = HyperParamsIterator(MARCO_CONFIG, HYPERPARAMETER_GRID)
 
 for c, current_config in enumerate(hyperparams()):
-    print(f"\n\nCurrent Configuration: {c+1} out of {len(hyperparams.combinations)}\n\n")
+    print(
+        f"\n\nCurrent Configuration: {c+1} out of {len(hyperparams.combinations)}\n\n"
+    )
 
     batched_dataloader_params = {
         "batch_size": get_values(current_config, "batch_size"),
@@ -123,7 +125,10 @@ for c, current_config in enumerate(hyperparams()):
     non_batched_losocv_loader = LOSOCVSensorDataLoader(
         NON_BATCHED_FE, WRIST_CONFIG, **non_batched_dataloader_params
     )
-    non_batched_dataloaders, non_batched_input_dims = non_batched_losocv_loader.get_data_loaders(
+    (
+        non_batched_dataloaders,
+        non_batched_input_dims,
+    ) = non_batched_losocv_loader.get_data_loaders(
         NON_BATCHED_DATASETS_PATH, dataset_type=DATASET_TYPE
     )
 
@@ -135,7 +140,10 @@ for c, current_config in enumerate(hyperparams()):
 
     # Load Model Parameters
     model_config = load_json(current_config)
-    model_config = {**model_config, "input_dims": batched_input_dims, }
+    model_config = {
+        **model_config,
+        "input_dims": batched_input_dims,
+    }
 
     # Configure LossWrapper for the model
     loss_wrapper = LossWrapper(model_config["loss_fns"])
@@ -152,7 +160,7 @@ for c, current_config in enumerate(hyperparams()):
         val_loader_batched = batched_loader["val"]
         train_loader_non_batched = val_loader["train"]
         val_loader_non_batched = val_loader["val"]
-        if DATASET_TYPE == 'losocv':
+        if DATASET_TYPE == "losocv":
             print(f"\nSubject: {subject_id}")
             fold = f"subject_{subject_id}"
         else:
@@ -167,7 +175,9 @@ for c, current_config in enumerate(hyperparams()):
         # Modify Current Config
         config = load_json(current_config)
         current_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-        config["save_path"] = f"src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/generalized/{current_time}/{fold}"
+        config[
+            "save_path"
+        ] = f"src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/generalized/{current_time}/{fold}"
         save_json(config, current_config)
 
         # Initialize model
@@ -184,7 +194,10 @@ for c, current_config in enumerate(hyperparams()):
 
         # Train the model on the batched data without the sliding co-attention buffer
         trainer.model.seq_length = 1
-        pre_trained_model_ckpt = trainer.train(train_loader_batched, val_loader_batched, loss_wrapper, 
+        pre_trained_model_ckpt = trainer.train(
+            train_loader_batched,
+            val_loader_batched,
+            loss_wrapper,
             use_wandb=True,
             name_wandb=f"{model.NAME}_{fold}",
         )
@@ -193,10 +206,24 @@ for c, current_config in enumerate(hyperparams()):
         # Validate model on non-batched data
         print("Validating Pre-Trained Model on Non-Batched Data")
         trainer.model.seq_length = get_values(current_config, "seq_length")
-        if DATASET_TYPE == 'losocv':
-            result = trainer.validate(val_loader_non_batched, loss_wrapper, ckpt_path=pre_trained_model_ckpt, subject_id=subject_id, pre_trained_run=True, check_overlap=True)
-        else: 
-            result = trainer.validate(val_loader_non_batched, loss_wrapper, ckpt_path=pre_trained_model_ckpt, subject_id=idx, pre_trained_run=True, check_overlap=True)
+        if DATASET_TYPE == "losocv":
+            result = trainer.validate(
+                val_loader_non_batched,
+                loss_wrapper,
+                ckpt_path=pre_trained_model_ckpt,
+                subject_id=subject_id,
+                pre_trained_run=True,
+                check_overlap=True,
+            )
+        else:
+            result = trainer.validate(
+                val_loader_non_batched,
+                loss_wrapper,
+                ckpt_path=pre_trained_model_ckpt,
+                subject_id=idx,
+                pre_trained_run=True,
+                check_overlap=True,
+            )
 
         # Fine Tune on non-batched (Optional)
         if FINE_TUNE:
@@ -204,16 +231,38 @@ for c, current_config in enumerate(hyperparams()):
             fine_tune_loss_wrapper = LossWrapper(model_config["fine_tune_loss_fns"])
 
             trainer.model.seq_length = get_values(current_config, "seq_length")
-            fine_tuned_model_ckpt = trainer.train(train_loader_non_batched, val_loader_non_batched, fine_tune_loss_wrapper, ckpt_path=pre_trained_model_ckpt, use_wandb=True, name_wandb=f"{model.NAME}_{fold}", fine_tune=True)
+            fine_tuned_model_ckpt = trainer.train(
+                train_loader_non_batched,
+                val_loader_non_batched,
+                fine_tune_loss_wrapper,
+                ckpt_path=pre_trained_model_ckpt,
+                use_wandb=True,
+                name_wandb=f"{model.NAME}_{fold}",
+                fine_tune=True,
+            )
             print(f"Fine Tuned Model checkpoint saved to: {fine_tuned_model_ckpt}\n")
             # Validate model on non-batched data
             print("Validating Fine Tuned Model on Non-Batched Data")
             trainer.model.seq_length = get_values(current_config, "seq_length")
-            if DATASET_TYPE == 'losocv':
-                result = trainer.validate(val_loader_non_batched, fine_tune_loss_wrapper, fine_tuned_model_ckpt, subject_id=subject_id, fine_tune_run=FINE_TUNE, pre_trained_run=not FINE_TUNE)
-            else: 
-                result = trainer.validate(val_loader_non_batched, fine_tune_loss_wrapper, fine_tuned_model_ckpt, subject_id=idx, fine_tune_run=FINE_TUNE, pre_trained_run=not FINE_TUNE)
-        
+            if DATASET_TYPE == "losocv":
+                result = trainer.validate(
+                    val_loader_non_batched,
+                    fine_tune_loss_wrapper,
+                    fine_tuned_model_ckpt,
+                    subject_id=subject_id,
+                    fine_tune_run=FINE_TUNE,
+                    pre_trained_run=not FINE_TUNE,
+                )
+            else:
+                result = trainer.validate(
+                    val_loader_non_batched,
+                    fine_tune_loss_wrapper,
+                    fine_tuned_model_ckpt,
+                    subject_id=idx,
+                    fine_tune_run=FINE_TUNE,
+                    pre_trained_run=not FINE_TUNE,
+                )
+
         results.append(result)
 
         del trainer  # delete the trainer object to finish wandb

@@ -3,8 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from collections import Counter
 
+
 class ModularHardVoting(nn.Module):
-    def __init__(self, embed_dim, output_dim, dropout, branch_keys, pool_type='avg'):
+    def __init__(self, embed_dim, output_dim, dropout, branch_keys, pool_type="avg"):
         super(ModularHardVoting, self).__init__()
         self.embed_dim = embed_dim
         self.output_dim = output_dim
@@ -12,9 +13,9 @@ class ModularHardVoting(nn.Module):
         self.pool_type = pool_type
 
         # Define the pooling layer
-        if pool_type == 'avg':
+        if pool_type == "avg":
             self.pool = nn.AdaptiveAvgPool1d(1)
-        elif pool_type == 'max':
+        elif pool_type == "max":
             self.pool = nn.AdaptiveMaxPool1d(1)
         else:
             raise ValueError("pool_type must be either 'avg' or 'max'")
@@ -57,19 +58,23 @@ class ModularHardVoting(nn.Module):
             branch_outputs.append(branch)
 
         # Stack branch outputs
-        branch_outputs = torch.stack(branch_outputs, dim=1)  # Shape: (batch_size, n_branches, output_dim)
+        branch_outputs = torch.stack(
+            branch_outputs, dim=1
+        )  # Shape: (batch_size, n_branches, output_dim)
 
         # Perform hard voting
         batch_size = branch_outputs.size(0)
-        final_probabilities = torch.zeros((batch_size, self.output_dim)).to(x[self.branch_keys[0]].device)
+        final_probabilities = torch.zeros((batch_size, self.output_dim)).to(
+            x[self.branch_keys[0]].device
+        )
 
         for i in range(batch_size):
             # Get the predicted class for each branch
             predictions = torch.argmax(branch_outputs[i], dim=1)
-            
+
             # Count the votes for each class
             vote_counts = Counter(predictions.tolist())
-            
+
             # Normalize the vote counts to get probabilities
             for class_idx, vote_count in vote_counts.items():
                 final_probabilities[i, class_idx] = vote_count / len(self.branch_keys)

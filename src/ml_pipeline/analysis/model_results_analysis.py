@@ -18,12 +18,19 @@ class ModelResultsAnalysis:
             print(f"{model}:")
             if "subject_id" in metric:
                 print(f"  Subject ID: {metric['subject_id']}")
-            print(f"  Accuracy: {metric['accuracy']:.5f} ± {metric['std_accuracy']:.5f}")
-            print(f"  Precision: {metric['precision']:.5f} ± {metric['std_precision']:.5f}")
+            print(
+                f"  Accuracy: {metric['accuracy']:.5f} ± {metric['std_accuracy']:.5f}"
+            )
+            print(
+                f"  Precision: {metric['precision']:.5f} ± {metric['std_precision']:.5f}"
+            )
             print(f"  Recall: {metric['recall']:.5f} ± {metric['std_recall']:.5f}")
-            print(f"  F1 Score: {metric['f1_score']:.5f} ± {metric['std_f1_score']:.5f}")
-            print(f"  Inference Time (ms): {metric['inference_time_ms']:.5f} ± {metric['std_inference_time_ms']:.5f}")
-
+            print(
+                f"  F1 Score: {metric['f1_score']:.5f} ± {metric['std_f1_score']:.5f}"
+            )
+            print(
+                f"  Inference Time (ms): {metric['inference_time_ms']:.5f} ± {metric['std_inference_time_ms']:.5f}"
+            )
 
     def analyze_subject(self, subject_id):
         if subject_id < 0 or subject_id >= len(self.results):

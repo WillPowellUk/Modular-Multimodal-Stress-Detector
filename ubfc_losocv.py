@@ -1,10 +1,10 @@
 from src.ml_pipeline.data_loader import LOSOCVSensorDataLoader
 
 
-'''
+"""
 EDA
-'''
-SENSORS = 'eda'
+"""
+SENSORS = "eda"
 WINDOW_LENGTH = 5
 SLIDING_LENGTH = WINDOW_LENGTH  # this will create no overlap between segments i.e. no augmented / synthetic data.
 SPLIT_LENGTH = WINDOW_LENGTH  # this will not sub-split the data
@@ -21,7 +21,8 @@ losocv_loader = LOSOCVSensorDataLoader(FE, CONFIG, **dataloader_params)
 
 # Prepare the datasets
 DATASETS_PATH = losocv_loader.prepare_datasets(
-    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/slow/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s", n_folds=None
+    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/slow/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s",
+    n_folds=None,
 )
 
 ############################################################################################################
@@ -45,13 +46,14 @@ losocv_loader = LOSOCVSensorDataLoader(FE, CONFIG, **dataloader_params)
 
 # Prepare the datasets
 DATASETS_PATH = losocv_loader.prepare_datasets(
-    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/slow/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s", n_folds=None
+    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/slow/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s",
+    n_folds=None,
 )
 
-'''
+"""
 BVP
-'''
-SENSORS = 'bvp'
+"""
+SENSORS = "bvp"
 WINDOW_LENGTH = 5
 SLIDING_LENGTH = WINDOW_LENGTH  # this will create no overlap between segments i.e. no augmented / synthetic data.
 SPLIT_LENGTH = WINDOW_LENGTH  # this will not sub-split the data
@@ -68,7 +70,8 @@ losocv_loader = LOSOCVSensorDataLoader(FE, CONFIG, **dataloader_params)
 
 # Prepare the datasets
 DATASETS_PATH = losocv_loader.prepare_datasets(
-    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/slow/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s", n_folds=None
+    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/slow/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s",
+    n_folds=None,
 )
 
 ############################################################################################################
@@ -92,14 +95,15 @@ losocv_loader = LOSOCVSensorDataLoader(FE, CONFIG, **dataloader_params)
 
 # Prepare the datasets
 DATASETS_PATH = losocv_loader.prepare_datasets(
-    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/slow/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s", n_folds=None
+    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/slow/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s",
+    n_folds=None,
 )
 
 
-'''
+"""
 BVP + EDA
-'''
-SENSORS = 'bvp_eda'
+"""
+SENSORS = "bvp_eda"
 WINDOW_LENGTH = 5
 SLIDING_LENGTH = WINDOW_LENGTH  # this will create no overlap between segments i.e. no augmented / synthetic data.
 SPLIT_LENGTH = WINDOW_LENGTH  # this will not sub-split the data
@@ -116,7 +120,8 @@ losocv_loader = LOSOCVSensorDataLoader(FE, CONFIG, **dataloader_params)
 
 # Prepare the datasets
 DATASETS_PATH = losocv_loader.prepare_datasets(
-    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/slow/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s", n_folds=None
+    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/slow/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s",
+    n_folds=None,
 )
 
 ############################################################################################################
@@ -140,5 +145,6 @@ losocv_loader = LOSOCVSensorDataLoader(FE, CONFIG, **dataloader_params)
 
 # Prepare the datasets
 DATASETS_PATH = losocv_loader.prepare_datasets(
-    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/slow/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s", n_folds=None
+    f"src/ubfc_phys/UBFC-PHYS/datasets/manual_fe/slow/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s",
+    n_folds=None,
 )

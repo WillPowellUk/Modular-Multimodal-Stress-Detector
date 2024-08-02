@@ -41,41 +41,42 @@ import time
 
 MOSCAN_CONFIG = "config_files/model_training/deep/moscan_config.json"
 config = load_json(MOSCAN_CONFIG)
-device = 'cpu'
+device = "cpu"
 embedding_dim = 16
 cache = True
 
+
 def measure_model(model, inputs, device):
-        inference_times = []
-        with torch.no_grad():
-            for i in range(10):
-                model(inputs) # Warm-up
-            for i in range(100):
-                # Measure inference time for each batch
-                if device == "cuda":
-                    torch.cuda.synchronize()  # Synchronize CUDA operations before starting the timer
-                start_time = time.time()
-                model(inputs)
-                if device == "cuda":
-                    torch.cuda.synchronize()  # Synchronize CUDA operations after model inference
-                end_time = time.time()
+    inference_times = []
+    with torch.no_grad():
+        for i in range(10):
+            model(inputs)  # Warm-up
+        for i in range(100):
+            # Measure inference time for each batch
+            if device == "cuda":
+                torch.cuda.synchronize()  # Synchronize CUDA operations before starting the timer
+            start_time = time.time()
+            model(inputs)
+            if device == "cuda":
+                torch.cuda.synchronize()  # Synchronize CUDA operations after model inference
+            end_time = time.time()
 
-                inference_times.append(
-                    (end_time - start_time) * 1000
-                )  # Convert to milliseconds
+            inference_times.append(
+                (end_time - start_time) * 1000
+            )  # Convert to milliseconds
 
+    average_time = sum(inference_times) / len(inference_times)
+    std_deviation = statistics.stdev(inference_times)
 
-        average_time = sum(inference_times) / len(inference_times)
-        std_deviation = statistics.stdev(inference_times)
+    print(
+        f"Average inference time (ms): {average_time:.5f}, Standard deviation (ms): {std_deviation:.5f}"
+    )
 
-        print(f"Average inference time (ms): {average_time:.5f}, Standard deviation (ms): {std_deviation:.5f}")
+    print("================================================================")
 
-        print("================================================================")
-
-    
 
 # Testing 1-10 modalities
-for n in range(1,11):
+for n in range(1, 11):
     print("\n Number of modalities: ", n)
 
     input_dims = {}
@@ -86,17 +87,16 @@ for n in range(1,11):
         active_sensors.append(str(i))
         inputs[str(i)] = torch.randn(1, embedding_dim, 1)
 
-    config['input_dims'] = input_dims
-    config['active_sensors'] = active_sensors
-    config['device'] = device
+    config["input_dims"] = input_dims
+    config["active_sensors"] = active_sensors
+    config["device"] = device
 
     if cache:
-        config['seq_length'] = 1
+        config["seq_length"] = 1
     else:
-        config['seq_length'] = 6
+        config["seq_length"] = 6
 
     model = MOSCAN(**config)
 
     measure_model(model, inputs, device)
     print_model_summary(model, input_dims, 1, -1, device=device)
-

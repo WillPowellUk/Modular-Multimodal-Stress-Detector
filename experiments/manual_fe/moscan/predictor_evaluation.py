@@ -62,8 +62,17 @@ NON_BATCHED_FE = f"src/wesad/WESAD/manual_fe/{TYPE}_manual_fe/{NON_BATCHED_WINDO
 NON_BATCHED_DATASETS_PATH = f"src/wesad/WESAD/datasets/{TYPE}/{SENSORS}/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/{DATASET_TYPE}_datasets.pkl"
 
 MOSCAN_CONFIG = "config_files/model_training/deep/moscan_config.json"
-ckpts = ['src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/5s_5s_5s/generalized/2024_07_28_16_56_44/subject_2/checkpoint_final.pth']
-predictors = ["hard_voting", "avg_pool", 'weighted_avg_pool',  "weighted_max_pool", "avg_pool", "max_pool"]
+ckpts = [
+    "src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/5s_5s_5s/generalized/2024_07_28_16_56_44/subject_2/checkpoint_final.pth"
+]
+predictors = [
+    "hard_voting",
+    "avg_pool",
+    "weighted_avg_pool",
+    "weighted_max_pool",
+    "avg_pool",
+    "max_pool",
+]
 
 for ckpt in ckpts:
     for p in predictors:
@@ -75,7 +84,10 @@ for ckpt in ckpts:
         batched_losocv_loader = LOSOCVSensorDataLoader(
             BATCHED_FE, DATASET_CONFIG, **batched_dataloader_params
         )
-        batched_dataloaders, batched_input_dims = batched_losocv_loader.get_data_loaders(
+        (
+            batched_dataloaders,
+            batched_input_dims,
+        ) = batched_losocv_loader.get_data_loaders(
             BATCHED_DATASETS_PATH, dataset_type=DATASET_TYPE
         )
 
@@ -87,7 +99,10 @@ for ckpt in ckpts:
         non_batched_losocv_loader = LOSOCVSensorDataLoader(
             NON_BATCHED_FE, DATASET_CONFIG, **non_batched_dataloader_params
         )
-        non_batched_dataloaders, non_batched_input_dims = non_batched_losocv_loader.get_data_loaders(
+        (
+            non_batched_dataloaders,
+            non_batched_input_dims,
+        ) = non_batched_losocv_loader.get_data_loaders(
             NON_BATCHED_DATASETS_PATH, dataset_type=DATASET_TYPE
         )
 
@@ -101,24 +116,29 @@ for ckpt in ckpts:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print(f"Using device: {device}")
 
-        fold = '0'
-        val_loader_batched = batched_dataloaders[2]['val']
+        fold = "0"
+        train_loader_batched = batched_dataloaders[0]["train"]
+        val_loader_batched = batched_dataloaders[2]["val"]
 
         # Load Model Parameters
         model_config = load_json(MOSCAN_CONFIG)
-        model_config = {**model_config, }
+        model_config = {
+            **model_config,
+        }
 
         # Configure LossWrapper for the model
         loss_wrapper = LossWrapper(model_config["loss_fns"])
 
-        # Modify Current Config with 
+        # Modify Current Config with
         current_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-        model_config["save_path"] = f"src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/generalized/{current_time}/{fold}"
+        model_config[
+            "save_path"
+        ] = f"src/wesad/WESAD/ckpts/co_attention/wrist_manual_fe/{NON_BATCHED_WINDOW_LENGTH}s_{NON_BATCHED_SLIDING_LENGTH}s_{NON_BATCHED_SPLIT_LENGTH}s/generalized/{current_time}/{fold}"
         model_config["device"] = str(device)
         model_config["input_dims"] = batched_input_dims
-        model_config["active_sensors"] = ['bvp', 'w_eda', 'w_temp', 'w_acc']
+        model_config["active_sensors"] = ["bvp", "w_eda", "w_temp", "w_acc"]
 
-        tmp_json = 'tmp/config.json'
+        tmp_json = "tmp/config.json"
         save_json(model_config, tmp_json)
 
         # Initialize model
@@ -134,9 +154,7 @@ for ckpt in ckpts:
 
         # Train the model on the batched data without the sliding co-attention buffer
         trainer.model.seq_length = 1
-        pre_trained_model_ckpt = trainer.validate(val_loader_batched, loss_wrapper, ckpt_path=ckpt)
+        pre_trained_model_ckpt = trainer.validate(
+            val_loader_batched, loss_wrapper, ckpt_path=ckpt
+        )
         print(f"Pre-Trained Model checkpoint saved to: {pre_trained_model_ckpt}\n")
-
-
-
-    

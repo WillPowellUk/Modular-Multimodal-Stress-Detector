@@ -39,7 +39,12 @@ from src.ml_pipeline.models.attention_models.ablation_study_models import *
 from src.ml_pipeline.utils.utils import modify_nested_key
 
 
-models = [MOSCANCrossAttention, MOSCANSlidingCasualBCSA,MOSCANSlidingCasualBCSACached, MOSCANSlidingBCSACached]
+models = [
+    MOSCANCrossAttention,
+    MOSCANSlidingCasualBCSA,
+    MOSCANSlidingCasualBCSACached,
+    MOSCANSlidingBCSACached,
+]
 
 DATASET_TYPE = "losocv"
 
@@ -93,12 +98,26 @@ DATASET_CONFIG = f"config_files/dataset/wesad_{TYPE}_all_configuration.json"
 # moscan(MOSCANSelfAttention, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH, GROUP_LABELS=None, NAME='MoscanSelfAttention_w_acc_Unimodal_WESAD')
 
 # Multimodal:
-modify_nested_key(DATASET_CONFIG, ['sensors', 'bvp'], True)
-modify_nested_key(DATASET_CONFIG, ['sensors', 'w_eda'], True)
-modify_nested_key(DATASET_CONFIG, ['sensors', 'w_temp'], True)
-modify_nested_key(DATASET_CONFIG, ['sensors', 'w_acc'], True)
+modify_nested_key(DATASET_CONFIG, ["sensors", "bvp"], True)
+modify_nested_key(DATASET_CONFIG, ["sensors", "w_eda"], True)
+modify_nested_key(DATASET_CONFIG, ["sensors", "w_temp"], True)
+modify_nested_key(DATASET_CONFIG, ["sensors", "w_acc"], True)
 for model in models:
-    moscan(MOSCAN, MOSCAN_CONFIG, DATASET_CONFIG, DATASET_TYPE, BATCHED_FE, BATCHED_DATASETS_PATH, NON_BATCHED_FE, NON_BATCHED_DATASETS_PATH, NON_BATCHED_WINDOW_LENGTH, NON_BATCHED_SLIDING_LENGTH, NON_BATCHED_SPLIT_LENGTH, GROUP_LABELS=None, NAME=f'{model.__name__}_Multimodal_WESAD')
+    moscan(
+        MOSCAN,
+        MOSCAN_CONFIG,
+        DATASET_CONFIG,
+        DATASET_TYPE,
+        BATCHED_FE,
+        BATCHED_DATASETS_PATH,
+        NON_BATCHED_FE,
+        NON_BATCHED_DATASETS_PATH,
+        NON_BATCHED_WINDOW_LENGTH,
+        NON_BATCHED_SLIDING_LENGTH,
+        NON_BATCHED_SPLIT_LENGTH,
+        GROUP_LABELS=None,
+        NAME=f"{model.__name__}_Multimodal_WESAD",
+    )
 
 ### Unimodal first:
 # modify_nested_key(DATASET_CONFIG, ['sensors', 'acc'], True)

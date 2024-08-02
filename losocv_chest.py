@@ -42,5 +42,3 @@ losocv_loader = LOSOCVSensorDataLoader(WRIST_FE, WRIST_CONFIG, **dataloader_para
 DATASETS_PATH = losocv_loader.prepare_datasets(
     f"src/wesad/WESAD/datasets/{TYPE}/{SENSORS}/{WINDOW_LENGTH}s_{SLIDING_LENGTH}s_{SPLIT_LENGTH}s"
 )
-
-

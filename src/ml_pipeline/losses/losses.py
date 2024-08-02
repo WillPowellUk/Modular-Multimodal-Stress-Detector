@@ -4,7 +4,7 @@ from src.ml_pipeline.utils import get_active_key
 
 
 class FocalLoss(nn.Module):
-    def __init__(self, gamma=2, reduction='mean'):
+    def __init__(self, gamma=2, reduction="mean"):
         super(FocalLoss, self).__init__()
         self.gamma = gamma
         self.reduction = reduction
@@ -12,7 +12,9 @@ class FocalLoss(nn.Module):
     def forward(self, y_pred, target):
         # Ensure y_pred is in the same shape as target
         if y_pred.size() != target.size():
-            raise ValueError(f"y_pred size ({y_pred.size()}) must be the same as target size ({target.size()})")
+            raise ValueError(
+                f"y_pred size ({y_pred.size()}) must be the same as target size ({target.size()})"
+            )
 
         # Apply softmax to get probabilities
         y_pred = y_pred.sigmoid()
@@ -22,18 +24,19 @@ class FocalLoss(nn.Module):
         log_pt = torch.log(pt)
         focal_loss = -((1 - pt) ** self.gamma) * log_pt
 
-        if self.reduction == 'mean':
+        if self.reduction == "mean":
             return focal_loss.mean()
-        elif self.reduction == 'sum':
+        elif self.reduction == "sum":
             return focal_loss.sum()
         else:
             return focal_loss
 
+
 class LossWrapper(nn.Module):
     def __init__(self, config):
         super().__init__()
-        self.bce = nn.BCEWithLogitsLoss() if 'bce' in config and config['bce'] else None
-        self.focal = FocalLoss() if 'focal' in config and config['focal'] else None
+        self.bce = nn.BCEWithLogitsLoss() if "bce" in config and config["bce"] else None
+        self.focal = FocalLoss() if "focal" in config and config["focal"] else None
 
     def forward(self, y_pred, target):
         loss = 0.0

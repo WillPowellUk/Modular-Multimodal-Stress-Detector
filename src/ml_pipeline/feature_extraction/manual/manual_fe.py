@@ -10,7 +10,12 @@ import gc
 import h5py
 from sklearn.preprocessing import StandardScaler
 
-from src.ml_pipeline.utils.utils import get_max_sampling_rate, get_active_key, print2, load_json
+from src.ml_pipeline.utils.utils import (
+    get_max_sampling_rate,
+    get_active_key,
+    print2,
+    load_json,
+)
 from .eda_feature_extractor import EDAFeatureExtractor
 from .bvp_feature_extractor import BVPFeatureExtractor
 from .acc_feature_extractor import AccFeatureExtractor
@@ -274,14 +279,14 @@ class ManualFE:
 
         print2(LOG_FILE_PATH, "Scaling and imputation complete")
         return all_batches_features
-    
+
     def impute_missing_features(self):
         features_dict = {}
 
         for sensor in self.sensors:
             match sensor:
                 case "resp":
-                    features = self.config['features']['resp']
+                    features = self.config["features"]["resp"]
                     # Create a dictionary with features as keys and np.nan as values
                     sensor_features = {feature: np.nan for feature in features}
                     # Convert dictionary to DataFrame
@@ -289,7 +294,7 @@ class ManualFE:
                     features_dict[sensor] = features_df
 
                 case "bvp":
-                    features = self.config['features']['bvp']
+                    features = self.config["features"]["bvp"]
                     # Create a dictionary with features as keys and np.nan as values
                     sensor_features = {feature: np.nan for feature in features}
                     # Convert dictionary to DataFrame
@@ -326,7 +331,7 @@ class ManualFE:
                         f"Extracting features from batch {i+1}/{total_batches} | ETA: {hours}h {minutes}m {seconds:.2f}s",
                     )
 
-                slow_features_length_s = 40 # 10s 
+                slow_features_length_s = 40  # 10s
 
                 # Complete slow signals such as resp from batch and copy features to each split
                 if len(batch[0]) / self.sampling_rate < slow_features_length_s:
@@ -354,7 +359,9 @@ class ManualFE:
 
                         # Remove the oldest data points
                         if excess_samples > 0:
-                            slow_buffer = slow_buffer.iloc[excess_samples:].reset_index(drop=True)
+                            slow_buffer = slow_buffer.iloc[excess_samples:].reset_index(
+                                drop=True
+                            )
 
                 else:
                     self.slow_feautres_flag = False

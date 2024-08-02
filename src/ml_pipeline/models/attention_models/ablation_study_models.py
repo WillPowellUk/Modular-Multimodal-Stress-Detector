@@ -3,14 +3,16 @@ import torch.nn as nn
 from src.ml_pipeline.models.attention_models.attention_mechansims import *
 from src.ml_pipeline.models.late_fusion_models.soft_voting import *
 from src.ml_pipeline.models.late_fusion_models.hard_voting import *
-from src.ml_pipeline.models.late_fusion_models.kalman import * 
+from src.ml_pipeline.models.late_fusion_models.kalman import *
+
 
 class MOSCANSlidingBCSACached(nn.Module):
     NAME = "MOSCANSlidingBCSACached"
+
     def __init__(self, **kwargs):
         super(MOSCANSlidingBCSACached, self).__init__()
         required_params = [
-            "query_cache",
+            "kv_cache_only",
             "input_dims",
             "embed_dim",
             "hidden_dim",
@@ -25,14 +27,14 @@ class MOSCANSlidingBCSACached(nn.Module):
             "max_batch_size",
             "active_sensors",
             "predictor",
-            "device"
+            "device",
         ]
 
         for param in required_params:
             if param not in kwargs:
                 raise ValueError(f"Missing required parameter: {param}")
 
-        self.query_cache = kwargs["query_cache"]
+        self.kv_cache_only = kwargs["kv_cache_only"]
         self.input_dims = kwargs["input_dims"]
         self.embed_dim = kwargs["embed_dim"]
         self.hidden_dim = kwargs["hidden_dim"]
@@ -59,14 +61,21 @@ class MOSCANSlidingBCSACached(nn.Module):
             modality_net = nn.ModuleDict(
                 {
                     "embedding": nn.Linear(self.input_dims[modality], self.embed_dim),
-                    "pos_enc": PositionalEncoding(self.embed_dim)
+                    "pos_enc": PositionalEncoding(self.embed_dim),
                 }
             )
             self.modalities[modality] = modality_net
             self.self_attention_blocks[modality] = nn.ModuleList(
                 [
                     CachedSlidingAttentionEncoder(
-                        self.embed_dim, self.hidden_dim, self.n_head, self.max_batch_size, self.max_seq_length, self.dropout, self.attention_dropout, query_cache=self.query_cache 
+                        self.embed_dim,
+                        self.hidden_dim,
+                        self.n_head,
+                        self.max_batch_size,
+                        self.max_seq_length,
+                        self.dropout,
+                        self.attention_dropout,
+                        kv_cache_only=self.kv_cache_only,
                     )
                     for _ in range(self.n_bcsa)
                 ]
@@ -77,43 +86,84 @@ class MOSCANSlidingBCSACached(nn.Module):
         for i, modality1 in enumerate(modalities):
             for j, modality2 in enumerate(modalities):
                 if i != j:
-                    self.cross_attention_blocks[f"{modality1}_to_{modality2}"] = (
-                        nn.ModuleList(
-                            [
-                                CachedSlidingAttentionEncoder(
-                                    self.embed_dim, self.hidden_dim, self.n_head, self.max_batch_size, self.max_seq_length, self.dropout, self.attention_dropout, query_cache=self.query_cache 
-                                )
-                                for _ in range(self.n_bcsa)
-                            ]
-                        )
+                    self.cross_attention_blocks[
+                        f"{modality1}_to_{modality2}"
+                    ] = nn.ModuleList(
+                        [
+                            CachedSlidingAttentionEncoder(
+                                self.embed_dim,
+                                self.hidden_dim,
+                                self.n_head,
+                                self.max_batch_size,
+                                self.max_seq_length,
+                                self.dropout,
+                                self.attention_dropout,
+                                kv_cache_only=self.kv_cache_only,
+                            )
+                            for _ in range(self.n_bcsa)
+                        ]
                     )
 
         match predictor:
             case "avg_pool":
-                self.predictor = ModularPool(self.embed_dim, self.output_dim, self.dropout, pool_type='avg', return_branch_outputs=self.kalman)
+                self.predictor = ModularPool(
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    pool_type="avg",
+                    return_branch_outputs=self.kalman,
+                )
             case "max_pool":
-                self.predictor = ModularPool(self.embed_dim, self.output_dim, self.dropout, pool_type='max', return_branch_outputs=self.kalman)
+                self.predictor = ModularPool(
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    pool_type="max",
+                    return_branch_outputs=self.kalman,
+                )
             case "weighted_avg_pool":
                 self.predictor = ModularWeightedPool(
-                    self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='avg'
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    self.active_sensors,
+                    pool_type="avg",
                 )
             case "weighted_max_pool":
                 self.predictor = ModularWeightedPool(
-                    self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='max'
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    self.active_sensors,
+                    pool_type="max",
                 )
             case "hard_voting":
                 self.predictor = ModularHardVoting(
-                    self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='avg'
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    self.active_sensors,
+                    pool_type="avg",
                 )
             case "stacked_avg_pool":
-                self.predictor = StackedModularPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout)
+                self.predictor = StackedModularPool(
+                    self.embed_dim, self.hidden_dim, self.output_dim, self.dropout
+                )
             case "stacked_max_pool":
-                self.predictor = StackedModularPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout, pool_type='max')
+                self.predictor = StackedModularPool(
+                    self.embed_dim,
+                    self.hidden_dim,
+                    self.output_dim,
+                    self.dropout,
+                    pool_type="max",
+                )
             case _:
                 raise ValueError(f"Predictor {predictor} not supported")
-        
+
         if self.kalman:
-            self.kalman_filter = KalmanFilter(self.output_dim, device=self.device, num_branches=len(self.input_dims))
+            self.kalman_filter = KalmanFilter(
+                self.output_dim, device=self.device, num_branches=len(self.input_dims)
+            )
 
     def forward(self, inputs):
         # Step 1: Embedding and Positional Encoding for each modality
@@ -135,14 +185,26 @@ class MOSCANSlidingBCSACached(nn.Module):
             for modality1 in modality_features:
                 for modality2 in modality_features:
                     if modality1 != modality2:
-                        ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
-                        modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], modality_features[modality2], use_cache=self.seq_length>1)
+                        ca_block = self.cross_attention_blocks[
+                            f"{modality1}_to_{modality2}"
+                        ][i]
+                        modality_features[modality1] = ca_block(
+                            modality_features[modality1],
+                            modality_features[modality2],
+                            modality_features[modality2],
+                            use_cache=self.seq_length > 1,
+                        )
             # Self Attention
             for modality, net in self.modalities.items():
                 sa_block = self.self_attention_blocks[modality][i]
-                modality_features[modality] = sa_block(modality_features[modality], modality_features[modality], modality_features[modality], use_cache=self.seq_length > 1)
+                modality_features[modality] = sa_block(
+                    modality_features[modality],
+                    modality_features[modality],
+                    modality_features[modality],
+                    use_cache=self.seq_length > 1,
+                )
 
-        # Step 3: Predictor to merge branches and perform late fusion to produce an overall classification or a per branch classification 
+        # Step 3: Predictor to merge branches and perform late fusion to produce an overall classification or a per branch classification
         classification = self.predictor(modality_features)
 
         # Step 4: Optional Kalman Filter expects shape (batch_size, num_branches, output_dim)
@@ -162,10 +224,11 @@ class MOSCANSlidingBCSACached(nn.Module):
 
 class MOSCANSelfAttention(nn.Module):
     NAME = "MOSCANSelfAttention"
+
     def __init__(self, **kwargs):
         super(MOSCANSelfAttention, self).__init__()
         required_params = [
-            "query_cache",
+            "kv_cache_only",
             "input_dims",
             "embed_dim",
             "hidden_dim",
@@ -180,14 +243,14 @@ class MOSCANSelfAttention(nn.Module):
             "max_batch_size",
             "active_sensors",
             "predictor",
-            "device"
+            "device",
         ]
 
         for param in required_params:
             if param not in kwargs:
                 raise ValueError(f"Missing required parameter: {param}")
 
-        self.query_cache = kwargs["query_cache"]
+        self.kv_cache_only = kwargs["kv_cache_only"]
         self.input_dims = kwargs["input_dims"]
         self.embed_dim = kwargs["embed_dim"]
         self.hidden_dim = kwargs["hidden_dim"]
@@ -214,14 +277,21 @@ class MOSCANSelfAttention(nn.Module):
             modality_net = nn.ModuleDict(
                 {
                     "embedding": nn.Linear(self.input_dims[modality], self.embed_dim),
-                    "pos_enc": PositionalEncoding(self.embed_dim)
+                    "pos_enc": PositionalEncoding(self.embed_dim),
                 }
             )
             self.modalities[modality] = modality_net
             self.self_attention_blocks[modality] = nn.ModuleList(
                 [
                     CachedSlidingAttentionEncoder(
-                        self.embed_dim, self.hidden_dim, self.n_head, self.max_batch_size, self.max_seq_length, self.dropout, self.attention_dropout, query_cache=False 
+                        self.embed_dim,
+                        self.hidden_dim,
+                        self.n_head,
+                        self.max_batch_size,
+                        self.max_seq_length,
+                        self.dropout,
+                        self.attention_dropout,
+                        kv_cache_only=False,
                     )
                     for _ in range(self.n_bcsa)
                 ]
@@ -229,30 +299,64 @@ class MOSCANSelfAttention(nn.Module):
 
         match predictor:
             case "avg_pool":
-                self.predictor = ModularPool(self.embed_dim, self.output_dim, self.dropout, pool_type='avg', return_branch_outputs=self.kalman)
+                self.predictor = ModularPool(
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    pool_type="avg",
+                    return_branch_outputs=self.kalman,
+                )
             case "max_pool":
-                self.predictor = ModularPool(self.embed_dim, self.output_dim, self.dropout, pool_type='max', return_branch_outputs=self.kalman)
+                self.predictor = ModularPool(
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    pool_type="max",
+                    return_branch_outputs=self.kalman,
+                )
             case "weighted_avg_pool":
                 self.predictor = ModularWeightedPool(
-                    self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='avg'
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    self.active_sensors,
+                    pool_type="avg",
                 )
             case "weighted_max_pool":
                 self.predictor = ModularWeightedPool(
-                    self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='max'
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    self.active_sensors,
+                    pool_type="max",
                 )
             case "hard_voting":
                 self.predictor = ModularHardVoting(
-                    self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='avg'
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    self.active_sensors,
+                    pool_type="avg",
                 )
             case "stacked_avg_pool":
-                self.predictor = StackedModularPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout)
+                self.predictor = StackedModularPool(
+                    self.embed_dim, self.hidden_dim, self.output_dim, self.dropout
+                )
             case "stacked_max_pool":
-                self.predictor = StackedModularPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout, pool_type='max')
+                self.predictor = StackedModularPool(
+                    self.embed_dim,
+                    self.hidden_dim,
+                    self.output_dim,
+                    self.dropout,
+                    pool_type="max",
+                )
             case _:
                 raise ValueError(f"Predictor {predictor} not supported")
-        
+
         if self.kalman:
-            self.kalman_filter = KalmanFilter(self.output_dim, device=self.device, num_branches=len(self.input_dims))
+            self.kalman_filter = KalmanFilter(
+                self.output_dim, device=self.device, num_branches=len(self.input_dims)
+            )
 
     def forward(self, inputs):
         # Step 1: Embedding and Positional Encoding for each modality
@@ -273,9 +377,14 @@ class MOSCANSelfAttention(nn.Module):
             # Self Attention
             for modality, net in self.modalities.items():
                 sa_block = self.self_attention_blocks[modality][i]
-                modality_features[modality] = sa_block(modality_features[modality], modality_features[modality], modality_features[modality], use_cache=False)
+                modality_features[modality] = sa_block(
+                    modality_features[modality],
+                    modality_features[modality],
+                    modality_features[modality],
+                    use_cache=False,
+                )
 
-        # Step 3: Predictor to merge branches and perform late fusion to produce an overall classification or a per branch classification 
+        # Step 3: Predictor to merge branches and perform late fusion to produce an overall classification or a per branch classification
         classification = self.predictor(modality_features)
 
         # Step 4: Optional Kalman Filter expects shape (batch_size, num_branches, output_dim)
@@ -291,13 +400,15 @@ class MOSCANSelfAttention(nn.Module):
         for modality in self.cross_attention_blocks:
             for block in self.cross_attention_blocks[modality]:
                 block.clear_cache()
+
 
 class MOSCANSlidingCasualBCSACached(nn.Module):
     NAME = "MOSCANSlidingCasualBCSACached"
+
     def __init__(self, **kwargs):
         super(MOSCANSlidingCasualBCSACached, self).__init__()
         required_params = [
-            "query_cache",
+            "kv_cache_only",
             "input_dims",
             "embed_dim",
             "hidden_dim",
@@ -312,14 +423,14 @@ class MOSCANSlidingCasualBCSACached(nn.Module):
             "max_batch_size",
             "active_sensors",
             "predictor",
-            "device"
+            "device",
         ]
 
         for param in required_params:
             if param not in kwargs:
                 raise ValueError(f"Missing required parameter: {param}")
 
-        self.query_cache = kwargs["query_cache"]
+        self.kv_cache_only = kwargs["kv_cache_only"]
         self.input_dims = kwargs["input_dims"]
         self.embed_dim = kwargs["embed_dim"]
         self.hidden_dim = kwargs["hidden_dim"]
@@ -346,14 +457,21 @@ class MOSCANSlidingCasualBCSACached(nn.Module):
             modality_net = nn.ModuleDict(
                 {
                     "embedding": nn.Linear(self.input_dims[modality], self.embed_dim),
-                    "pos_enc": PositionalEncoding(self.embed_dim)
+                    "pos_enc": PositionalEncoding(self.embed_dim),
                 }
             )
             self.modalities[modality] = modality_net
             self.self_attention_blocks[modality] = nn.ModuleList(
                 [
                     CachedSlidingAttentionEncoder(
-                        self.embed_dim, self.hidden_dim, self.n_head, self.max_batch_size, self.max_seq_length, self.dropout, self.attention_dropout, query_cache=False 
+                        self.embed_dim,
+                        self.hidden_dim,
+                        self.n_head,
+                        self.max_batch_size,
+                        self.max_seq_length,
+                        self.dropout,
+                        self.attention_dropout,
+                        kv_cache_only=False,
                     )
                     for _ in range(self.n_bcsa)
                 ]
@@ -364,43 +482,84 @@ class MOSCANSlidingCasualBCSACached(nn.Module):
         for i, modality1 in enumerate(modalities):
             for j, modality2 in enumerate(modalities):
                 if i != j:
-                    self.cross_attention_blocks[f"{modality1}_to_{modality2}"] = (
-                        nn.ModuleList(
-                            [
-                                CachedSlidingAttentionEncoder(
-                                    self.embed_dim, self.hidden_dim, self.n_head, self.max_batch_size, self.max_seq_length, self.dropout, self.attention_dropout, query_cache=False
-                                )
-                                for _ in range(self.n_bcsa)
-                            ]
-                        )
+                    self.cross_attention_blocks[
+                        f"{modality1}_to_{modality2}"
+                    ] = nn.ModuleList(
+                        [
+                            CachedSlidingAttentionEncoder(
+                                self.embed_dim,
+                                self.hidden_dim,
+                                self.n_head,
+                                self.max_batch_size,
+                                self.max_seq_length,
+                                self.dropout,
+                                self.attention_dropout,
+                                kv_cache_only=False,
+                            )
+                            for _ in range(self.n_bcsa)
+                        ]
                     )
 
         match predictor:
             case "avg_pool":
-                self.predictor = ModularPool(self.embed_dim, self.output_dim, self.dropout, pool_type='avg', return_branch_outputs=self.kalman)
+                self.predictor = ModularPool(
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    pool_type="avg",
+                    return_branch_outputs=self.kalman,
+                )
             case "max_pool":
-                self.predictor = ModularPool(self.embed_dim, self.output_dim, self.dropout, pool_type='max', return_branch_outputs=self.kalman)
+                self.predictor = ModularPool(
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    pool_type="max",
+                    return_branch_outputs=self.kalman,
+                )
             case "weighted_avg_pool":
                 self.predictor = ModularWeightedPool(
-                    self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='avg'
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    self.active_sensors,
+                    pool_type="avg",
                 )
             case "weighted_max_pool":
                 self.predictor = ModularWeightedPool(
-                    self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='max'
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    self.active_sensors,
+                    pool_type="max",
                 )
             case "hard_voting":
                 self.predictor = ModularHardVoting(
-                    self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='avg'
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    self.active_sensors,
+                    pool_type="avg",
                 )
             case "stacked_avg_pool":
-                self.predictor = StackedModularPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout)
+                self.predictor = StackedModularPool(
+                    self.embed_dim, self.hidden_dim, self.output_dim, self.dropout
+                )
             case "stacked_max_pool":
-                self.predictor = StackedModularPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout, pool_type='max')
+                self.predictor = StackedModularPool(
+                    self.embed_dim,
+                    self.hidden_dim,
+                    self.output_dim,
+                    self.dropout,
+                    pool_type="max",
+                )
             case _:
                 raise ValueError(f"Predictor {predictor} not supported")
-        
+
         if self.kalman:
-            self.kalman_filter = KalmanFilter(self.output_dim, device=self.device, num_branches=len(self.input_dims))
+            self.kalman_filter = KalmanFilter(
+                self.output_dim, device=self.device, num_branches=len(self.input_dims)
+            )
 
     def forward(self, inputs):
         # Step 1: Embedding and Positional Encoding for each modality
@@ -422,14 +581,26 @@ class MOSCANSlidingCasualBCSACached(nn.Module):
             for modality1 in modality_features:
                 for modality2 in modality_features:
                     if modality1 != modality2:
-                        ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
-                        modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], modality_features[modality2], use_cache=self.seq_length > 1)
+                        ca_block = self.cross_attention_blocks[
+                            f"{modality1}_to_{modality2}"
+                        ][i]
+                        modality_features[modality1] = ca_block(
+                            modality_features[modality1],
+                            modality_features[modality2],
+                            modality_features[modality2],
+                            use_cache=self.seq_length > 1,
+                        )
             # Self Attention
             for modality, net in self.modalities.items():
                 sa_block = self.self_attention_blocks[modality][i]
-                modality_features[modality] = sa_block(modality_features[modality], modality_features[modality], modality_features[modality], use_cache=self.seq_length > 1)
+                modality_features[modality] = sa_block(
+                    modality_features[modality],
+                    modality_features[modality],
+                    modality_features[modality],
+                    use_cache=self.seq_length > 1,
+                )
 
-        # Step 3: Predictor to merge branches and perform late fusion to produce an overall classification or a per branch classification 
+        # Step 3: Predictor to merge branches and perform late fusion to produce an overall classification or a per branch classification
         classification = self.predictor(modality_features)
 
         # Step 4: Optional Kalman Filter expects shape (batch_size, num_branches, output_dim)
@@ -445,13 +616,15 @@ class MOSCANSlidingCasualBCSACached(nn.Module):
         for modality in self.cross_attention_blocks:
             for block in self.cross_attention_blocks[modality]:
                 block.clear_cache()
+
 
 class MOSCANCrossAttention(nn.Module):
     NAME = "MOSCANCrossAttention"
+
     def __init__(self, **kwargs):
         super(MOSCANCrossAttention, self).__init__()
         required_params = [
-            "query_cache",
+            "kv_cache_only",
             "input_dims",
             "embed_dim",
             "hidden_dim",
@@ -466,14 +639,14 @@ class MOSCANCrossAttention(nn.Module):
             "max_batch_size",
             "active_sensors",
             "predictor",
-            "device"
+            "device",
         ]
 
         for param in required_params:
             if param not in kwargs:
                 raise ValueError(f"Missing required parameter: {param}")
 
-        self.query_cache = kwargs["query_cache"]
+        self.kv_cache_only = kwargs["kv_cache_only"]
         self.input_dims = kwargs["input_dims"]
         self.embed_dim = kwargs["embed_dim"]
         self.hidden_dim = kwargs["hidden_dim"]
@@ -500,43 +673,84 @@ class MOSCANCrossAttention(nn.Module):
         for i, modality1 in enumerate(modalities):
             for j, modality2 in enumerate(modalities):
                 if i != j:
-                    self.cross_attention_blocks[f"{modality1}_to_{modality2}"] = (
-                        nn.ModuleList(
-                            [
-                                CachedSlidingAttentionEncoder(
-                                    self.embed_dim, self.hidden_dim, self.n_head, self.max_batch_size, self.max_seq_length, self.dropout, self.attention_dropout, query_cache=False 
-                                )
-                                for _ in range(self.n_bcsa)
-                            ]
-                        )
+                    self.cross_attention_blocks[
+                        f"{modality1}_to_{modality2}"
+                    ] = nn.ModuleList(
+                        [
+                            CachedSlidingAttentionEncoder(
+                                self.embed_dim,
+                                self.hidden_dim,
+                                self.n_head,
+                                self.max_batch_size,
+                                self.max_seq_length,
+                                self.dropout,
+                                self.attention_dropout,
+                                kv_cache_only=False,
+                            )
+                            for _ in range(self.n_bcsa)
+                        ]
                     )
 
         match predictor:
             case "avg_pool":
-                self.predictor = ModularPool(self.embed_dim, self.output_dim, self.dropout, pool_type='avg', return_branch_outputs=self.kalman)
+                self.predictor = ModularPool(
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    pool_type="avg",
+                    return_branch_outputs=self.kalman,
+                )
             case "max_pool":
-                self.predictor = ModularPool(self.embed_dim, self.output_dim, self.dropout, pool_type='max', return_branch_outputs=self.kalman)
+                self.predictor = ModularPool(
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    pool_type="max",
+                    return_branch_outputs=self.kalman,
+                )
             case "weighted_avg_pool":
                 self.predictor = ModularWeightedPool(
-                    self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='avg'
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    self.active_sensors,
+                    pool_type="avg",
                 )
             case "weighted_max_pool":
                 self.predictor = ModularWeightedPool(
-                    self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='max'
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    self.active_sensors,
+                    pool_type="max",
                 )
             case "hard_voting":
                 self.predictor = ModularHardVoting(
-                    self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='avg'
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    self.active_sensors,
+                    pool_type="avg",
                 )
             case "stacked_avg_pool":
-                self.predictor = StackedModularPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout)
+                self.predictor = StackedModularPool(
+                    self.embed_dim, self.hidden_dim, self.output_dim, self.dropout
+                )
             case "stacked_max_pool":
-                self.predictor = StackedModularPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout, pool_type='max')
+                self.predictor = StackedModularPool(
+                    self.embed_dim,
+                    self.hidden_dim,
+                    self.output_dim,
+                    self.dropout,
+                    pool_type="max",
+                )
             case _:
                 raise ValueError(f"Predictor {predictor} not supported")
-        
+
         if self.kalman:
-            self.kalman_filter = KalmanFilter(self.output_dim, device=self.device, num_branches=len(self.input_dims))
+            self.kalman_filter = KalmanFilter(
+                self.output_dim, device=self.device, num_branches=len(self.input_dims)
+            )
 
     def forward(self, inputs):
         # Step 1: Embedding and Positional Encoding for each modality
@@ -558,10 +772,17 @@ class MOSCANCrossAttention(nn.Module):
             for modality1 in modality_features:
                 for modality2 in modality_features:
                     if modality1 != modality2:
-                        ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
-                        modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], modality_features[modality2], use_cache=False)
+                        ca_block = self.cross_attention_blocks[
+                            f"{modality1}_to_{modality2}"
+                        ][i]
+                        modality_features[modality1] = ca_block(
+                            modality_features[modality1],
+                            modality_features[modality2],
+                            modality_features[modality2],
+                            use_cache=False,
+                        )
 
-        # Step 3: Predictor to merge branches and perform late fusion to produce an overall classification or a per branch classification 
+        # Step 3: Predictor to merge branches and perform late fusion to produce an overall classification or a per branch classification
         classification = self.predictor(modality_features)
 
         # Step 4: Optional Kalman Filter expects shape (batch_size, num_branches, output_dim)
@@ -578,12 +799,14 @@ class MOSCANCrossAttention(nn.Module):
             for block in self.cross_attention_blocks[modality]:
                 block.clear_cache()
 
+
 class MOSCANSlidingCasualBCSA(nn.Module):
     NAME = "MOSCANSlidingCasualBCSA"
+
     def __init__(self, **kwargs):
         super(MOSCANSlidingCasualBCSA, self).__init__()
         required_params = [
-            "query_cache",
+            "kv_cache_only",
             "input_dims",
             "embed_dim",
             "hidden_dim",
@@ -598,14 +821,14 @@ class MOSCANSlidingCasualBCSA(nn.Module):
             "max_batch_size",
             "active_sensors",
             "predictor",
-            "device"
+            "device",
         ]
 
         for param in required_params:
             if param not in kwargs:
                 raise ValueError(f"Missing required parameter: {param}")
 
-        self.query_cache = kwargs["query_cache"]
+        self.kv_cache_only = kwargs["kv_cache_only"]
         self.input_dims = kwargs["input_dims"]
         self.embed_dim = kwargs["embed_dim"]
         self.hidden_dim = kwargs["hidden_dim"]
@@ -632,14 +855,21 @@ class MOSCANSlidingCasualBCSA(nn.Module):
             modality_net = nn.ModuleDict(
                 {
                     "embedding": nn.Linear(self.input_dims[modality], self.embed_dim),
-                    "pos_enc": PositionalEncoding(self.embed_dim)
+                    "pos_enc": PositionalEncoding(self.embed_dim),
                 }
             )
             self.modalities[modality] = modality_net
             self.self_attention_blocks[modality] = nn.ModuleList(
                 [
                     CachedSlidingAttentionEncoder(
-                        self.embed_dim, self.hidden_dim, self.n_head, self.max_batch_size, self.max_seq_length, self.dropout, self.attention_dropout, query_cache=False 
+                        self.embed_dim,
+                        self.hidden_dim,
+                        self.n_head,
+                        self.max_batch_size,
+                        self.max_seq_length,
+                        self.dropout,
+                        self.attention_dropout,
+                        kv_cache_only=False,
                     )
                     for _ in range(self.n_bcsa)
                 ]
@@ -650,43 +880,84 @@ class MOSCANSlidingCasualBCSA(nn.Module):
         for i, modality1 in enumerate(modalities):
             for j, modality2 in enumerate(modalities):
                 if i != j:
-                    self.cross_attention_blocks[f"{modality1}_to_{modality2}"] = (
-                        nn.ModuleList(
-                            [
-                                CachedSlidingAttentionEncoder(
-                                    self.embed_dim, self.hidden_dim, self.n_head, self.max_batch_size, self.max_seq_length, self.dropout, self.attention_dropout, query_cache=False 
-                                )
-                                for _ in range(self.n_bcsa)
-                            ]
-                        )
+                    self.cross_attention_blocks[
+                        f"{modality1}_to_{modality2}"
+                    ] = nn.ModuleList(
+                        [
+                            CachedSlidingAttentionEncoder(
+                                self.embed_dim,
+                                self.hidden_dim,
+                                self.n_head,
+                                self.max_batch_size,
+                                self.max_seq_length,
+                                self.dropout,
+                                self.attention_dropout,
+                                kv_cache_only=False,
+                            )
+                            for _ in range(self.n_bcsa)
+                        ]
                     )
 
         match predictor:
             case "avg_pool":
-                self.predictor = ModularPool(self.embed_dim, self.output_dim, self.dropout, pool_type='avg', return_branch_outputs=self.kalman)
+                self.predictor = ModularPool(
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    pool_type="avg",
+                    return_branch_outputs=self.kalman,
+                )
             case "max_pool":
-                self.predictor = ModularPool(self.embed_dim, self.output_dim, self.dropout, pool_type='max', return_branch_outputs=self.kalman)
+                self.predictor = ModularPool(
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    pool_type="max",
+                    return_branch_outputs=self.kalman,
+                )
             case "weighted_avg_pool":
                 self.predictor = ModularWeightedPool(
-                    self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='avg'
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    self.active_sensors,
+                    pool_type="avg",
                 )
             case "weighted_max_pool":
                 self.predictor = ModularWeightedPool(
-                    self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='max'
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    self.active_sensors,
+                    pool_type="max",
                 )
             case "hard_voting":
                 self.predictor = ModularHardVoting(
-                    self.embed_dim, self.output_dim, self.dropout, self.active_sensors, pool_type='avg'
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    self.active_sensors,
+                    pool_type="avg",
                 )
             case "stacked_avg_pool":
-                self.predictor = StackedModularPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout)
+                self.predictor = StackedModularPool(
+                    self.embed_dim, self.hidden_dim, self.output_dim, self.dropout
+                )
             case "stacked_max_pool":
-                self.predictor = StackedModularPool(self.embed_dim, self.hidden_dim, self.output_dim, self.dropout, pool_type='max')
+                self.predictor = StackedModularPool(
+                    self.embed_dim,
+                    self.hidden_dim,
+                    self.output_dim,
+                    self.dropout,
+                    pool_type="max",
+                )
             case _:
                 raise ValueError(f"Predictor {predictor} not supported")
-        
+
         if self.kalman:
-            self.kalman_filter = KalmanFilter(self.output_dim, device=self.device, num_branches=len(self.input_dims))
+            self.kalman_filter = KalmanFilter(
+                self.output_dim, device=self.device, num_branches=len(self.input_dims)
+            )
 
     def forward(self, inputs):
         # Step 1: Embedding and Positional Encoding for each modality
@@ -708,14 +979,26 @@ class MOSCANSlidingCasualBCSA(nn.Module):
             for modality1 in modality_features:
                 for modality2 in modality_features:
                     if modality1 != modality2:
-                        ca_block = self.cross_attention_blocks[f'{modality1}_to_{modality2}'][i]
-                        modality_features[modality1] = ca_block(modality_features[modality1], modality_features[modality2], modality_features[modality2], use_cache=self.seq_length>1)
+                        ca_block = self.cross_attention_blocks[
+                            f"{modality1}_to_{modality2}"
+                        ][i]
+                        modality_features[modality1] = ca_block(
+                            modality_features[modality1],
+                            modality_features[modality2],
+                            modality_features[modality2],
+                            use_cache=self.seq_length > 1,
+                        )
             # Self Attention
             for modality, net in self.modalities.items():
                 sa_block = self.self_attention_blocks[modality][i]
-                modality_features[modality] = sa_block(modality_features[modality], modality_features[modality], modality_features[modality], use_cache=self.seq_length > 1)
+                modality_features[modality] = sa_block(
+                    modality_features[modality],
+                    modality_features[modality],
+                    modality_features[modality],
+                    use_cache=self.seq_length > 1,
+                )
 
-        # Step 3: Predictor to merge branches and perform late fusion to produce an overall classification or a per branch classification 
+        # Step 3: Predictor to merge branches and perform late fusion to produce an overall classification or a per branch classification
         classification = self.predictor(modality_features)
 
         # Step 4: Optional Kalman Filter expects shape (batch_size, num_branches, output_dim)

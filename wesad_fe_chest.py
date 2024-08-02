@@ -25,8 +25,10 @@ manual_fe.extract_features()
 
 
 WINDOW_LENGTH = 30
-SPLIT_LENGTH = int(WINDOW_LENGTH / 6) # this will sub-split the data 6 times each of 5 seconds
-SLIDING_LENGTH = SPLIT_LENGTH # this will create 6 samples per 30 seconds since 30/5 = 6 with 5:1 ratio of synthetic to real samples
+SPLIT_LENGTH = int(
+    WINDOW_LENGTH / 6
+)  # this will sub-split the data 6 times each of 5 seconds
+SLIDING_LENGTH = SPLIT_LENGTH  # this will create 6 samples per 30 seconds since 30/5 = 6 with 5:1 ratio of synthetic to real samples
 
 CHEST_CONFIG = "config_files/dataset/wesad_chest_all_configuration.json"
 
@@ -42,5 +44,3 @@ CHEST_FE = f"src/wesad/WESAD/manual_fe/chest_manual_fe/{WINDOW_LENGTH}s_{SLIDING
 
 manual_fe = ManualFE(chest_splitted_segments, CHEST_FE, CHEST_CONFIG)
 manual_fe.extract_features()
-
-

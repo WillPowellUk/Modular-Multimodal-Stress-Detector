@@ -15,7 +15,7 @@ class RespFeatureExtractor:
         # # Find respiratory peaks
         # peaks = nk.rsp_findpeaks(self.resp_data, sampling_rate=self.sampling_rate)
 
-        # Process the Resp signal to extract phases and other info 
+        # Process the Resp signal to extract phases and other info
         rsp_processed, info = nk.rsp_process(
             self.resp_data, sampling_rate=self.sampling_rate
         )

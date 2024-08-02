@@ -34,7 +34,6 @@ else:
     raise ImportError("Could not find 'experiments' directory in the path hierarchy")
 
 
-
 from src.ml_pipeline.data_loader import LOSOCVSensorDataLoader
 
 DATASET_TYPE = "cv_5"

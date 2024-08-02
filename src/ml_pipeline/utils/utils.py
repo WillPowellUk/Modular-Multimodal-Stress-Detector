@@ -30,9 +30,10 @@ def get_key(config_path, key):
 
     return config[key]
 
+
 def modify_key(config_path, key, value):
     # Step 1: Open and read the JSON file
-    with open(config_path, 'r') as file:
+    with open(config_path, "r") as file:
         data = json.load(file)
 
     # Step 2: Modify the key in the dictionary
@@ -40,29 +41,31 @@ def modify_key(config_path, key, value):
         data[key] = value
 
     # Step 3: Write the updated dictionary back to the JSON file
-    with open(config_path, 'w') as file:
+    with open(config_path, "w") as file:
         json.dump(data, file, indent=4)
-    
+
     return data
+
 
 def modify_nested_key(config_path, key_path, value):
     # Step 1: Open and read the JSON file
-    with open(config_path, 'r') as file:
+    with open(config_path, "r") as file:
         data = json.load(file)
 
     # Step 2: Navigate to the specified nested key and modify it
     nested_dict = data
     for key in key_path[:-1]:
         nested_dict = nested_dict.get(key, {})
-    
+
     if key_path[-1] in nested_dict:
         nested_dict[key_path[-1]] = value
 
     # Step 3: Write the updated dictionary back to the JSON file
-    with open(config_path, 'w') as file:
+    with open(config_path, "w") as file:
         json.dump(data, file, indent=4)
-    
+
     return data
+
 
 def copy_json(src, dst):
     shutil.copy(src, dst)
@@ -106,9 +109,11 @@ def load_json(config_path):
 
     return config
 
+
 def save_json(data, file_path):
     with open(file_path, "w") as f:
         json.dump(data, f, indent=4)
+
 
 def print_model_summary(model, input_dims, seq_length, batch_size=-1, device="cuda"):
     def register_hook(module):
@@ -167,7 +172,9 @@ def print_model_summary(model, input_dims, seq_length, batch_size=-1, device="cu
     # Create input dictionary with tensors of appropriate shape
     x = {}
     for key, dim in input_dims.items():
-        x[key] = torch.rand(2, dim, seq_length).type(dtype)  # assuming Z dimension to be seq_length
+        x[key] = torch.rand(2, dim, seq_length).type(
+            dtype
+        )  # assuming Z dimension to be seq_length
 
     # create properties
     summary = OrderedDict()
@@ -209,7 +216,9 @@ def print_model_summary(model, input_dims, seq_length, batch_size=-1, device="cu
     total_input_size = abs(
         np.prod(list(input_dims.values())) * batch_size * 4.0 / (1024**2.0)
     )
-    total_output_size = abs(2.0 * total_output * 4.0 / (1024**2.0))  # x2 for gradients
+    total_output_size = abs(
+        2.0 * total_output * 4.0 / (1024**2.0)
+    )  # x2 for gradients
     total_params_size = abs(total_params.numpy() * 4.0 / (1024**2.0))
     total_size = total_params_size + total_output_size + total_input_size
 
@@ -292,6 +301,7 @@ def create_temp_file(config):
 
     # Return the path of the temporary file
     return temp_file.name
+
 
 class HyperParamsIterator:
     def __init__(self, json_path, hyperparameter_grid):
