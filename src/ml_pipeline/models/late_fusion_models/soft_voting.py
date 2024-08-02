@@ -164,7 +164,7 @@ class ModularWeightedPool(nn.Module):
         for key in sorted(x.keys()):
             branch = x[key]
             if self.pool_type == "attention":
-                # AttentionPooling expects input of shape [batch_size, max_seq_length, embed_dim]
+                # AttentionPooling expects input of shape [batch_size, source_seq_length, embed_dim]
                 branch = self.pool(branch)
             else:
                 # Permute to shape (batch_size, embed_dim, seq_len)

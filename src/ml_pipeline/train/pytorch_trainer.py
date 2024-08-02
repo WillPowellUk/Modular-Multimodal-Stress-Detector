@@ -114,6 +114,7 @@ class PyTorchTrainer:
 
             for step, data in progress_bar:
                 if epoch == 0 and step == 10:
+                    break
                     # self.print_model_summary(6, 32)
                     pass
 

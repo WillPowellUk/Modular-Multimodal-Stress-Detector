@@ -23,7 +23,7 @@ class MOSCANSlidingBCSACached(nn.Module):
             "n_bcsa",
             "batch_size",
             "seq_length",
-            "max_seq_length",
+            "source_seq_length",
             "max_batch_size",
             "active_sensors",
             "predictor",
@@ -45,7 +45,7 @@ class MOSCANSlidingBCSACached(nn.Module):
         self.n_bcsa = kwargs["n_bcsa"]
         self.batch_size = kwargs["batch_size"]
         self.seq_length = kwargs["seq_length"]
-        self.max_seq_length = kwargs["max_seq_length"]
+        self.source_seq_length = kwargs["source_seq_length"]
         self.max_batch_size = kwargs["max_batch_size"]
         self.active_sensors = kwargs["active_sensors"]
         predictor = kwargs["predictor"]
@@ -72,7 +72,7 @@ class MOSCANSlidingBCSACached(nn.Module):
                         self.hidden_dim,
                         self.n_head,
                         self.max_batch_size,
-                        self.max_seq_length,
+                        self.source_seq_length,
                         self.dropout,
                         self.attention_dropout,
                         kv_cache_only=self.kv_cache_only,
@@ -95,7 +95,7 @@ class MOSCANSlidingBCSACached(nn.Module):
                                 self.hidden_dim,
                                 self.n_head,
                                 self.max_batch_size,
-                                self.max_seq_length,
+                                self.source_seq_length,
                                 self.dropout,
                                 self.attention_dropout,
                                 kv_cache_only=self.kv_cache_only,
@@ -239,7 +239,7 @@ class MOSCANSelfAttention(nn.Module):
             "n_bcsa",
             "batch_size",
             "seq_length",
-            "max_seq_length",
+            "source_seq_length",
             "max_batch_size",
             "active_sensors",
             "predictor",
@@ -261,7 +261,7 @@ class MOSCANSelfAttention(nn.Module):
         self.n_bcsa = kwargs["n_bcsa"]
         self.batch_size = kwargs["batch_size"]
         self.seq_length = kwargs["seq_length"]
-        self.max_seq_length = kwargs["max_seq_length"]
+        self.source_seq_length = kwargs["source_seq_length"]
         self.max_batch_size = kwargs["max_batch_size"]
         self.active_sensors = kwargs["active_sensors"]
         predictor = kwargs["predictor"]
@@ -288,7 +288,7 @@ class MOSCANSelfAttention(nn.Module):
                         self.hidden_dim,
                         self.n_head,
                         self.max_batch_size,
-                        self.max_seq_length,
+                        self.source_seq_length,
                         self.dropout,
                         self.attention_dropout,
                         kv_cache_only=False,
@@ -419,7 +419,7 @@ class MOSCANSlidingCasualBCSACached(nn.Module):
             "n_bcsa",
             "batch_size",
             "seq_length",
-            "max_seq_length",
+            "source_seq_length",
             "max_batch_size",
             "active_sensors",
             "predictor",
@@ -441,7 +441,7 @@ class MOSCANSlidingCasualBCSACached(nn.Module):
         self.n_bcsa = kwargs["n_bcsa"]
         self.batch_size = kwargs["batch_size"]
         self.seq_length = kwargs["seq_length"]
-        self.max_seq_length = kwargs["max_seq_length"]
+        self.source_seq_length = kwargs["source_seq_length"]
         self.max_batch_size = kwargs["max_batch_size"]
         self.active_sensors = kwargs["active_sensors"]
         predictor = kwargs["predictor"]
@@ -468,7 +468,7 @@ class MOSCANSlidingCasualBCSACached(nn.Module):
                         self.hidden_dim,
                         self.n_head,
                         self.max_batch_size,
-                        self.max_seq_length,
+                        self.source_seq_length,
                         self.dropout,
                         self.attention_dropout,
                         kv_cache_only=False,
@@ -491,7 +491,7 @@ class MOSCANSlidingCasualBCSACached(nn.Module):
                                 self.hidden_dim,
                                 self.n_head,
                                 self.max_batch_size,
-                                self.max_seq_length,
+                                self.source_seq_length,
                                 self.dropout,
                                 self.attention_dropout,
                                 kv_cache_only=False,
@@ -635,7 +635,7 @@ class MOSCANCrossAttention(nn.Module):
             "n_bcsa",
             "batch_size",
             "seq_length",
-            "max_seq_length",
+            "source_seq_length",
             "max_batch_size",
             "active_sensors",
             "predictor",
@@ -657,7 +657,7 @@ class MOSCANCrossAttention(nn.Module):
         self.n_bcsa = kwargs["n_bcsa"]
         self.batch_size = kwargs["batch_size"]
         self.seq_length = kwargs["seq_length"]
-        self.max_seq_length = kwargs["max_seq_length"]
+        self.source_seq_length = kwargs["source_seq_length"]
         self.max_batch_size = kwargs["max_batch_size"]
         self.active_sensors = kwargs["active_sensors"]
         predictor = kwargs["predictor"]
@@ -682,7 +682,7 @@ class MOSCANCrossAttention(nn.Module):
                                 self.hidden_dim,
                                 self.n_head,
                                 self.max_batch_size,
-                                self.max_seq_length,
+                                self.source_seq_length,
                                 self.dropout,
                                 self.attention_dropout,
                                 kv_cache_only=False,
@@ -817,7 +817,7 @@ class MOSCANSlidingCasualBCSA(nn.Module):
             "n_bcsa",
             "batch_size",
             "seq_length",
-            "max_seq_length",
+            "source_seq_length",
             "max_batch_size",
             "active_sensors",
             "predictor",
@@ -839,7 +839,7 @@ class MOSCANSlidingCasualBCSA(nn.Module):
         self.n_bcsa = kwargs["n_bcsa"]
         self.batch_size = kwargs["batch_size"]
         self.seq_length = kwargs["seq_length"]
-        self.max_seq_length = kwargs["max_seq_length"]
+        self.source_seq_length = kwargs["source_seq_length"]
         self.max_batch_size = kwargs["max_batch_size"]
         self.active_sensors = kwargs["active_sensors"]
         predictor = kwargs["predictor"]
@@ -866,7 +866,7 @@ class MOSCANSlidingCasualBCSA(nn.Module):
                         self.hidden_dim,
                         self.n_head,
                         self.max_batch_size,
-                        self.max_seq_length,
+                        self.source_seq_length,
                         self.dropout,
                         self.attention_dropout,
                         kv_cache_only=False,
@@ -889,7 +889,7 @@ class MOSCANSlidingCasualBCSA(nn.Module):
                                 self.hidden_dim,
                                 self.n_head,
                                 self.max_batch_size,
-                                self.max_seq_length,
+                                self.source_seq_length,
                                 self.dropout,
                                 self.attention_dropout,
                                 kv_cache_only=False,
