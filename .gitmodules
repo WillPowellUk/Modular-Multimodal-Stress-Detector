@@ -1,3 +1,6 @@
 [submodule "submodules/pyEDA"]
 	path = submodules/pyEDA
 	url = https://github.com/WillPowellUk/pyEDA
+[submodule "submodules/bleakheart"]
+	path = submodules/bleakheart
+	url = https://github.com/WillPowellUk/bleakheart
