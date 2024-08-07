@@ -115,7 +115,7 @@ def save_json(data, file_path):
         json.dump(data, f, indent=4)
 
 
-def print_model_summary(model, input_dims, seq_length, batch_size=-1, device="cuda"):
+def print_model_summary(model, input_dims, source_seq_length, batch_size=-1, device="cuda"):
     def register_hook(module):
         def hook(module, input, output):
             class_name = str(module.__class__).split(".")[-1].split("'")[0]
@@ -172,9 +172,9 @@ def print_model_summary(model, input_dims, seq_length, batch_size=-1, device="cu
     # Create input dictionary with tensors of appropriate shape
     x = {}
     for key, dim in input_dims.items():
-        x[key] = torch.rand(2, dim, seq_length).type(
+        x[key] = torch.rand(2, dim, source_seq_length).type(
             dtype
-        )  # assuming Z dimension to be seq_length
+        )  # assuming Z dimension to be source_seq_length
 
     # create properties
     summary = OrderedDict()

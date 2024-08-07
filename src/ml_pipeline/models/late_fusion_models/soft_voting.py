@@ -141,7 +141,7 @@ class ModularWeightedPool(nn.Module):
         elif pool_type == "max":
             self.pool = nn.AdaptiveMaxPool1d(1)
         elif pool_type == "attention":
-            self.pool = AttentionPooling(embed_dim, seq_length=1)
+            self.pool = AttentionPooling(embed_dim, source_seq_length=1)
         else:
             raise ValueError("pool_type must be either 'avg', 'max', or 'attention'")
 
@@ -164,7 +164,7 @@ class ModularWeightedPool(nn.Module):
         for key in sorted(x.keys()):
             branch = x[key]
             if self.pool_type == "attention":
-                # AttentionPooling expects input of shape [batch_size, source_seq_length, embed_dim]
+                # AttentionPooling expects input of shape [batch_size, source_source_seq_length, embed_dim]
                 branch = self.pool(branch)
             else:
                 # Permute to shape (batch_size, embed_dim, seq_len)

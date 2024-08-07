@@ -153,7 +153,7 @@ for ckpt in ckpts:
         )
 
         # Train the model on the batched data without the sliding co-attention buffer
-        trainer.model.seq_length = 1
+        trainer.model.source_seq_length = 1
         pre_trained_model_ckpt = trainer.validate(
             val_loader_batched, loss_wrapper, ckpt_path=ckpt
         )

@@ -263,10 +263,10 @@ class PyTorchTrainer:
                     torch.cuda.synchronize()  # Synchronize CUDA operations before starting the timer
                 start_time = time.time()
                 final_output = self.model(inputs)
-                # if i == 0 and self.print_summary:
-                #     self.print_summary = False
-                #     self.batch_size = -1
-                #     self.print_model_summary(1, -1)
+                if self.print_summary:
+                    self.print_summary = False
+                    self.batch_size = -1
+                    self.print_model_summary(1, -1)
                 if self.device == "cuda":
                     torch.cuda.synchronize()  # Synchronize CUDA operations after model inference
                 end_time = time.time()
@@ -298,8 +298,8 @@ class PyTorchTrainer:
 
                     # Check for label overlaps in the last n segment lengths
                     self.label_buffer.extend(labels.cpu().numpy())
-                    if len(self.label_buffer) > self.model.seq_length:
-                        self.label_buffer = self.label_buffer[-self.model.seq_length :]
+                    if len(self.label_buffer) > self.model.source_seq_length:
+                        self.label_buffer = self.label_buffer[-self.model.source_seq_length :]
 
                     overlap_detected = self._check_label_overlap()
                     if overlap_detected:
@@ -437,7 +437,7 @@ class PyTorchTrainer:
         # Convert self.label_buffer to a set to find unique labels
         unique_labels = set(self.label_buffer)
 
-        # If the number of unique labels is less than self.model.seq_length, overlap detected
+        # If the number of unique labels is less than self.model.source_seq_length, overlap detected
         if len(unique_labels) > 1:
             return True
         else:

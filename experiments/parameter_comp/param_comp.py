@@ -41,9 +41,10 @@ import time
 
 MOSCAN_CONFIG = "config_files/model_training/deep/moscan_config.json"
 config = load_json(MOSCAN_CONFIG)
-device = "cpu"
+device = "cuda"
 embedding_dim = 16
-cache = True
+feature_dim = 15
+cache = False
 
 
 def measure_model(model, inputs, device):
@@ -77,26 +78,28 @@ def measure_model(model, inputs, device):
 
 # Testing 1-10 modalities
 for n in range(1, 11):
-    print("\n Number of modalities: ", n)
+    print("\nNumber of modalities: ", n)
+
+    if cache:
+        config["source_seq_length"] = 6
+        sequence_length = 1
+    else:
+        config["source_seq_length"] = 1
+        sequence_length = 6
 
     input_dims = {}
     active_sensors = []
     inputs = {}
     for i in range(n):
-        input_dims[str(i)] = embedding_dim
+        input_dims[str(i)] = feature_dim
         active_sensors.append(str(i))
-        inputs[str(i)] = torch.randn(1, embedding_dim, 1)
+        inputs[str(i)] = torch.randn(1, feature_dim, sequence_length).to(device)
 
     config["input_dims"] = input_dims
     config["active_sensors"] = active_sensors
     config["device"] = device
 
-    if cache:
-        config["seq_length"] = 1
-    else:
-        config["seq_length"] = 6
-
-    model = MOSCAN(**config)
+    model = MOSCAN(**config).to(device)
 
     measure_model(model, inputs, device)
-    print_model_summary(model, input_dims, 1, -1, device=device)
+    # print_model_summary(model, input_dims, 1, -1, device=device)

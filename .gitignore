@@ -1,5 +1,6 @@
 src/wesad/WESAD
 src/ubfc_phys/UBFC-PHYS
+experiments/results/data
 *.7z
 *.pyc
 __pycache__/

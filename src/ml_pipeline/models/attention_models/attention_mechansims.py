@@ -244,8 +244,8 @@ class SlidingAttnScoreCache(nn.Module):
         """
         Appends the most recent scaled query (column) and key (row) pair of the attention score to the cache.
         Args:
-            q_t (torch.Tensor): The query tensor to be added to the last column of size [batch_size, num_heads, 1, seq_length]
-            k_t (torch.Tensor): The key tensor to be added to the last row of size [batch_size, num_heads, seq_length, 1]
+            q_t (torch.Tensor): The query tensor to be added to the last column of size [batch_size, num_heads, 1, source_seq_length]
+            k_t (torch.Tensor): The key tensor to be added to the last row of size [batch_size, num_heads, source_seq_length, 1]
         """
         if self.current_seq_len >= self.max_seq_len - 1:
             # If the sequence length exceeds the maximum, shift the cache left by one position in both dimensions
@@ -290,22 +290,22 @@ class SlidingAttnScoreCache(nn.Module):
 
 
 class AttentionPooling(nn.Module):
-    def __init__(self, embed_dim, seq_length=1):
+    def __init__(self, embed_dim, source_seq_length=1):
         super(AttentionPooling, self).__init__()
         self.attention = nn.Linear(embed_dim, 1)
-        self.seq_length = seq_length
+        self.source_seq_length = source_seq_length
 
     def forward(self, x):
-        # x shape: [batch_size, source_seq_length, embed_dim]
-        attention_scores = self.attention(x)  # [batch_size, source_seq_length, 1]
+        # x shape: [batch_size, source_source_seq_length, embed_dim]
+        attention_scores = self.attention(x)  # [batch_size, source_source_seq_length, 1]
 
         weights = torch.softmax(
             attention_scores, dim=1
-        )  # [batch_size, source_seq_length, 1]
+        )  # [batch_size, source_source_seq_length, 1]
         pooled = torch.sum(weights * x, dim=1)  # [batch_size, embed_dim]
 
-        # Expand to [batch_size, seq_length, embed_dim]
-        return pooled.unsqueeze(1).expand(-1, self.seq_length, -1)
+        # Expand to [batch_size, source_seq_length, embed_dim]
+        return pooled.unsqueeze(1).expand(-1, self.source_seq_length, -1)
 
 
 class MultiHeadProjection(nn.Module):
@@ -327,15 +327,15 @@ class MultiHeadProjection(nn.Module):
     def forward(self, query, key, value):
         """
         The query, key and values are linearly transformed into distinct matrices for each head.
-        Expects query, key, value to be each of shape [batch_size, seq_length, embed_dim] and returns
-        query, key, value of shape [batch_size, num_heads, seq_length, head_dim]
+        Expects query, key, value to be each of shape [batch_size, source_seq_length, embed_dim] and returns
+        query, key, value of shape [batch_size, num_heads, source_seq_length, head_dim]
         """
         # Apply each linear layer to the corresponding head
         query_heads = [layer(query) for layer in self.query_layers]
         key_heads = [layer(key) for layer in self.key_layers]
         value_heads = [layer(value) for layer in self.value_layers]
 
-        # Stack the results to create a tensor of shape [batch_size, num_heads, seq_length, head_dim]
+        # Stack the results to create a tensor of shape [batch_size, num_heads, source_seq_length, head_dim]
         query = torch.stack(query_heads, dim=1)
         key = torch.stack(key_heads, dim=1)
         value = torch.stack(value_heads, dim=1)
@@ -389,7 +389,7 @@ class SlidingCachedMultiHeadAttention(nn.Module):
         attn_weights = self.dropout(attn_weights)
         output = attn_weights @ value
 
-        # [batch_size, num_heads, seq_length, head_dim] -> [batch_size, seq_length, embed_dim]
+        # [batch_size, num_heads, source_seq_length, head_dim] -> [batch_size, source_seq_length, embed_dim]
         output = (
             output.transpose(1, 2).contiguous().view(output.size(0), output.size(2), -1)
         )
@@ -407,10 +407,10 @@ class SlidingCachedMultiHeadAttention(nn.Module):
         # Element-wise multiplication to produce last column and last row of attn_score
         q_t = (
             query @ k.transpose(-2, -1) * self.scale
-        )  # [batch_size, num_heads, 1, source_seq_length]
+        )  # [batch_size, num_heads, 1, source_source_seq_length]
         k_t = (
             q @ key.transpose(-2, -1) * self.scale
-        )  # [batch_size, num_heads, source_seq_length, 1]
+        )  # [batch_size, num_heads, source_source_seq_length, 1]
 
         # Update the attention scores with the new query-key attention scores i.e. the new query and key will reattend to the old tokens
         self.sliding_cache.update_attn_score(q_t, k_t)
@@ -427,7 +427,7 @@ class SlidingCachedMultiHeadAttention(nn.Module):
         attn_weights = self.dropout(attn_weights)
         output = attn_weights @ v
 
-        # [batch_size, num_heads, source_seq_length, head_dim] -> [batch_size, source_seq_length, embed_dim]
+        # [batch_size, num_heads, source_source_seq_length, head_dim] -> [batch_size, source_source_seq_length, embed_dim]
         output = (
             output.transpose(1, 2).contiguous().view(output.size(0), output.size(2), -1)
         )
@@ -448,12 +448,12 @@ class SlidingCachedMultiHeadAttention(nn.Module):
         # Compute the scaled dot product attention with new query and newly cached key and values
         attn_scores = (
             query @ k.transpose(-2, -1) * self.scale
-        )  # [batch_size, num_heads, seq_length, source_seq_length]
+        )  # [batch_size, num_heads, source_seq_length, source_source_seq_length]
         attn_weights = F.softmax(attn_scores, dim=-1)
         attn_weights = self.dropout(attn_weights)
         output = attn_weights @ v
 
-        # [batch_size, num_heads, seq_length, head_dim] -> [batch_size, seq_length, embed_dim]
+        # [batch_size, num_heads, source_seq_length, head_dim] -> [batch_size, source_seq_length, embed_dim]
         output = (
             output.transpose(1, 2).contiguous().view(output.size(0), output.size(2), -1)
         )
@@ -463,15 +463,15 @@ class SlidingCachedMultiHeadAttention(nn.Module):
     def forward(self, query, key, value, use_cache=True):
         """
         Performs multi-head attention with caching mechanism using scaled dot product attention.
-        Expects query, key, value to each be of shape [batch_size, seq_length, embed_dim]
+        Expects query, key, value to each be of shape [batch_size, source_seq_length, embed_dim]
         """
 
         # project new query, key and value for each head
-        # this will return tensors each of shape [batch_size, num_heads, seq_length, head_dim]
+        # this will return tensors each of shape [batch_size, num_heads, source_seq_length, head_dim]
         query, key, value = self.in_proj(query, key, value)
 
         if use_cache:
-            # Perform scaled dot product attention with the sliding caching mechanism of shape [batch_size, source_seq_length, embed_dim]
+            # Perform scaled dot product attention with the sliding caching mechanism of shape [batch_size, source_source_seq_length, embed_dim]
 
             # Cache either just the key and value or the attention scores as well
             if self.kv_cache_only:
@@ -479,7 +479,7 @@ class SlidingCachedMultiHeadAttention(nn.Module):
             else:
                 out = self.attn_score_cached_scaled_dot_product_attention(query, key, value)
 
-            # Attention pooling layer to downsample the context window from source_seq_length back to seq_length
+            # Attention pooling layer to downsample the context window from source_source_seq_length back to source_seq_length
             out = self.attn_pool(out)
 
         else:
@@ -530,10 +530,10 @@ class CachedSlidingAttentionEncoder(nn.Module):
 
     def forward(self, query, key, value, use_cache=True):
         """
-        Expect query to be of shape [batch_size, seq_length, features/embedding]
+        Expect query to be of shape [batch_size, source_seq_length, features/embedding]
         """
 
-        # Attention mechanism which will remove the oldest token if cache exceeds seq_length if use_cache is True
+        # Attention mechanism which will remove the oldest token if cache exceeds source_seq_length if use_cache is True
         attn_output = self.attention(
             query=query, key=key, value=value, use_cache=use_cache
         )

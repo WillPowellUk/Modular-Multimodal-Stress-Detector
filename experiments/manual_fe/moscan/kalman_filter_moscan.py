@@ -148,7 +148,7 @@ for c, current_config in enumerate(hyperparams()):
         print("Validating Pre-Trained Model on Non-Batched Data")
         save_json(model_config, current_config)
 
-        trainer.model.seq_length = get_values(current_config, "seq_length")
+        trainer.model.source_seq_length = get_values(current_config, "source_seq_length")
         if DATASET_TYPE == "losocv":
             result = trainer.validate(
                 val_loader_non_batched,
