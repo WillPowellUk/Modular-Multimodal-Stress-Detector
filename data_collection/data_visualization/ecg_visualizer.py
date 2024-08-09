@@ -106,7 +106,7 @@ if __name__ == '__main__':
     segment = np.loadtxt(f'data_collection/recordings/S{subject_id}/ECG.csv', delimiter=',')
 
     # Define the start and end times for the segment you want to crop (in seconds)
-    start_time = 10  # e.g., start at 5 seconds
+    start_time = 0  # e.g., start at 5 seconds
     end_time = 50   # e.g., end at 10 seconds
 
     # Convert time to sample indices
@@ -116,18 +116,21 @@ if __name__ == '__main__':
     # Crop the segment
     cropped_segment = segment[start_index:end_index]
 
-    # # Plot the segment
-    # ecg_visualizer.plot_segment(cropped_segment)
+    # Plot the segment
+    print("Printing raw segment")
+    ecg_visualizer.plot_segment(cropped_segment)
 
     # load cropped segment as dataframe
-    df = pd.DataFrame(cropped_segment, columns=['ecg'])
+    df = pd.DataFrame(segment, columns=['ecg'])
 
     ecg_processor = ECGPreprocessing(df, fs=sampling_frequency)
     df = ecg_processor.process(use_neurokit=True, plot=False)
 
     # Plot the cleaned ECG segment
+    print("Printing cleaned segment")
     ecg_visualizer.plot_segment(df['ecg'].values)
 
     # Extract peaks
+    print("Printing Peaks")
     ecg_feature_extractor = ECGFeatureExtractor(df, sampling_rate=sampling_frequency)
     ecg_feature_extractor.extract_features(show_plot=True)
