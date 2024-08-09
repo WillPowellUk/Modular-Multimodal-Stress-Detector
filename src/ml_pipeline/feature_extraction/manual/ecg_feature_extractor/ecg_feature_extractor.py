@@ -187,7 +187,7 @@ class ECGFeatureExtractor:
 
         return EDR_Distance, EDR_RMSSD
 
-    def extract_features(self, calc_PSD=False):
+    def extract_features(self, calc_PSD=False, show_plot=False) -> pd.DataFrame:
         r_peaks = nk.ecg_peaks(self.ecg_data, sampling_rate=self.sampling_rate)[0]
         np.seterr(divide="ignore", invalid="ignore")
 
@@ -212,7 +212,7 @@ class ECGFeatureExtractor:
         # max_scale = min(len(rri)//2, 50)
         # nonlinear_features = nk.hrv_nonlinear(rri, sampling_rate=self.sampling_rate, scale=range(min_scale, max_scale))
 
-        wave_features = self.wave_analysis(waves)
+        wave_features = self.wave_analysis(waves, plot=show_plot)
         edr_distance, edr_rmssd = self.calc_EDR(r_peaks, show_plot=False)
         if calc_PSD:
             psd_features = self.calc_PSD()

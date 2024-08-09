@@ -1,8 +1,47 @@
+import os
+import sys
+
+# Get the current script's directory
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Traverse up to find the desired directory
+target_dir = current_dir
+while "src" not in os.listdir(target_dir) and target_dir != os.path.dirname(
+    target_dir
+):
+    target_dir = os.path.dirname(target_dir)
+
+# Append the target directory to sys.path
+if "src" in os.listdir(target_dir):
+    sys.path.append(target_dir)
+else:
+    raise ImportError("Could not find 'src' directory in the path hierarchy")
+
+# Get the current script's directory
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Traverse up to find the desired directory
+target_dir = current_dir
+while "experiments" not in os.listdir(target_dir) and target_dir != os.path.dirname(
+    target_dir
+):
+    target_dir = os.path.dirname(target_dir)
+
+# Append the target directory to sys.path
+if "experiments" in os.listdir(target_dir):
+    sys.path.append(target_dir)
+else:
+    raise ImportError(
+        "Could not find 'experiments' directory in the path hierarchy"
+    )
+
+
 import numpy as np
 import matplotlib.pyplot as plt
-import os
-import csv
+import pandas as pd
 from matplotlib.lines import Line2D
+from src.ml_pipeline.preprocessing.ecg_preprocessing import ECGPreprocessing
+from src.ml_pipeline.feature_extraction.manual.ecg_feature_extractor import ECGFeatureExtractor
 
 class ECGVisualizer:
     def __init__(self, sampling_frequency, save_path=None):
@@ -20,7 +59,7 @@ class ECGVisualizer:
                 freq = np.fft.fftfreq(len(segment), d=1/self.sampling_frequency)
 
                 # max frequency to plot
-                max_freq = 100
+                max_freq = self.sampling_frequency / 2
 
                 # Filter out negative frequencies and frequencies above max_freq
                 mask = (freq >= 0) & (freq <= max_freq)
@@ -90,17 +129,43 @@ class ECGVisualizer:
                 else:
                     plt.show()
 
-
-
 if __name__ == '__main__':
     # Define the subject ID
-    subject_id = 2
+    subject_id = 3
+    sampling_frequency = 130
+
+    save_path = f'data_collection/data_visualization/plots/S{subject_id}_ECG.pdf'
+    save_path = None
 
     # Create an ECGVisualizer object
-    ecg_visualizer = ECGVisualizer(sampling_frequency=130, save_path=f'data_collection/data_visualization/plots/S{subject_id}_ECG.pdf')
+    ecg_visualizer = ECGVisualizer(sampling_frequency=sampling_frequency, save_path=save_path)
 
     # Load the ECG recording
     segment = np.loadtxt(f'data_collection/recordings/S{subject_id}/ECG.csv', delimiter=',')
 
-    # Plot the segment
-    ecg_visualizer.plot_segment(segment)
+    # Define the start and end times for the segment you want to crop (in seconds)
+    start_time = 10  # e.g., start at 5 seconds
+    end_time = 50   # e.g., end at 10 seconds
+
+    # Convert time to sample indices
+    start_index = int(start_time * sampling_frequency)
+    end_index = int(end_time * sampling_frequency)
+
+    # Crop the segment
+    cropped_segment = segment[start_index:end_index]
+
+    # # Plot the segment
+    # ecg_visualizer.plot_segment(cropped_segment)
+
+    # load cropped segment as dataframe
+    df = pd.DataFrame(cropped_segment, columns=['ecg'])
+
+    ecg_processor = ECGPreprocessing(df, fs=sampling_frequency)
+    df = ecg_processor.process(use_neurokit=True, plot=False)
+
+    # Plot the cleaned ECG segment
+    ecg_visualizer.plot_segment(df['ecg'].values)
+
+    # Extract peaks
+    ecg_feature_extractor = ECGFeatureExtractor(df, sampling_rate=sampling_frequency)
+    ecg_feature_extractor.extract_features(show_plot=True)
