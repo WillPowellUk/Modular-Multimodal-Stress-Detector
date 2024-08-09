@@ -1,39 +1,5 @@
-import os
 import statistics
-import sys
-from datetime import datetime
 import torch
-
-# Get the current script's directory
-current_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Traverse up to find the desired directory
-target_dir = current_dir
-while "src" not in os.listdir(target_dir) and target_dir != os.path.dirname(target_dir):
-    target_dir = os.path.dirname(target_dir)
-
-# Append the target directory to sys.path
-if "src" in os.listdir(target_dir):
-    sys.path.append(target_dir)
-else:
-    raise ImportError("Could not find 'src' directory in the path hierarchy")
-
-# Get the current script's directory
-current_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Traverse up to find the desired directory
-target_dir = current_dir
-while "experiments" not in os.listdir(target_dir) and target_dir != os.path.dirname(
-    target_dir
-):
-    target_dir = os.path.dirname(target_dir)
-
-# Append the target directory to sys.path
-if "experiments" in os.listdir(target_dir):
-    sys.path.append(target_dir)
-else:
-    raise ImportError("Could not find 'experiments' directory in the path hierarchy")
-
 from src.ml_pipeline.models.attention_models.co_attention_models import MOSCAN
 from src.ml_pipeline.utils import print_model_summary
 from src.ml_pipeline.utils.utils import load_json

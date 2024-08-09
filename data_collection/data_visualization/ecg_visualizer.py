@@ -1,41 +1,3 @@
-import os
-import sys
-
-# Get the current script's directory
-current_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Traverse up to find the desired directory
-target_dir = current_dir
-while "src" not in os.listdir(target_dir) and target_dir != os.path.dirname(
-    target_dir
-):
-    target_dir = os.path.dirname(target_dir)
-
-# Append the target directory to sys.path
-if "src" in os.listdir(target_dir):
-    sys.path.append(target_dir)
-else:
-    raise ImportError("Could not find 'src' directory in the path hierarchy")
-
-# Get the current script's directory
-current_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Traverse up to find the desired directory
-target_dir = current_dir
-while "experiments" not in os.listdir(target_dir) and target_dir != os.path.dirname(
-    target_dir
-):
-    target_dir = os.path.dirname(target_dir)
-
-# Append the target directory to sys.path
-if "experiments" in os.listdir(target_dir):
-    sys.path.append(target_dir)
-else:
-    raise ImportError(
-        "Could not find 'experiments' directory in the path hierarchy"
-    )
-
-
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -131,7 +93,7 @@ class ECGVisualizer:
 
 if __name__ == '__main__':
     # Define the subject ID
-    subject_id = 3
+    subject_id = 1
     sampling_frequency = 130
 
     save_path = f'data_collection/data_visualization/plots/S{subject_id}_ECG.pdf'
