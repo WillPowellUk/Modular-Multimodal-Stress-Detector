@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import MultiheadAttention
 import math
+from src.ml_pipeline.utils import plot_attention
 
 
 class PositionalEncoding(nn.Module):
@@ -385,7 +386,7 @@ class SlidingCachedMultiHeadAttention(nn.Module):
 
     def scaled_dot_product_attention(self, query, key, value):
         attn_scores = query @ key.transpose(-2, -1) * self.scale
-        attn_weights = F.softmax(attn_scores, dim=-1)
+        attn_weights = F.softmax(attn_scores, dim=-2)
         attn_weights = self.dropout(attn_weights)
         output = attn_weights @ value
 
@@ -423,7 +424,8 @@ class SlidingCachedMultiHeadAttention(nn.Module):
         attn_scores = attn_scores.detach()
 
         # Compute the scaled dot product attention
-        attn_weights = F.softmax(attn_scores, dim=-1)
+        attn_weights = F.softmax(attn_scores, dim=-2)
+
         attn_weights = self.dropout(attn_weights)
         output = attn_weights @ v
 
@@ -449,7 +451,7 @@ class SlidingCachedMultiHeadAttention(nn.Module):
         attn_scores = (
             query @ k.transpose(-2, -1) * self.scale
         )  # [batch_size, num_heads, source_seq_length, source_source_seq_length]
-        attn_weights = F.softmax(attn_scores, dim=-1)
+        attn_weights = F.softmax(attn_scores, dim=-2)
         attn_weights = self.dropout(attn_weights)
         output = attn_weights @ v
 
