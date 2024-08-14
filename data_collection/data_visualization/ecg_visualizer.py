@@ -94,7 +94,10 @@ class ECGVisualizer:
 if __name__ == '__main__':
     # Define the subject ID
     subject_id = 1
-    sampling_frequency = 130
+    sampling_frequency = 700 #130
+
+    save_path = f'data_collection/data_visualization/plots/S{subject_id}_ECG.pdf'
+    save_path = None
 
     save_path = f'data_collection/data_visualization/plots/S{subject_id}_ECG.pdf'
     save_path = None
@@ -103,7 +106,18 @@ if __name__ == '__main__':
     ecg_visualizer = ECGVisualizer(sampling_frequency=sampling_frequency, save_path=save_path)
 
     # Load the ECG recording
-    segment = np.loadtxt(f'data_collection/recordings/S{subject_id}/ECG.csv', delimiter=',')
+    # segment = np.loadtxt(f'data_collection/recordings/S{subject_id}/ECG.csv', delimiter=',')
+    import pickle
+
+    # Path to the pickle file
+    pkl_path = 'data_collection/recordings/S6_W/S6.pkl'
+
+    # Load the pickle file with the correct encoding
+    with open(pkl_path, 'rb') as f:
+        data = pickle.load(f, encoding='latin1')  # You can also try 'utf-8' if 'latin1' doesn't work
+        print(data.keys())
+
+    segment = data['signal']['chest']['ECG']
 
     # Define the start and end times for the segment you want to crop (in seconds)
     start_time = 0  # e.g., start at 5 seconds
