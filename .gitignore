@@ -1,6 +1,7 @@
 src/wesad/WESAD
 src/ubfc_phys/UBFC-PHYS
 experiments/results/data
+experiments/results/analysis
 experiments/results/graphs
 *.7z
 *.pyc
