@@ -7,7 +7,7 @@ import time
 
 MOSCAN_CONFIG = "config_files/model_training/deep/moscan_config.json"
 config = load_json(MOSCAN_CONFIG)
-device = "cuda"
+device = "cpu"
 embedding_dim = 16
 feature_dim = 15
 cache = False

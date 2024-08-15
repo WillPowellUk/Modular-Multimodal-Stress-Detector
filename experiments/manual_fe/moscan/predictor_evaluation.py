@@ -34,11 +34,10 @@ ckpts = [
 ]
 predictors = [
     "hard_voting",
-    "avg_pool",
-    "weighted_avg_pool",
-    "weighted_max_pool",
-    "avg_pool",
-    "max_pool",
+    "weighted_attn_pool",
+    "stacked_attn_pool",
+    "stacked_max_pool",
+    "stacked_avg_pool",
 ]
 
 for ckpt in ckpts:
