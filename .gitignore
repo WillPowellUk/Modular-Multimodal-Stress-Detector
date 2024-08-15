@@ -2,7 +2,6 @@ src/wesad/WESAD
 src/ubfc_phys/UBFC-PHYS
 experiments/results/data
 experiments/results/graphs
-data_collection/recordings
 *.7z
 *.pyc
 __pycache__/
