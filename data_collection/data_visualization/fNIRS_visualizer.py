@@ -14,7 +14,8 @@ import matplotlib.pyplot as plt
 #     })
 
 SAMPLING_FREQUENCY = 10  # Hz
-XDF_FILE = r'data_collection\recordings\S69\fNIRS_artifacts.xdf'
+# XDF_FILE = r'data_collection\recordings\S69\fNIRS_artifacts.xdf'
+XDF_FILE = r'data_collection\recordings\S1\myndsens\sub-P001_ses-S001_task-Default_run-001_fNIRS.xdf'
 
 class fNIRSVisualizer:
     def __init__(self, sampling_frequency, save_path=None):

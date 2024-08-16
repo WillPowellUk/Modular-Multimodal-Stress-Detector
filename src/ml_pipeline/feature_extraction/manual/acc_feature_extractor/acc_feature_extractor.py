@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from scipy.fft import rfft, rfftfreq
 
 """  """
@@ -23,10 +23,10 @@ class AccFeatureExtractor:
 
         # Absolute integral for each/all axes
         for axis in ["x", "y", "z"]:
-            features[f"abs_integral_acc_{axis}"] = simps(
+            features[f"abs_integral_acc_{axis}"] = simpson(
                 np.abs(self.acc_data[axis]), dx=1 / self.sampling_rate
             )
-        features["abs_integral_acc_all"] = simps(
+        features["abs_integral_acc_all"] = simpson(
             np.abs(self.acc_data[["x", "y", "z"]].values).sum(axis=1),
             dx=1 / self.sampling_rate,
         )

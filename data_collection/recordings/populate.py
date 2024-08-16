@@ -1,29 +1,34 @@
 import os
+import shutil
 
-# Define the base directory containing the folders S1 to S20
-base_dir = ''  # Replace with the path to your directory
+# Function to create directories and copy files
+def setup_directories(base_path, start, end, files_to_copy):
+    for i in range(start, end + 1):
+        dir_name = f"S{i}"
+        dir_path = os.path.join(base_path, dir_name)
+        
+        # Create main directory SX
+        os.makedirs(dir_path, exist_ok=True)
+        
+        # Create subdirectories
+        subdirectories = ['empatica', 'myndsens', 'polar', 'quattrocento', 'questionnaires']
+        for subdirectory in subdirectories:
+            os.makedirs(os.path.join(dir_path, subdirectory), exist_ok=True)
+        
+        # Copy specified files to the questionnaires folder
+        for file_name in files_to_copy:
+            shutil.copy(os.path.join(base_path, file_name), os.path.join(dir_path, 'questionnaires'))
+        
+        # Copy the readme.txt file to the SX directory
+        shutil.copy(os.path.join(base_path, 'readme.txt'), dir_path)
 
-# List all the folders (S1 to S20) in the base directory
-folders = [f"S{i}" for i in range(1, 21)]
+# Define the base directory (replace with your actual base directory)
+base_directory = ""
 
-# Define the files that need to be deleted
-files_to_delete = ["panas.csv", "sssq.csv", "stai.csv", "timings.csv"]
+# List of files to copy to the questionnaires folder
+files_to_copy = ['panas_post.csv', 'panas_pre.csv', 'sssq_post.csv', 'stai_pre.csv', 'stai_post.csv']
 
-# Loop through each folder
-for folder in folders:
-    folder_path = os.path.join(base_dir, folder)
-    
-    if os.path.exists(folder_path):
-        # Loop through each file in the list
-        for file_name in files_to_delete:
-            file_to_delete = os.path.join(folder_path, file_name)
-            
-            if os.path.exists(file_to_delete):
-                os.remove(file_to_delete)
-                print(f"Deleted {file_to_delete}")
-            else:
-                print(f"File {file_to_delete} does not exist in {folder_path}")
-    else:
-        print(f"Folder {folder_path} does not exist")
+# Create directories from S3 to S20 and copy the files
+setup_directories(base_directory, 3, 20, files_to_copy)
 
-print("Deletion operation completed.")
+print("Directories and files have been set up successfully.")

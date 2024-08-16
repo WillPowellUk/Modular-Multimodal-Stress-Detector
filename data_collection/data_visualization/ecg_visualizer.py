@@ -2,16 +2,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.lines import Line2D
-from src.ml_pipeline.preprocessing.ecg_preprocessing import ECGPreprocessing
-from src.ml_pipeline.feature_extraction.manual.ecg_feature_extractor import ECGFeatureExtractor
 
-# Configure Matplotlib to use LaTeX for rendering
-plt.rcParams.update({
-    "text.usetex": True,
-    "font.family": "serif",  # Use serif font in conjunction with LaTeX
-    # Set the default font to be used in LaTeX as a single string
-    "text.latex.preamble": r"\usepackage{times}",
-    })
+# from src.ml_pipeline.preprocessing.ecg_preprocessing import ECGPreprocessing
+# from src.ml_pipeline.feature_extraction.manual.ecg_feature_extractor import ECGFeatureExtractor
+
+# # Configure Matplotlib to use LaTeX for rendering
+# plt.rcParams.update({
+#     "text.usetex": True,
+#     "font.family": "serif",  # Use serif font in conjunction with LaTeX
+#     # Set the default font to be used in LaTeX as a single string
+#     "text.latex.preamble": r"\usepackage{times}",
+#     })
 
 
 class ECGVisualizer:
@@ -51,9 +52,9 @@ class ECGVisualizer:
             ax.set_ylabel('Amplitude', fontsize=20)
 
             # Crop plt
-            ax.set_xlim(30, 35)
-            ax.set_xticks(np.linspace(30, 35, 6))
-            ax.set_xticklabels(np.arange(0, 6), fontsize=18)
+            # ax.set_xlim(30, 35)
+            # ax.set_xticks(np.linspace(30, 35, 6))
+            # ax.set_xticklabels(np.arange(0, 6), fontsize=18)
 
             # Hide y-axis units
             ax.set_yticklabels([])
@@ -77,10 +78,10 @@ class ECGVisualizer:
                 plt.show()
 
 
-if __name__ == '__main__':
+def main():
     # Define the subject ID
-    subject_id = 69
-    # sampling_frequency = 700 
+    subject_id = 1
+    # sampling_frequency = 700
     sampling_frequency = 130
 
     save_path = f'data_collection/data_visualization/plots/S{subject_id}_ECG.pdf'
@@ -90,7 +91,7 @@ if __name__ == '__main__':
     ecg_visualizer = ECGVisualizer(sampling_frequency=sampling_frequency, save_path=save_path)
 
     # Load the ECG recording
-    segment = np.loadtxt(f'data_collection/recordings/S{subject_id}/ECG.csv', delimiter=',')
+    segment = np.loadtxt(f'data_collection/recordings/S{subject_id}/polar/ECG.csv', delimiter=',')
     # import pickle
     # with open(f'data_collection/recordings/S6_W/S6.pkl', 'rb') as f:
     #     data = pickle.load(f, encoding='latin1')
@@ -98,15 +99,16 @@ if __name__ == '__main__':
     # segment = data['signal']['chest']['ECG'].flatten()
 
     # Define the start and end times for the segment you want to crop (in seconds)
-    start_time = 10  # e.g., start at 5 seconds
-    end_time = 50   # e.g., end at 10 seconds
+    # start_time = 10  # e.g., start at 5 seconds
+    # end_time = 50   # e.g., end at 10 seconds
 
-    # Convert time to sample indices
-    start_index = int(start_time * sampling_frequency)
-    end_index = int(end_time * sampling_frequency)
+    # # Convert time to sample indices
+    # start_index = int(start_time * sampling_frequency)
+    # end_index = int(end_time * sampling_frequency)
 
-    # Crop the segment
-    cropped_segment = segment[start_index:end_index]
+    # # Crop the segment
+    # cropped_segment = segment[start_index:end_index]
+    cropped_segment = segment
 
     # Plot the segment
     print("Printing raw segment")
@@ -115,20 +117,17 @@ if __name__ == '__main__':
     # load cropped segment as dataframe
     df = pd.DataFrame(cropped_segment, columns=['ecg'])
 
-    ecg_processor = ECGPreprocessing(df, fs=sampling_frequency)
-    df = ecg_processor.process(use_neurokit=True, plot=False)
+    # ecg_processor = ECGPreprocessing(df, fs=sampling_frequency)
+    # df = ecg_processor.process(use_neurokit=True, plot=False)
 
-    # Plot the cleaned ECG segment
-    print("Printing cleaned segment")
-    ecg_visualizer.plot_segment(df['ecg'].values)
+    # # Plot the cleaned ECG segment
+    # print("Printing cleaned segment")
+    # ecg_visualizer.plot_segment(df['ecg'].values)
 
-    # Extract peaks
-    print("Printing Peaks")
-    ecg_feature_extractor = ECGFeatureExtractor(df, sampling_rate=sampling_frequency)
-    ecg_feature_extractor.extract_features(show_plot=True)
-
-
-
+    # # Extract peaks
+    # print("Printing Peaks")
+    # ecg_feature_extractor = ECGFeatureExtractor(df, sampling_rate=sampling_frequency)
+    # ecg_feature_extractor.extract_features(show_plot=True)
 
     # # Define the subject ID
     # subject_id = 69
@@ -177,3 +176,7 @@ if __name__ == '__main__':
     # # print("Printing Peaks")
     # # ecg_feature_extractor = ECGFeatureExtractor(df, sampling_rate=sampling_frequency)
     # # ecg_feature_extractor.extract_features(show_plot=True)
+
+
+if __name__ == '__main__':
+    main()
