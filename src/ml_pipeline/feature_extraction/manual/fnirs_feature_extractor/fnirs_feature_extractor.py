@@ -62,11 +62,11 @@ class FNIRSFeatureExtractor:
         
         # Low Frequency Power
         low_mask = (freqs >= low_freq[0]) & (freqs <= low_freq[1])
-        lf_power = simps(psd[low_mask], freqs[low_mask])
+        lf_power = simpsons(psd[low_mask], freqs[low_mask])
         
         # High Frequency Power
         high_mask = (freqs >= high_freq[0]) & (freqs <= high_freq[1])
-        hf_power = simps(psd[high_mask], freqs[high_mask])
+        hf_power = simpsons(psd[high_mask], freqs[high_mask])
         
         return lf_power / hf_power if hf_power > 0 else np.nan
 
@@ -85,3 +85,4 @@ class FNIRSFeatureExtractor:
         features['fdhr_lf_hf_ratio'] = lf_hf_ratio
 
         return features
+    

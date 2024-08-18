@@ -1,12 +1,3 @@
-<<<<<<< HEAD
-[submodule "submodules/pyEDA"]
-	path = submodules/pyEDA
-	url = https://github.com/WillPowellUk/pyEDA
-=======
-[submodule "submodules/pyEDA"]
-	path = submodules/pyEDA
-	url = https://github.com/WillPowellUk/pyEDA
->>>>>>> b9c557b039ff0564b53642fa18f7e0c49e63911d
 [submodule "submodules/bleakheart"]
 	path = submodules/bleakheart
 	url = https://github.com/WillPowellUk/bleakheart
