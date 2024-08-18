@@ -1,0 +1,36 @@
+ActionName;CurrentPhase;StartTime
+set marker;Set Marker;1256.226
+stay seated;Baseline sit;1272.552
+stand up;Baseline stand;1573.335
+Instruction;TSST1 Interview Instruction;1876.074
+Preperation over;Entry Judges;2182.221
+Entry Judges 1;Entry Judges;2188.229
+Entry Judges 2;Entry Judges;2188.241
+Entry Judges 3;Entry Judges;2188.251
+Start;TSST1 Job Interview;2197.481
+Camera on;TSST1 Job Interview;2197.492
+Take pencil 2;TSST1 Job Interview;2197.503
+Take pencil 3;TSST1 Job Interview;2198.503
+Your special qualifications?;TSST1 Job Interview;2223.669
+Weaknesses?;TSST1 Job Interview;2247.824
+Teamwork?;TSST1 Job Interview;2263.795
+Expected leadership qualities superiors?;TSST1 Job Interview;2280.276
+Your team contribution?;TSST1 Job Interview;2304.065
+Expected qualities of colleagues?;TSST1 Job Interview;2332.519
+Opinion Intelligence tests?;TSST1 Job Interview;2353.487
+Qualifications better than others?;TSST1 Job Interview;2373.111
+Time left;TSST1 Job Interview;2392.135
+Your leaderhsip qualities?;TSST1 Job Interview;2437.826
+Work on weekends?;TSST1 Job Interview;2462.481
+Unpaid overtime?;TSST1 Job Interview;2480.595
+Instruction;TSST2 Subtraction;2500.03
+2023-17;TSST2 Subtraction;2513.124
+Wrong.;TSST2 Subtraction;2538.157
+Wrong.;TSST2 Subtraction;2559.547
+Wrong.;TSST2 Subtraction;2584.336
+Faster.;TSST2 Subtraction;2615.466
+Faster.;TSST2 Subtraction;2660.701
+Wrong.;TSST2 Subtraction;2690.187
+Faster.;TSST2 Subtraction;2787.398
+Stop;Goodbye;2802.458
+Farewell;Goodbye;2802.469

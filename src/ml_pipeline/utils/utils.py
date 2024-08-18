@@ -253,8 +253,13 @@ def print_weights_and_biases(attention):
     print("Key biases shape:", key_biases.shape)
 
 
+import numpy as np
+import torch
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 def plot_attention(
-    attention, title="", x_label="Source Sequence", y_label="Target Sequence"
+    attention, title="", x_label="Source Sequence", y_label="Target Sequence", avg=False
 ):
     """
     Plots the attention weights.
@@ -264,33 +269,58 @@ def plot_attention(
             Should be of shape (L, S) for single head or (N, L, S) for batched input
             or (N, num_heads, L, S) for multi-head attention.
         title (str): The title of the plot.
+        x_label (str): The label for the x-axis.
+        y_label (str): The label for the y-axis.
+        avg (bool): Whether to average the attention weights. Default is False.
     """
     if isinstance(attention, torch.Tensor):
         attention = attention.detach().cpu().numpy()
 
-    # If the attention weights are multi-headed or batched, average them
-    if attention.ndim == 4:  # (N, num_heads, L, S)
-        attention = attention.mean(axis=1)  # Average over heads
-    if attention.ndim == 3:  # (N, L, S)
-        attention = attention.mean(axis=0)  # Average over batch
+    def plot_heatmap(data, plot_title):
+        annot = False
+        annot_kws = {}
+        if data.shape[0] <= 10 and data.shape[1] <= 10:
+            annot = True
+            annot_kws = {"size": 16, "weight": "bold"}
+            # Configure Matplotlib to use LaTeX for rendering
+        plt.rcParams.update({
+            "text.usetex": True,
+            "font.family": "serif",  # Use serif font in conjunction with LaTeX
+            # Set the default font to be used in LaTeX as a single string
+            "text.latex.preamble": r"\usepackage{times}",
+            'font.size': 18
+            })
 
-    # Determine if annotations are needed
-    annot = False
-    annot_kws = {}
-    if attention.shape[0] <= 10 and attention.shape[1] <= 10:
-        annot = True
-        annot_kws = {"size": 16, "weight": "bold"}
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(data, cmap="Blues", annot=annot, annot_kws=annot_kws, fmt=".3f")
+        plt.title(plot_title)
+        plt.xlabel(x_label, fontsize=22)
+        plt.ylabel(y_label, fontsize=22)
+        plt.xticks()
+        plt.yticks()
 
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(attention, cmap="Blues", annot=annot, annot_kws=annot_kws, fmt=".2f")
-    plt.title(title)
-    plt.xlabel(x_label, fontsize=14)
-    plt.ylabel(y_label, fontsize=14)
-    # Set x-axis label at the top
-    plt.gca().xaxis.set_label_position("top")
-    plt.gca().xaxis.tick_top()
-    plt.show()
-    plt.savefig("attention_weights.png", dpi=300, format="png", bbox_inches="tight")
+        # Set x-axis label at the top
+        plt.gca().xaxis.set_label_position("top")
+        plt.gca().xaxis.tick_top()
+        plt.show()
+        plt.savefig(f"{plot_title}.pdf", format="pdf", bbox_inches="tight")
+
+    if avg:
+        if attention.ndim == 4:  # (N, num_heads, L, S)
+            attention = attention.mean(axis=1)  # Average over heads
+        if attention.ndim == 3:  # (N, L, S)
+            attention = attention.mean(axis=0)  # Average over batch
+        
+        plot_heatmap(attention, title)
+
+    else:
+        if attention.ndim == 4:  # (N, num_heads, L, S)
+            for i in range(attention.shape[1]):  # Loop over heads
+                plot_heatmap(attention[:, i, :, :].mean(axis=0), f"{title}")
+        
+        elif attention.ndim == 3:  # (N, L, S)
+            for i in range(attention.shape[0]):  # Loop over batch
+                plot_heatmap(attention[i, :, :], f"{title}")
 
 
 def create_temp_file(config):

@@ -4,6 +4,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import warnings
+import math
+
+# Configure Matplotlib to use LaTeX for rendering
+plt.rcParams.update({
+    "text.usetex": True,
+    "font.family": "serif",  # Use serif font in conjunction with LaTeX
+    # Set the default font to be used in LaTeX as a single string
+    "text.latex.preamble": r"\usepackage{times}",
+    })
 
 
 class ECGFeatureExtractor:
@@ -13,6 +22,9 @@ class ECGFeatureExtractor:
     def __init__(self, ecg_data: pd.DataFrame, sampling_rate: int = 1000):
         np.seterr(divide="ignore", invalid="ignore")
         self.ecg_data = ecg_data.values
+        if self.ecg_data.ndim != 1:
+            self.ecg_data = self.ecg_data.flatten()
+            
         self.sampling_rate = sampling_rate
 
     def plot_segment(
@@ -33,12 +45,11 @@ class ECGFeatureExtractor:
             psd = (np.abs(fft) ** 2) / len(self.ecg_data)
             psd = 10 * np.log10(psd)
             psd -= psd.max()
-            fig, ax = plt.subplots()
+            fig, ax = plt.subplots(figsize=(16, 8))
             ax.plot(t, self.ecg_data)
-            ax.set_xlabel("Time (s)")
-            ax.set_ylabel("Amplitude")
+            ax.set_xlabel("Time (s)", fontsize=40)
+            ax.set_ylabel("Amplitude", fontsize=40)
             ax.set_yticklabels([])
-            ax.set_xlim(t.max() * 0, t.max() * 0.25)
             subax = fig.add_axes([0.68, 0.65, 0.2, 0.2])
             subax.plot(freq, psd)
             subax.set_xlim(0, max_freq)
@@ -52,14 +63,17 @@ class ECGFeatureExtractor:
                 for i in range(len(peaks))
             ]
             for i, peak in enumerate(peaks):
-                peak_inds = np.where(ecg_processed[peak] == 1)[0]
+                # peak_inds = np.where(ecg_processed[peak] == 1)[0]
+                peak_inds = ecg_processed[peak]
                 for ind in peak_inds:
-                    plt.axvline(x=t[ind], linestyle="--", color=colors[i])
-            plt.legend(handles=lines, labels=peaks, loc="lower right")
-            plt.xlabel("Time (s)")
-            plt.ylabel("Amplitude")
+                    if not math.isnan(ind):
+                        plt.axvline(x=t[ind], linestyle="--", color=colors[i])
+            plt.legend(handles=lines, labels=peaks, loc="lower right", fontsize=40)
+            plt.xlabel("Time (s)", fontsize=40)
+            plt.ylabel("Amplitude", fontsize=40)
+            plt.xlim(30, 35)
+            plt.xticks(ticks=np.linspace(30, 35, 6), labels=np.arange(0, 6), fontsize=40)
             plt.gca().set_yticklabels([])
-            plt.xlim(t.max() * 0, t.max() * 0.1)
             plt.show()
 
     def wave_analysis(self, ecg_processed, plot=False) -> pd.DataFrame:
@@ -81,7 +95,7 @@ class ECGFeatureExtractor:
             df[f"{peak}_Interval_SD"] = [np.std(intervals)]
 
         if plot:
-            self.plot_self.ecg_data(self.ecg_data, ecg_processed, peaks)
+            self.plot_segment(self.ecg_data, ecg_processed, peaks)
 
         waves = ["P", "R", "T"]
         max_duration = [120000, 120000, 200000]
@@ -122,7 +136,7 @@ class ECGFeatureExtractor:
         ]
 
         if plot:
-            self.plot_self.ecg_data(
+            self.plot_segment(
                 self.ecg_data,
                 ecg_processed,
                 wave_onsets_offsets,
@@ -187,7 +201,7 @@ class ECGFeatureExtractor:
 
         return EDR_Distance, EDR_RMSSD
 
-    def extract_features(self, calc_PSD=False):
+    def extract_features(self, calc_PSD=False, show_plot=False) -> pd.DataFrame:
         r_peaks = nk.ecg_peaks(self.ecg_data, sampling_rate=self.sampling_rate)[0]
         np.seterr(divide="ignore", invalid="ignore")
 
@@ -212,7 +226,7 @@ class ECGFeatureExtractor:
         # max_scale = min(len(rri)//2, 50)
         # nonlinear_features = nk.hrv_nonlinear(rri, sampling_rate=self.sampling_rate, scale=range(min_scale, max_scale))
 
-        wave_features = self.wave_analysis(waves)
+        wave_features = self.wave_analysis(waves, plot=show_plot)
         edr_distance, edr_rmssd = self.calc_EDR(r_peaks, show_plot=False)
         if calc_PSD:
             psd_features = self.calc_PSD()

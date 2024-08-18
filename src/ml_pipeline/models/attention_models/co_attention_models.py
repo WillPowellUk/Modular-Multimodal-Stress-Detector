@@ -234,6 +234,7 @@ class MOSCAN(nn.Module):
                     self.embed_dim,
                     self.output_dim,
                     self.dropout,
+                    self.active_sensors,
                     pool_type="avg",
                     return_branch_outputs=self.kalman,
                 )
@@ -242,6 +243,7 @@ class MOSCAN(nn.Module):
                     self.embed_dim,
                     self.output_dim,
                     self.dropout,
+                    self.active_sensors,
                     pool_type="max",
                     return_branch_outputs=self.kalman,
                 )
@@ -261,18 +263,27 @@ class MOSCAN(nn.Module):
                     self.active_sensors,
                     pool_type="max",
                 )
+            case "weighted_attn_pool":
+                self.predictor = ModularWeightedPool(
+                    self.embed_dim,
+                    self.output_dim,
+                    self.dropout,
+                    self.active_sensors,
+                    pool_type="max",
+                )
             case "hard_voting":
                 self.predictor = ModularHardVoting(
                     self.embed_dim,
                     self.output_dim,
                     self.dropout,
                     self.active_sensors,
-                    pool_type="avg",
+                    pool_type="none",
                 )
             case "stacked_avg_pool":
                 self.predictor = StackedModularPool(
                     self.embed_dim, self.hidden_dim, self.output_dim, self.dropout
                 )
+
             case "stacked_max_pool":
                 self.predictor = StackedModularPool(
                     self.embed_dim,
@@ -280,6 +291,14 @@ class MOSCAN(nn.Module):
                     self.output_dim,
                     self.dropout,
                     pool_type="max",
+                )
+            case "stacked_attn_pool":
+                self.predictor = StackedModularPool(
+                    self.embed_dim,
+                    self.hidden_dim,
+                    self.output_dim,
+                    self.dropout,
+                    pool_type="none",
                 )
             case _:
                 raise ValueError(f"Predictor {predictor} not supported")

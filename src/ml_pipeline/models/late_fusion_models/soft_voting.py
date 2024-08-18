@@ -19,7 +19,11 @@ class StackedModularPool(nn.Module):
             self.pool = nn.AdaptiveAvgPool1d(1)
         elif pool_type == "max":
             self.pool = nn.AdaptiveMaxPool1d(1)
-
+        elif pool_type == "attention":
+            self.pool = AttentionPooling(embed_dim, source_seq_length=1)
+        else:
+            raise ValueError("pool_type must be either 'avg', 'max', or 'attention'")
+    
         # Define the first linear layer
         self.linear1 = nn.Linear(embed_dim, hidden_dim)
 
@@ -63,6 +67,7 @@ class ModularPool(nn.Module):
         embed_dim,
         output_dim,
         dropout,
+        branch_keys,
         pool_type="avg",
         return_branch_outputs=False,
     ):
@@ -78,11 +83,15 @@ class ModularPool(nn.Module):
             self.pool = nn.AdaptiveAvgPool1d(1)
         elif pool_type == "max":
             self.pool = nn.AdaptiveMaxPool1d(1)
+        elif pool_type == "none":
+            self.pool = lambda x:x
         else:
-            raise ValueError("pool_type must be either 'avg' or 'max'")
+            raise ValueError("pool_type must be either 'avg' or 'max', or 'none'")
 
-        # Define the linear layer
-        self.linear = nn.Linear(embed_dim, output_dim)
+        # Create a dictionary of linear layers for each branch
+        self.branch_linear = nn.ModuleDict({
+            key: nn.Linear(embed_dim, output_dim) for key in branch_keys
+        })
 
         # Define dropout layer
         self.dropout_layer = nn.Dropout(dropout)
@@ -101,7 +110,7 @@ class ModularPool(nn.Module):
             branch = branch.squeeze(-1)
 
             # Apply linear layer
-            branch = self.linear(branch)
+            branch = self.branch_linear[key](branch)
 
             # Apply dropout
             branch = self.dropout_layer(branch)
@@ -140,13 +149,15 @@ class ModularWeightedPool(nn.Module):
             self.pool = nn.AdaptiveAvgPool1d(1)
         elif pool_type == "max":
             self.pool = nn.AdaptiveMaxPool1d(1)
-        elif pool_type == "attention":
-            self.pool = AttentionPooling(embed_dim, source_seq_length=1)
+        elif pool_type == "none":
+            self.pool = lambda x:x
         else:
-            raise ValueError("pool_type must be either 'avg', 'max', or 'attention'")
+            raise ValueError("pool_type must be either 'avg', 'max', or 'none'")
 
         # Define the linear layer for branch processing
-        self.branch_linear = nn.Linear(embed_dim, output_dim)
+        self.branch_linear = nn.ModuleDict({
+            key: nn.Linear(embed_dim, output_dim) for key in branch_keys
+        })
 
         # Define dropout layer
         self.dropout_layer = nn.Dropout(dropout)
@@ -177,7 +188,7 @@ class ModularWeightedPool(nn.Module):
                 branch = branch.squeeze(-1)
 
             # Apply linear layer
-            branch = self.branch_linear(branch)
+            branch = self.branch_linear[key](branch)
 
             # Apply dropout
             branch = self.dropout_layer(branch)
@@ -203,3 +214,4 @@ class ModularWeightedPool(nn.Module):
         )  # Shape: (batch_size, output_dim)
 
         return weighted_output
+

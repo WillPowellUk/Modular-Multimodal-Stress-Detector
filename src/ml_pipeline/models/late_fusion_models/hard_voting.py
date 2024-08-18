@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from collections import Counter
 
-
 class ModularHardVoting(nn.Module):
     def __init__(self, embed_dim, output_dim, dropout, branch_keys, pool_type="avg"):
         super(ModularHardVoting, self).__init__()
@@ -17,11 +16,15 @@ class ModularHardVoting(nn.Module):
             self.pool = nn.AdaptiveAvgPool1d(1)
         elif pool_type == "max":
             self.pool = nn.AdaptiveMaxPool1d(1)
+        elif pool_type == "none":
+            self.pool = lambda x: x
         else:
             raise ValueError("pool_type must be either 'avg' or 'max'")
 
-        # Define the linear layer for branch processing
-        self.branch_linear = nn.Linear(embed_dim, output_dim)
+        # Create a dictionary of linear layers for each branch
+        self.branch_linear = nn.ModuleDict({
+            key: nn.Linear(embed_dim, output_dim) for key in branch_keys
+        })
 
         # Define dropout layer
         self.dropout_layer = nn.Dropout(dropout)
@@ -32,7 +35,7 @@ class ModularHardVoting(nn.Module):
     def forward(self, x):
         branch_outputs = []
 
-        for key in sorted(x.keys()):
+        for key in self.branch_keys:
             branch = x[key]
             # Permute to shape (batch_size, embed_dim, seq_len)
             branch = branch.permute(0, 2, 1)
@@ -43,8 +46,8 @@ class ModularHardVoting(nn.Module):
             # Remove the last dimension (which is 1 after pooling)
             branch = branch.squeeze(-1)
 
-            # Apply linear layer
-            branch = self.branch_linear(branch)
+            # Apply the unique linear layer for this branch
+            branch = self.branch_linear[key](branch)
 
             # Apply dropout
             branch = self.dropout_layer(branch)
