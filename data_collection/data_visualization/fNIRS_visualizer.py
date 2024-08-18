@@ -17,7 +17,7 @@ plt.rcParams.update({
 })
 
 
-subject_id = 1
+subject_id = 5
 SAMPLING_FREQUENCY = 10  # Hz
 XDF_FILE = f'data_collection/recordings/S{subject_id}/myndsens/FNIRS.xdf'
 

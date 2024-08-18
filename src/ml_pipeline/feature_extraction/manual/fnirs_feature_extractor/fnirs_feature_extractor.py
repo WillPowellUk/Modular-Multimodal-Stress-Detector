@@ -39,7 +39,7 @@ class FNIRSDerivedHR:
             SD = np.std(IBIs[:i])
             k = 0.8 * 15 / sd if sd > 0 else 0
 
-            if m - k * SD < IBIs[i-1] < m + k * SD:
+            if m - k * SD <= IBIs[i-1] <= m + k * SD:
                 corrected_peaks.append(peaks[i])
             else:
                 # Search for another peak within the 0.25-second window before the current peak
@@ -153,3 +153,78 @@ class FNIRSFeatureExtractor:
         
         return lf_power / hf_power if hf_power > 0 else np.nan
 
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from scipy.signal import chirp, find_peaks
+
+# Assuming FNIRSDerivedHR class is already imported
+
+def simulate_fnirs_data(duration=60, fs=10, hr=60, noise_level=0.05):
+    """
+    Simulate synthetic fNIRS data with a given heart rate.
+    
+    Parameters:
+        duration (int): Duration of the signal in seconds.
+        fs (int): Sampling frequency in Hz.
+        hr (int): Heart rate in beats per minute.
+        noise_level (float): Level of Gaussian noise to add to the signal.
+    
+    Returns:
+        pd.DataFrame: DataFrame containing the simulated O2Hb and HHb signals.
+    """
+    t = np.linspace(0, duration, int(duration * fs), endpoint=False)
+    heart_rate_freq = hr / 60.0  # Convert bpm to Hz
+    signal_O2Hb = np.sin(2 * np.pi * heart_rate_freq * t)  # Simulate sine wave for O2Hb
+    signal_HHb = np.sin(2 * np.pi * heart_rate_freq * t + np.pi / 4)  # Phase-shifted sine wave for HHb
+
+    # Add Gaussian noise
+    signal_O2Hb += noise_level * np.random.randn(len(signal_O2Hb))
+    signal_HHb += noise_level * np.random.randn(len(signal_HHb))
+
+    # Combine into a DataFrame
+    df = pd.DataFrame({'O2Hb_HR': signal_O2Hb, 'HHb_HR': signal_HHb})
+
+    return df
+
+def test_fnirs_derived_hr():
+    # Simulation parameters
+    duration = 60  # in seconds
+    fs = 10  # sampling frequency in Hz
+    hr = 75  # simulated heart rate in bpm
+    noise_level = 0.1  # noise level
+
+    # Simulate fNIRS data
+    simulated_data = simulate_fnirs_data(duration=duration, fs=fs, hr=hr, noise_level=noise_level)
+
+    # Initialize the FNIRSDerivedHR class
+    hr_detector = FNIRSDerivedHR(simulated_data, fs)
+
+    # Run heart rate detection
+    result_df = hr_detector.detect_hr()
+
+    # Print the results
+    print("Detected Features:")
+    print(result_df)
+
+    # Plot the simulated signals and detected peaks for visualization
+    plt.figure(figsize=(12, 6))
+    plt.plot(simulated_data['O2Hb_HR'], label='O2Hb_HR', color='blue', alpha=0.6)
+    plt.plot(simulated_data['HHb_HR'], label='HHb_HR', color='red', alpha=0.6)
+
+    # Detect peaks for plotting
+    peaks1 = hr_detector._detect_peaks(simulated_data['O2Hb_HR'].values)
+    peaks2 = hr_detector._detect_peaks(simulated_data['HHb_HR'].values)
+
+    # Plot detected peaks
+    plt.plot(peaks1, simulated_data['O2Hb_HR'].iloc[peaks1], "x", label='Detected Peaks O2Hb', color='blue')
+    plt.plot(peaks2, simulated_data['HHb_HR'].iloc[peaks2], "x", label='Detected Peaks HHb', color='red')
+
+    plt.xlabel("Time (samples)")
+    plt.ylabel("Signal Amplitude")
+    plt.title("Simulated fNIRS Signals with Detected Peaks")
+    plt.legend()
+    plt.show()
+
+if __name__ == "__main__":
+    test_fnirs_derived_hr()
