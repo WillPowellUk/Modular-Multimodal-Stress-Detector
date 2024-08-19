@@ -1,21 +1,3 @@
-Question,Rating (1-5)
-Interested,3
-Excited,3
-Strong,3
-Enthusiastic,2
-Proud,2
-Alert,3
-Inspired,2
-Determined,3
-Attentive,3
-Active,3
-Distressed,3
-Upset,3
-Guilty,2
-Scared,2
-Hostile,2
-Irritable,3
-Ashamed,2
-Nervous,3
-Jittery,2
-Afraid,2
+version https://git-lfs.github.com/spec/v1
+oid sha256:d1159d684dbad3cd5eafca3282f1a6cb90bb98084f42294b4642d753a1598e74
+size 230

@@ -1,9 +1,3 @@
-PhaseName;StartTime
-Set Marker;145.6704
-Baseline sit;147.9578
-Baseline stand;448.3862
-TSST1 Interview Instruction;748.8922
-Entry Judges;1049.42
-TSST1 Job Interview;1069.777
-TSST2 Subtraction;1372.394
-Goodbye;1672.955
+version https://git-lfs.github.com/spec/v1
+oid sha256:fe9231c884fd520c7028753d4f96522e101637adfacd2e4a98aea38e077a47a5
+size 217

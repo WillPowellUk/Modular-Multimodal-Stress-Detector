@@ -1,35 +1,3 @@
-ActionName;CurrentPhase;StartTime
-set marker;Set Marker;145.6814
-stay seated;Baseline sit;147.9688
-stand up;Baseline stand;448.3973
-Instruction;TSST1 Interview Instruction;748.9032
-Preperation over;Entry Judges;1049.431
-Entry Judges 1;Entry Judges;1055.44
-Entry Judges 2;Entry Judges;1055.451
-Entry Judges 3;Entry Judges;1055.462
-Entry Judges 1;Entry Judges;1057.772
-Entry Judges 2;Entry Judges;1057.783
-Entry Judges 3;Entry Judges;1057.794
-Start;TSST1 Job Interview;1069.789
-Camera on;TSST1 Job Interview;1069.8
-Take pencil 2;TSST1 Job Interview;1069.811
-Take pencil 3;TSST1 Job Interview;1070.822
-Your special qualifications?;TSST1 Job Interview;1083.193
-Like friends?;TSST1 Job Interview;1107.505
-Strengths?;TSST1 Job Interview;1125.986
-Your leaderhsip qualities?;TSST1 Job Interview;1151.707
-Teamwork?;TSST1 Job Interview;1185.724
-Opinion about auditions?;TSST1 Job Interview;1218.043
-Opinion Intelligence tests?;TSST1 Job Interview;1232.991
-Your teamposition?;TSST1 Job Interview;1245.708
-Time left;TSST1 Job Interview;1264.51
-Work on weekends?;TSST1 Job Interview;1291.975
-Unpaid overtime?;TSST1 Job Interview;1308.523
-Carry mistakes?;TSST1 Job Interview;1327.759
-Qualifications better than others?;TSST1 Job Interview;1347.25
-Instruction;TSST2 Subtraction;1372.405
-Faster.;TSST2 Subtraction;1442.328
-2023-17;TSST2 Subtraction;1457.066
-Wrong.;TSST2 Subtraction;1535.363
-Stop;Goodbye;1672.966
-Farewell;Goodbye;1672.977
+version https://git-lfs.github.com/spec/v1
+oid sha256:d5496ca83638c7668979cbe4901a2279bfe85ceedd78111ce7ba44c2aef0c70b
+size 1424
