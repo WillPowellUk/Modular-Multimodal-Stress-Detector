@@ -1,1 +1,1 @@
-from .fnirs_feature_extractor import FNIRSFeatureExtractor
+from .fnirs_feature_extractor import FNIRSFeatureExtractor, FNIRSDerivedHR

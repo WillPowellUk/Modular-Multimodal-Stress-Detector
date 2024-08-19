@@ -4,9 +4,23 @@ import pandas as pd
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 
-subject_id = 6
+from src.ml_pipeline.preprocessing.fnirs_preprocessing import FNIRSPreprocessing
+from src.ml_pipeline.feature_extraction.manual.fnirs_feature_extractor import FNIRSFeatureExtractor
+
+
+# Configure Matplotlib to use LaTeX for rendering
+plt.rcParams.update({
+    "text.usetex": True,
+    "font.family": "serif",  # Use serif font in conjunction with LaTeX
+    # Set the default font to be used in LaTeX as a single string
+    "text.latex.preamble": r"\usepackage{times}",
+})
+
+
+subject_id = 5
 SAMPLING_FREQUENCY = 10  # Hz
-XDF_FILE = rf'data_collection\recordings\S{subject_id}\myndsens\FNIRS.xdf'
+XDF_FILE = f'data_collection/recordings/S{subject_id}/myndsens/FNIRS.xdf'
+
 class fNIRSVisualizer:
     def __init__(self, sampling_frequency, save_path=None):
         self.sampling_frequency = sampling_frequency
@@ -57,83 +71,67 @@ class fNIRSVisualizer:
         else:
             plt.show()
 
-# Load the XDF file
-data, header = pyxdf.load_xdf(XDF_FILE)
 
+if __name__ == '__main__':
+    # Load the XDF file
+    data, header = pyxdf.load_xdf(XDF_FILE)
 
-time_series_headers = ['02Hb', 'HHb', 'Brain oxy', 'Brain state']
+    time_series_headers = ['O2Hb', 'HHb', 'Brain oxy', 'Brain state']
 
-# Add time series to dataframe
-fnirs_df = pd.DataFrame(data[0]['time_series'], columns=time_series_headers)
+    # Add time series to dataframe
+    fnirs_df = pd.DataFrame(data[0]['time_series'], columns=time_series_headers)
 
-# Add timestamps
-fnirs_df.insert(0, 'Timestamp', data[0]['time_stamps'])
+    # Add timestamps
+    fnirs_df.insert(0, 'Timestamp', data[0]['time_stamps'])
 
-# Calculate time differences between consecutive timestamps
-time_diffs = np.diff(fnirs_df['Timestamp'])
+    # Calculate time differences between consecutive timestamps
+    time_diffs = np.diff(fnirs_df['Timestamp'])
 
-# Calculate average sampling frequency (Hz)
-avg_sampling_frequency = 1 / np.mean(time_diffs)
-print(f"Average Sampling Frequency: {avg_sampling_frequency:.2f} Hz")
+    # Calculate average sampling frequency (Hz)
+    avg_sampling_frequency = 1 / np.mean(time_diffs)
+    print(f"Average Sampling Frequency: {avg_sampling_frequency:.2f} Hz")
 
-# Interpolate the signals to the average sampling frequency
-new_timestamps = np.arange(fnirs_df['Timestamp'].iloc[0], fnirs_df['Timestamp'].iloc[-1], 1/SAMPLING_FREQUENCY)
+    baseline_sit_timestamp = 0
+    baseline_stand_timestamp = 260.5799999999999
+    anticipation_timestamp = 560.5860000000002
+    interview_timestamp = 941.1890000000003
+    arithmetic_timestamp = 1245.7160000000003
+    goodbye_timestamp = 1546.3100000000004
 
-# Create an empty dataframe for the interpolated data
-interpolated_df = pd.DataFrame({'Timestamp': new_timestamps})
+    crop_time = 7
 
-# Interpolate each column except the timestamp
-for column in fnirs_df.columns[1:]:
-    interpolation_function = interp1d(fnirs_df['Timestamp'], fnirs_df[column], kind='linear', fill_value='extrapolate')
-    interpolated_df[column] = interpolation_function(new_timestamps)
+    # Instantiate preprocessor and preprocess data
+    preprocessor = FNIRSPreprocessing(fnirs_df, fs=SAMPLING_FREQUENCY)
+    preprocessed_df = preprocessor.process()
 
-# Remove the timestamp column as requested
-interpolated_df = interpolated_df.drop(columns=['Timestamp'])
+    # Crop the data as needed
+    preprocessed_df = preprocessed_df.iloc[crop_time*SAMPLING_FREQUENCY:].reset_index(drop=True)
+    preprocessed_df = preprocessed_df.iloc[:int(goodbye_timestamp*SAMPLING_FREQUENCY)].reset_index(drop=True)
 
+    markers = [baseline_sit_timestamp, baseline_stand_timestamp, anticipation_timestamp, interview_timestamp, arithmetic_timestamp, goodbye_timestamp]
+    title_labels = ["Oxyhemoglobin Concentration", 'Deoxyhemoglobin Concentration', 'Brain Oxygenation' ]
+    legend_labels = ['Baseline Sit', 'Baseline Stand', 'Anticipation', 'Interview', 'Arithmetic']
 
-baseline_sit_timestamp = 0
-baseline_stand_timestamp = 260.5799999999999
-anticipation_timestamp = 560.5860000000002
-interview_timestamp = 941.1890000000003
-arithmetic_timestamp = 1245.7160000000003
-goodbye_timestamp = 1546.3100000000004
+    # Instantiate visualizer and plot plots
+    # visualizer = fNIRSVisualizer(sampling_frequency=SAMPLING_FREQUENCY)
+    # visualizer.plot_plots(
+    #     [preprocessed_df['O2Hb'].values, preprocessed_df['HHb'].values, preprocessed_df['Brain oxy'].values],
+    #     ['O2Hb (µM)', 'HHb (µM)', 'Brain Oxy (%)'],
+    #     title_labels=title_labels,
+    #     legend_labels=legend_labels,
+    #     plot_fft=False,
+    #     markers=markers
+    # )
 
-crop_time = 7
+    fe = FNIRSFeatureExtractor(preprocessed_df.iloc[:int(anticipation_timestamp*SAMPLING_FREQUENCY)].reset_index(drop=True))
+    fe_df = fe.extract_features()
 
-# crop and plot
-interpolated_df = interpolated_df.iloc[crop_time*SAMPLING_FREQUENCY:].reset_index(drop=True)
-interpolated_df = interpolated_df.iloc[:int(goodbye_timestamp*SAMPLING_FREQUENCY)].reset_index(drop=True)
+    print("Non-stressed")
+    print(fe_df)
 
-markers = [baseline_sit_timestamp, baseline_stand_timestamp, anticipation_timestamp, interview_timestamp, arithmetic_timestamp, goodbye_timestamp]
-title_labels = ["Oxyhemoglobin Concentration", 'Deoxyhemoglobin Concentration', 'Brain Oxygenation' ]
-legend_labels = ['Baseline Sit', 'Baseline Stand', 'Anticipation', 'Interview', 'Arithmetic']
+    fe = FNIRSFeatureExtractor(preprocessed_df.iloc[int(anticipation_timestamp*SAMPLING_FREQUENCY):].reset_index(drop=True))
+    fe_df = fe.extract_features()
 
-# Instantiate visualizer and plot plots
-visualizer = fNIRSVisualizer(sampling_frequency=SAMPLING_FREQUENCY)
-visualizer.plot_plots(
-    [interpolated_df['02Hb'].values, interpolated_df['HHb'].values, interpolated_df['Brain oxy'].values],
-    ['0₂Hb (µM)', 'HHb (µM)', 'Brain Oxy (%)'],
-    title_labels=title_labels,
-    legend_labels=legend_labels,
-    plot_fft=False,
-    markers=markers
-)
-
-from src.ml_pipeline.feature_extraction.manual.fnirs_feature_extractor import FNIRSFeatureExtractor
-
-fe = FNIRSFeatureExtractor(interpolated_df.iloc[:anticipation_timestamp*SAMPLING_FREQUENCY])
-fe_df = fe.extract_features()
-
-print("Non-stressed")
-print(fe_df)
-
-fe = FNIRSFeatureExtractor(interpolated_df.iloc[anticipation_timestamp*SAMPLING_FREQUENCY:])
-fe_df = fe.extract_features()
-
-print("Stressed")
-print(fe_df)
-
-
-
-
+    print("Stressed")
+    print(fe_df)
 
