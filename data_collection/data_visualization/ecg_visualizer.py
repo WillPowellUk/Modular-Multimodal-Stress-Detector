@@ -92,10 +92,11 @@ def main():
 
     # Load the ECG recording
     ecg_segment = np.loadtxt(f'data_collection/recordings/S{subject_id}/polar/ECG.csv', delimiter=',')
-    # Load RR intervals
-    rr_intervals = pd.read_csv(f'data_collection/recordings/S{subject_id}/polar/HR.csv', header=None)
-    rr_intervals = rr_intervals.values.flatten()
-    hr_intervals = np.cumsum(rr_intervals)  / 1000.0
+
+    # # Load RR intervals
+    # rr_intervals = pd.read_csv(f'data_collection/recordings/S{subject_id}/polar/HR.csv', header=None)
+    # rr_intervals = rr_intervals.values.flatten()
+    # hr_intervals = np.cumsum(rr_intervals)  / 1000.0
     # start_index = np.argmax(hr_intervals > crop_time)
     # hr_intervals = hr_intervals[start_index:]
 
@@ -106,16 +107,16 @@ def main():
     # ecg_segment = data['signal']['chest']['ECG'].flatten()
 
     # Define the start and end times for the ecg_segment you want to crop (in seconds)
-    # start_time = 10  # e.g., start at 5 seconds
-    # end_time = 50   # e.g., end at 10 seconds
+    start_time = 10  # e.g., start at 5 seconds
+    end_time = 50   # e.g., end at 10 seconds
 
-    # # Convert time to sample indices
-    # start_index = int(start_time * sampling_frequency)
-    # end_index = int(end_time * sampling_frequency)
+    # Convert time to sample indices
+    start_index = int(start_time * sampling_frequency)
+    end_index = int(end_time * sampling_frequency)
 
-    # # Crop the ecg_segment
-    # cropped_ecg_segment = ecg_segment[start_index:end_index]
-    # cropped_ecg_segment = ecg_segment
+    # Crop the ecg_segment
+    cropped_ecg_segment = ecg_segment[start_index:end_index]
+    cropped_ecg_segment = ecg_segment
 
     # Plot the ecg_segment
     print("Printing raw ecg_segment")
