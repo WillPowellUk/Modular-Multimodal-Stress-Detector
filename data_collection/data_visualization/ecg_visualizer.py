@@ -20,15 +20,15 @@ class ECGVisualizer:
         self.sampling_frequency = sampling_frequency
         self.save_path = save_path
     
-    def plot_segment(self, segment, ECG_processed=None, peaks=None, colors=['r', 'g', 'c', 'm', 'y', 'k']):
+    def plot_ecg_segment(self, ecg_segment, ECG_processed=None, peaks=None, colors=['r', 'g', 'c', 'm', 'y', 'k']):
         # Define time array
-        t = np.arange(len(segment)) / self.sampling_frequency
+        t = np.arange(len(ecg_segment)) / self.sampling_frequency
 
         # plot fft if no peaks are given
         if isinstance(peaks, type(None)):
             # Compute FFT
-            fft = np.fft.fft(segment)
-            freq = np.fft.fftfreq(len(segment), d=1/self.sampling_frequency)
+            fft = np.fft.fft(ecg_segment)
+            freq = np.fft.fftfreq(len(ecg_segment), d=1/self.sampling_frequency)
 
             # max frequency to plot
             max_freq = self.sampling_frequency / 2
@@ -39,14 +39,14 @@ class ECGVisualizer:
             fft = fft[mask]
 
             # Calculate PSD
-            psd = ((np.abs(fft) ** 2) / len(segment))
+            psd = ((np.abs(fft) ** 2) / len(ecg_segment))
             psd = 10 * np.log10(psd)
             psd -= psd.max()
 
-            # Plot raw ECG segment
+            # Plot raw ECG ecg_segment
             fig, ax = plt.subplots(figsize=(10, 7))
             
-            ax.plot(t, segment)
+            ax.plot(t, ecg_segment)
 
             ax.set_xlabel('Time (s)', fontsize=20)
             ax.set_ylabel('Amplitude', fontsize=20)
@@ -91,38 +91,45 @@ def main():
     ecg_visualizer = ECGVisualizer(sampling_frequency=sampling_frequency, save_path=save_path)
 
     # Load the ECG recording
-    segment = np.loadtxt(f'data_collection/recordings/S{subject_id}/polar/ECG.csv', delimiter=',')
-    import pickle
-    with open(f'data_collection/recordings/S6_W/S6.pkl', 'rb') as f:
-        data = pickle.load(f, encoding='latin1')
+    ecg_segment = np.loadtxt(f'data_collection/recordings/S{subject_id}/polar/ECG.csv', delimiter=',')
+    # Load RR intervals
+    rr_intervals = pd.read_csv(f'data_collection/recordings/S{subject_id}/polar/HR.csv', header=None)
+    rr_intervals = rr_intervals.values.flatten()
+    hr_intervals = np.cumsum(rr_intervals)  / 1000.0
+    # start_index = np.argmax(hr_intervals > crop_time)
+    # hr_intervals = hr_intervals[start_index:]
 
-    segment = data['signal']['chest']['ECG'].flatten()
+    # import pickle
+    # with open(f'data_collection/recordings/S6_W/S6.pkl', 'rb') as f:
+    #     data = pickle.load(f, encoding='latin1')
 
-    # Define the start and end times for the segment you want to crop (in seconds)
-    start_time = 10  # e.g., start at 5 seconds
-    end_time = 50   # e.g., end at 10 seconds
+    # ecg_segment = data['signal']['chest']['ECG'].flatten()
 
-    # Convert time to sample indices
-    start_index = int(start_time * sampling_frequency)
-    end_index = int(end_time * sampling_frequency)
+    # Define the start and end times for the ecg_segment you want to crop (in seconds)
+    # start_time = 10  # e.g., start at 5 seconds
+    # end_time = 50   # e.g., end at 10 seconds
 
-    # Crop the segment
-    cropped_segment = segment[start_index:end_index]
-    cropped_segment = segment
+    # # Convert time to sample indices
+    # start_index = int(start_time * sampling_frequency)
+    # end_index = int(end_time * sampling_frequency)
 
-    # Plot the segment
-    print("Printing raw segment")
-    ecg_visualizer.plot_segment(cropped_segment)
+    # # Crop the ecg_segment
+    # cropped_ecg_segment = ecg_segment[start_index:end_index]
+    # cropped_ecg_segment = ecg_segment
 
-    # load cropped segment as dataframe
-    df = pd.DataFrame(cropped_segment, columns=['ecg'])
+    # Plot the ecg_segment
+    print("Printing raw ecg_segment")
+    ecg_visualizer.plot_ecg_segment(ecg_segment)
+
+    # load cropped ecg_segment as dataframe
+    df = pd.DataFrame(ecg_segment, columns=['ecg'])
 
     # ecg_processor = ECGPreprocessing(df, fs=sampling_frequency)
     # df = ecg_processor.process(use_neurokit=True, plot=False)
 
-    # # Plot the cleaned ECG segment
-    # print("Printing cleaned segment")
-    # ecg_visualizer.plot_segment(df['ecg'].values)
+    # # Plot the cleaned ECG ecg_segment
+    # print("Printing cleaned ecg_segment")
+    # ecg_visualizer.plot_ecg_segment(df['ecg'].values)
 
     # # Extract peaks
     # print("Printing Peaks")
@@ -140,14 +147,14 @@ def main():
     # ecg_visualizer = ECGVisualizer(sampling_frequency=sampling_frequency, save_path=save_path)
 
     # # Load the ECG recording
-    # # segment = np.loadtxt(f'data_collection/recordings/S{subject_id}/ECG.csv', delimiter=',')
+    # # ecg_segment = np.loadtxt(f'data_collection/recordings/S{subject_id}/ECG.csv', delimiter=',')
     # import pickle
     # with open(f'data_collection/recordings/S6_W/S6.pkl', 'rb') as f:
     #     data = pickle.load(f, encoding='latin1')
 
-    # segment = data['signal']['chest']['EDA'].flatten()
+    # ecg_segment = data['signal']['chest']['EDA'].flatten()
 
-    # # Define the start and end times for the segment you want to crop (in seconds)
+    # # Define the start and end times for the ecg_segment you want to crop (in seconds)
     # # start_time = 10  # e.g., start at 5 seconds
     # # end_time = 50   # e.g., end at 10 seconds
 
@@ -155,22 +162,22 @@ def main():
     # # start_index = int(start_time * sampling_frequency)
     # # end_index = int(end_time * sampling_frequency)
 
-    # # Crop the segment
-    # cropped_segment = segment # [start_index:end_index]
+    # # Crop the ecg_segment
+    # cropped_ecg_segment = ecg_segment # [start_index:end_index]
 
-    # # Plot the segment
-    # print("Printing raw segment")
-    # ecg_visualizer.plot_segment(cropped_segment)
+    # # Plot the ecg_segment
+    # print("Printing raw ecg_segment")
+    # ecg_visualizer.plot_ecg_segment(cropped_ecg_segment)
 
-    # # load cropped segment as dataframe
-    # df = pd.DataFrame(cropped_segment, columns=['eda'])
+    # # load cropped ecg_segment as dataframe
+    # df = pd.DataFrame(cropped_ecg_segment, columns=['eda'])
 
     # # ecg_processor = ECGPreprocessing(df, fs=sampling_frequency)
     # # df = ecg_processor.process(use_neurokit=True, plot=False)
 
-    # # # Plot the cleaned ECG segment
-    # # print("Printing cleaned segment")
-    # # ecg_visualizer.plot_segment(df['ecg'].values)
+    # # # Plot the cleaned ECG ecg_segment
+    # # print("Printing cleaned ecg_segment")
+    # # ecg_visualizer.plot_ecg_segment(df['ecg'].values)
 
     # # # Extract peaks
     # # print("Printing Peaks")

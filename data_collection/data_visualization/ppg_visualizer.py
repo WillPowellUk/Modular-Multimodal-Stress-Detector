@@ -92,7 +92,7 @@ if __name__ == '__main__':
     segment = np.loadtxt(f'data_collection/recordings/S{subject_id}/empatica/BVP.csv')
     crop_time = 20
     ppg_segment = segment[crop_time * SAMPLING_FREQUENCY:]
-    
+    ppg_segment = ppg_segment[:int(60 * SAMPLING_FREQUENCY)]
     
     # # Instantiate preprocessor and preprocess data
     # preprocessor = FNIRSPreprocessing(fnirs_df, fs=SAMPLING_FREQUENCY)

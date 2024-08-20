@@ -13,3 +13,4 @@ Did you smoke within the last hour? N
 Do you feel ill today? N
 
 ### Additional notes ###
+Struggled with mental arithmetic task
