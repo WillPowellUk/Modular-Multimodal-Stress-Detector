@@ -85,11 +85,11 @@ class fNIRSVisualizer:
             # Add RR intervals if provided
             if HR is not None:
                 import neurokit2 as nk
-                signals, info = nk.ecg_peaks(ECG_normalized, sampling_rate=135)
+                signals, info = nk.ecg_peaks(ECG_normalized, sampling_rate=130)
 
                 # Extract R-peaks indices
                 r_peaks = info["ECG_R_Peaks"]
-                r_peaks = r_peaks / 135.0
+                r_peaks = r_peaks / 130.0
 
                 # Plot R-peaks
                 for r, peak in enumerate(r_peaks):
@@ -105,11 +105,11 @@ class fNIRSVisualizer:
                 # Add the legend for the RR intervals
                 axes[i].legend(loc='upper right', fontsize=12, title_fontsize='13')
 
-            axes[i].set_xlim(36, 44)
+            axes[i].set_xlim(20, 44)
             current_xticks = axes[i].get_xticks()
 
-            # Calculate the new labels by subtracting the minimum x-value (e.g., 36 seconds) to start from 0
-            new_xticklabels = current_xticks - 36
+            # Calculate the new labels by subtracting the minimum x-value (e.g., 20 seconds) to start from 0
+            new_xticklabels = current_xticks - 20
 
             # Update the x-tick labels with the new labels
             axes[i].set_xticks(current_xticks, new_xticklabels)          
@@ -192,9 +192,9 @@ if __name__ == '__main__':
     # ppg_segment = ppg_segment[crop_time * BVP_SAMPLING_FREQUENCY:]
 
     # ECG
-    ECG_SAMPLING_RATE = 135
+    ECG_SAMPLING_RATE = 130
     ecg_segment = np.loadtxt(f'data_collection/recordings/S{subject_id}/polar/ECG.csv', delimiter=',')
-    ecg_segment = ecg_segment[int(4.7 * ECG_SAMPLING_RATE):]
+    ecg_segment = ecg_segment[int(4.2 * ECG_SAMPLING_RATE):]
     # crop_time = 40
     # ecg_segment = ecg_segment[crop_time * ECG_SAMPLING_RATE:]
 

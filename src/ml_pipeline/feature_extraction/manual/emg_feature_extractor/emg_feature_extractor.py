@@ -3,13 +3,12 @@ import pandas as pd
 from scipy.signal import find_peaks, welch
 from scipy.stats import iqr
 
-
 class EMGFeatureExtractor:
     def __init__(self, emg_data: pd.DataFrame, sampling_rate: int = 1000):
         self.emg_data = emg_data.values.flatten()
         self.sampling_rate = sampling_rate
 
-    def extract_features(self):
+    def extract_features(self, freq_binning=False):
         features = {}
 
         # Mean and STD of EMG
@@ -31,12 +30,8 @@ class EMGFeatureExtractor:
 
         # Mean, median, and peak frequency
         freqs, power_spectrum = welch(self.emg_data, fs=self.sampling_rate)
-        features["mean_freq_EMG"] = np.sum(freqs * power_spectrum) / np.sum(
-            power_spectrum
-        )
-        features["median_freq_EMG"] = freqs[
-            np.argsort(power_spectrum)[len(power_spectrum) // 2]
-        ]
+        features["mean_freq_EMG"] = np.sum(freqs * power_spectrum) / np.sum(power_spectrum)
+        features["median_freq_EMG"] = freqs[np.argsort(power_spectrum)[len(power_spectrum) // 2]]
         features["peak_freq_EMG"] = freqs[np.argmax(power_spectrum)]
 
         # Energy in seven bands
@@ -59,5 +54,36 @@ class EMGFeatureExtractor:
         # Sum and norm. sum of peak amplitude
         features["sum_peak_amp_EMG"] = np.sum(peak_amplitudes)
         features["norm_sum_peak_amp_EMG"] = np.linalg.norm(peak_amplitudes)
+
+        # Additional Features
+
+        # Variance (VAR)
+        features["variance_EMG"] = np.var(self.emg_data)
+
+        # Simple Square Integral (SSI)
+        features["ssi_EMG"] = np.sum(self.emg_data ** 2)
+
+        # Asymmetry
+        features["asymmetry_EMG"] = np.mean(self.emg_data ** 3) / (np.std(self.emg_data) ** 3)
+
+        # Mean Power Spectral Density (PSD)
+        features["mean_psd_EMG"] = np.mean(power_spectrum)
+
+        # Median Frequency (MDF)
+        cumulative_power = np.cumsum(power_spectrum)
+        total_power = cumulative_power[-1]
+        median_freq_index = np.where(cumulative_power >= total_power / 2)[0][0]
+        features["median_freq_EMG"] = freqs[median_freq_index]
+
+        if freq_binning:
+            # Frequency binning (e.g., 0-20 Hz, 20-40 Hz, etc.)
+            bin_width = 10
+            max_freq = freqs[-1]
+            bin_edges = np.arange(0, max_freq + bin_width, bin_width)
+            for i in range(len(bin_edges) - 1):
+                bin_power = power_spectrum[
+                    (freqs >= bin_edges[i]) & (freqs < bin_edges[i + 1])
+                ]
+                features[f"freq_bin_{bin_edges[i]}_{bin_edges[i + 1]}_power_EMG"] = np.sum(bin_power)
 
         return pd.DataFrame([features])

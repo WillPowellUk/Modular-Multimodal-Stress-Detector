@@ -33,3 +33,16 @@ class EMGPreprocessing:
         cutoff = self.lp_cutoff / nyquist
         b, a = butter(self.lp_order, cutoff, btype="low")
         return filtfilt(b, a, signal)
+    
+    def bandpass_filter(self, signal, lowcut, highcut):
+        nyquist = 0.5 * self.fs
+        low = lowcut / nyquist
+        high = highcut / nyquist
+        b, a = butter(self.lp_order, [low, high], btype="band")
+        return filtfilt(b, a, signal)
+    
+    def highpass_filter(self, signal, highcut):
+        nyquist = 0.5 * self.fs
+        high = highcut / nyquist
+        b, a = butter(self.lp_order, high, btype="high")
+        return filtfilt(b, a, signal)
