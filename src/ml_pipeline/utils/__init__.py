@@ -15,4 +15,6 @@ from .utils import (
     create_temp_file,
     modify_nested_key,
     HyperParamsIterator,
+    get_enabled_sensors,
+    get_sampling_frequency,
 )

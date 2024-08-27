@@ -34,7 +34,7 @@ class FNIRSPreprocessing:
         return filtered_data
 
     def process(self):
-        timestamps = self.df.index if 'Timestamp' not in self.df.columns else self.df['Timestamp']
+        timestamps = pd.Series(np.arange(0, len(self.df))) if 'Timestamp' not in self.df.columns else self.df['Timestamp']
         interpolated_df = pd.DataFrame()
 
         # preprocess for FNIRS and FNIRS derived HR features

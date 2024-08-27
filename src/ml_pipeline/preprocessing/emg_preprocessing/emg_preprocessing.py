@@ -15,6 +15,13 @@ class EMGPreprocessing:
         self.fs = fs
 
     def process(self, use_neurokit=False):
+        if isinstance(self.df , pd.Series):
+            back_to_series = True
+            self.df = pd.DataFrame(self.df)
+            self.df.columns = ["emg"]
+        else:
+            back_to_series = False
+        
         if use_neurokit:
             signals = nk.emg_process(self.df["emg"], sampling_rate=self.fs)
             self.df["emg"] = signals["EMG_Clean"]
@@ -23,7 +30,11 @@ class EMGPreprocessing:
             smoothed_signal = self.smooth_emg(emg_signal)
             filtered_signal = self.lowpass_filter(smoothed_signal)
             self.df["emg"] = filtered_signal
-        return self.df
+
+        if back_to_series:
+            return self.df["emg"]
+        else:
+            return self.df
 
     def smooth_emg(self, signal):
         return savgol_filter(signal, self.sg_window_size, self.sg_poly_order)

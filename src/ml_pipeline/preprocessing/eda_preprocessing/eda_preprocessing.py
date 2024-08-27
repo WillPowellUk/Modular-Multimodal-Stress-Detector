@@ -12,7 +12,7 @@ class EDAPreprocessing:
         lp_order=2,
         lp_cutoff=5.0,
         fs=700,
-        wrist=False,
+        wrist=True,
     ):
         self.df = df
         self.sg_window_size = sg_window_size
@@ -24,6 +24,13 @@ class EDAPreprocessing:
 
     def process(self, use_pyEDA=False, use_neurokit=False, sample_rate=128):
         key = "w_eda" if self.wrist else "eda"
+        if isinstance(self.df , pd.Series):
+            back_to_series = True
+            self.df = pd.DataFrame(self.df)
+            self.df.columns = [key]
+        else:
+            back_to_series = False
+
         if use_pyEDA:
             m, wd, eda_clean = process_statistical(
                 self.df[key],
@@ -45,6 +52,8 @@ class EDAPreprocessing:
                 eda_signal = self.smooth_eda(eda_signal)
             filtered_signal = self.lowpass_filter(eda_signal)
             self.df[key] = filtered_signal
+        if back_to_series:
+            return self.df[key]
         return self.df
 
     def smooth_eda(self, signal):

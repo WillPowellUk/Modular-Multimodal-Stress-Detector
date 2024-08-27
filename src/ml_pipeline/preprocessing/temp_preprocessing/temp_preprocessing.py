@@ -11,10 +11,18 @@ class TempPreprocessing:
 
     def process(self):
         key = "w_temp" if self.wrist else "temp"
+        if isinstance(self.df , pd.Series):
+            back_to_series = True
+            self.df = pd.DataFrame(self.df)
+            self.df.columns = [key]
+        else:
+            back_to_series = False
         temp_signal = self.df[key].values
         filtered_signal = self.temp_filter(temp_signal)
         self.df[key] = filtered_signal
-        return self.df
+        if back_to_series:
+            return self.df[key]
+        return
 
     def temp_filter(self, signal):
         return savgol_filter(signal, self.window_size, self.poly_order)

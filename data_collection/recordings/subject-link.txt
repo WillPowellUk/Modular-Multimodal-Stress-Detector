@@ -1,7 +1,0 @@
-S1: Bruno Sgambato
-S2: Nickolai Vysokov
-S3: Tijin Logtens
-S4: Ciara Gibbs
-S5: Alexia Berthon
-S6: Balint Hodossy
-S7: 

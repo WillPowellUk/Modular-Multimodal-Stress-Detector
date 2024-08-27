@@ -1,0 +1,53 @@
+
+{
+    "sensors": {
+        "empatica": {
+            "bvp": {
+                "enabled": true,
+                "sampling rate": 64
+            },
+            "eda": {
+                "enabled": true,
+                "sampling rate": 4
+            },
+            "temperature": {
+                "enabled": true,
+                "sampling rate": 4
+            },
+            "acc": {
+                "enabled": true,
+                "sampling rate": 32
+            }
+        },
+        "polar":{
+            "ecg": {
+                "enabled": true,
+                "sampling rate": 130
+            },
+            "ibi": {
+                "enabled": true,
+                "sampling rate": 1
+            },
+            "acc": {
+                "enabled": true,
+                "sampling rate": 25
+            }
+        },
+        "quattrocento": {
+            "emg_upper_trapezius": {
+                "enabled": true,
+                "sampling rate": 2048
+            },
+            "emg_mastoid": {
+                "enabled": true,
+                "sampling rate": 2048
+            }
+        },
+        "myndsens": {
+            "fnirs": {
+                "enabled": true,
+                "sampling rate": 10
+            }
+        }
+    }
+}

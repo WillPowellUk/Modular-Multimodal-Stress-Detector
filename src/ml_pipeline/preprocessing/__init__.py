@@ -5,4 +5,4 @@ from . import eda_preprocessing
 from . import emg_preprocessing
 from . import resp_preprocessing
 from . import temp_preprocessing
-from .signal_preprocessing import SignalPreprocessor
+from . import fnirs_preprocessing

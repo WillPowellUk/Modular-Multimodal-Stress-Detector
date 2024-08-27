@@ -25,6 +25,12 @@ class ECGPreprocessing:
         self.fs = fs
 
     def process(self, use_neurokit=False, plot=False):
+        if isinstance(self.df , pd.Series):
+            back_to_series = True
+            self.df = pd.DataFrame(self.df)
+            self.df.columns = ["ecg"]
+        else:
+            back_to_series = False
         # Process the entire 'ecg' column as a single sequence
         ecg_signal = self.df["ecg"].values
 
@@ -50,7 +56,10 @@ class ECGPreprocessing:
         if plot:
             self.plot_signal(self.df["ecg"].values, title="Final Processed ECG Signal")
 
-        return self.df
+        if back_to_series:
+            return self.df["ecg"]
+        else:
+            return self.df
 
     def smooth_ecg(self, signal):
         return savgol_filter(signal, self.sg_window_size, self.sg_poly_order)

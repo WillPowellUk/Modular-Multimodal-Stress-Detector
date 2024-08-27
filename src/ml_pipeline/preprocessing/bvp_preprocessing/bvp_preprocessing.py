@@ -20,6 +20,11 @@ class BVPPreprocessing:
         self.fs = fs
 
     def process(self):
+        if isinstance(self.df, pd.Series):
+            filtered_signal = self.bvp_filter(self.df)
+            self.df["bvp"] = filtered_signal
+            return self.df
+        
         bvp_signal = self.df["bvp"].values
         filtered_signal = self.bvp_filter(bvp_signal)
         self.df["bvp"] = filtered_signal

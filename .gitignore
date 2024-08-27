@@ -3,6 +3,8 @@ src/ubfc_phys/UBFC-PHYS
 experiments/results/data
 experiments/results/analysis
 experiments/results/graphs
+data_collection
+src/mused/dataset
 *.7z
 *.pyc
 __pycache__/

@@ -88,6 +88,50 @@ def get_active_key(config_path, key, recursive=False):
 
     return active_keys
 
+def get_sampling_frequency(config_path, sensor_source, sensor_type):
+    """
+    Get the sampling frequency of a requested sensor type from a specific source.
+
+    Parameters:
+    - config_path (str): The path to the configuration JSON file.
+    - sensor_source (str): The source of the sensor (e.g., 'empatica', 'polar').
+    - sensor_type (str): The type of sensor (e.g., 'bvp', 'ecg').
+
+    Returns:
+    - int: The sampling rate of the requested sensor, or None if not found.
+    """
+    with open(config_path, 'r') as file:
+        config = json.load(file)
+    
+    # Navigate to the specified sensor source and type
+    try:
+        sampling_rate = config['sensors'][sensor_source][sensor_type]['sampling rate']
+        return sampling_rate
+    except KeyError:
+        return None
+
+def get_enabled_sensors(config_path):
+    """
+    Get a list of enabled sensors from the configuration.
+
+    Parameters:
+    - config_path (str): The path to the configuration JSON file.
+
+    Returns:
+    - List[Tuple[str, str]]: A list of tuples with (sensor_source, sensor_type) for enabled sensors.
+    """
+    with open(config_path, 'r') as file:
+        config = json.load(file)
+    
+    enabled_sensors = []
+
+    # Iterate over all sensors and check if they are enabled
+    for sensor_source, sensors in config['sensors'].items():
+        for sensor_type, details in sensors.items():
+            if details.get('enabled', False):
+                enabled_sensors.append((sensor_source, sensor_type))
+    
+    return enabled_sensors
 
 def get_values(config_path, key):
     with open(config_path, "r") as f:

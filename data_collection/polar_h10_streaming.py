@@ -14,6 +14,6 @@ async def main(file_name):
 
 # Use asyncio.run() to run the main coroutine
 if __name__ == "__main__":
-    subject = 16
+    subject = 19
     file_name = f'data_collection/recordings/S{subject}'
     asyncio.run(main(file_name))
