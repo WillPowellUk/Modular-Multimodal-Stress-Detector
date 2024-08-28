@@ -34,20 +34,12 @@ class FNIRSPreprocessing:
         return filtered_data
 
     def process(self):
-        timestamps = pd.Series(np.arange(0, len(self.df))) if 'Timestamp' not in self.df.columns else self.df['Timestamp']
-        interpolated_df = pd.DataFrame()
-
-        # preprocess for FNIRS and FNIRS derived HR features
+        # preprocess for FNIRS and FNIRS derived HR signal
         for col in self.df.columns:
             if col == 'O2Hb' or col == 'HHb' or col == 'Brain oxy':
-                signal_values = self.df[col].dropna()
-                new_timestamps, interpolated_signal = self.interpolate(signal_values, timestamps)
-                # fnirs_filtered = self.butterworth_bandpass(interpolated_signal, 0.04, 4.9, self.fs)
-                # interpolated_df[col] = fnirs_filtered
-                hr_filtered = self.butterworth_bandpass(interpolated_signal, lowcut=1.0, highcut=1.9, fs=self.fs)
-                interpolated_df[f'{col}_HR'] = hr_filtered
-                interpolated_df[col] = self.df[col][:len(interpolated_signal)]
+                # Taken from paper  
+                self.df[col] = self.butterworth_bandpass(self.df[col], 0.0012, 0.8, self.fs, order=5)
+                # Taken from paper Hakimi et al.
+                self.df[f'{col}_HR'] = self.butterworth_bandpass(self.df[col], lowcut=1.0, highcut=1.9, fs=self.fs)
 
-        interpolated_df['Timestamp'] = new_timestamps  # Add the new interpolated timestamps
-        self.df = interpolated_df.drop(columns=['Timestamp'])  # Optionally drop the timestamp after processing
         return self.df

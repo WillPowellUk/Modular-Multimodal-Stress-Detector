@@ -6,7 +6,7 @@ from scipy.fft import fft
 from scipy.integrate import simpson
 from scipy.signal import find_peaks
 class FNIRSDerivedHR:
-    def __init__(self, df, fs):
+    def __init__(self, df, sampling_rate=10):
         self.df = df
         self.fs = fs
 

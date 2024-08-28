@@ -28,11 +28,23 @@ class EMGFeatureExtractor:
         features["P10_EMG"] = np.percentile(self.emg_data, 10)
         features["P90_EMG"] = np.percentile(self.emg_data, 90)
 
-        # Mean, median, and peak frequency
+     # Mean, median, and peak frequency
         freqs, power_spectrum = welch(self.emg_data, fs=self.sampling_rate)
+
+        # Check if power_spectrum has any complex values
+        if np.iscomplexobj(power_spectrum):
+            print("Warning: Power spectrum has complex values. Converting to magnitudes.")
+
+        # Convert to magnitudes if any complex values are detected
+        power_spectrum = np.abs(power_spectrum)
+
+        # Compute features
         features["mean_freq_EMG"] = np.sum(freqs * power_spectrum) / np.sum(power_spectrum)
-        features["median_freq_EMG"] = freqs[np.argsort(power_spectrum)[len(power_spectrum) // 2]]
+        cumulative_power = np.cumsum(power_spectrum)
+        median_freq_index = np.where(cumulative_power >= 0.5 * cumulative_power[-1])[0][0]
+        features["median_freq_EMG"] = freqs[median_freq_index]
         features["peak_freq_EMG"] = freqs[np.argmax(power_spectrum)]
+
 
         # Energy in seven bands
         band_limits = [0, 4, 8, 12, 16, 20, 24, 28, np.inf]

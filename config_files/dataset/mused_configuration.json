@@ -10,7 +10,7 @@
                 "enabled": true,
                 "sampling rate": 4
             },
-            "temperature": {
+            "temp": {
                 "enabled": true,
                 "sampling rate": 4
             },

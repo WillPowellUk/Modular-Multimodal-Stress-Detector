@@ -2,20 +2,11 @@ import pandas as pd
 import numpy as np
 import os
 import pickle
+from src.ml_pipeline.utils.utils import get_sampling_frequency
+
+CONFIG_PATH = "config_files/dataset/mused_configuration.json"
 
 def create_subject_pickle_file(subject_id, dir):
-    # Define sampling frequencies
-    EMG_SAMPLING_FREQUENCY = 2048
-    ECG_SAMPLING_FREQUENCY = 130
-    POLAR_HR_SAMPLING_FREQUENCY = 1
-    POLAR_ACC_SAMPLING_FREQUENCY = 32
-    FNIRS_SAMPLING_FREQUENCY = 10
-    EMPATICA_ACC_SAMPLING_FREQUENCY = 32
-    EMPATICA_BVP_SAMPLING_FREQUENCY = 64
-    EMPATICA_HR_SAMPLING_FREQUENCY = 1
-    EMPATICA_TEMP_SAMPLING_FREQUENCY = 4
-    EMPATICA_EDA_SAMPLING_FREQUENCY = 4
-
     # Function to create labels synchronized with data
     def create_labels(time_points, phases):
         labels = np.zeros(len(time_points))
@@ -41,18 +32,21 @@ def create_subject_pickle_file(subject_id, dir):
 
     # Polar Data
     # ECG
+    ECG_SAMPLING_FREQUENCY = get_sampling_frequency(CONFIG_PATH, 'polar', 'ecg')
     ecg_df = pd.read_csv(f'{dir}/polar/ECG.csv')
     ecg_time_points = np.arange(0, len(ecg_df) / ECG_SAMPLING_FREQUENCY, 1 / ECG_SAMPLING_FREQUENCY)
     ecg_df['Label'] = create_labels(ecg_time_points, phases)
     data_dict['polar']['ecg'] = ecg_df
 
     # IBI
+    POLAR_HR_SAMPLING_FREQUENCY = get_sampling_frequency(CONFIG_PATH, 'polar', 'ibi')
     ibi_df = pd.read_csv(f'{dir}/polar/IBI.csv')
     ibi_time_points = np.arange(0, len(ibi_df) / POLAR_HR_SAMPLING_FREQUENCY, 1 / POLAR_HR_SAMPLING_FREQUENCY)
     ibi_df['Label'] = create_labels(ibi_time_points, phases)
     data_dict['polar']['ibi'] = ibi_df
 
     # ACC
+    POLAR_ACC_SAMPLING_FREQUENCY = get_sampling_frequency(CONFIG_PATH, 'polar', 'acc')
     acc_df = pd.read_csv(f'{dir}/polar/ACC.csv')
     acc_time_points = np.arange(0, len(acc_df) / POLAR_ACC_SAMPLING_FREQUENCY, 1 / POLAR_ACC_SAMPLING_FREQUENCY)
     acc_df['Label'] = create_labels(acc_time_points, phases)
@@ -60,12 +54,14 @@ def create_subject_pickle_file(subject_id, dir):
 
     # Empatica Data
     # ACC
+    EMPATICA_ACC_SAMPLING_FREQUENCY = get_sampling_frequency(CONFIG_PATH, 'empatica', 'acc')
     empatica_acc_df = pd.read_csv(f'{dir}/empatica/ACC.csv')
     acc_time_points = np.arange(0, len(empatica_acc_df) / EMPATICA_ACC_SAMPLING_FREQUENCY, 1 / EMPATICA_ACC_SAMPLING_FREQUENCY)
     empatica_acc_df['Label'] = create_labels(acc_time_points, phases)
     data_dict['empatica']['acc'] = empatica_acc_df
 
     # BVP
+    EMPATICA_BVP_SAMPLING_FREQUENCY = get_sampling_frequency(CONFIG_PATH, 'empatica', 'bvp')
     empatica_bvp_df = pd.read_csv(f'{dir}/empatica/BVP.csv')
     bvp_time_points = np.arange(0, len(empatica_bvp_df) / EMPATICA_BVP_SAMPLING_FREQUENCY, 1 / EMPATICA_BVP_SAMPLING_FREQUENCY)
     empatica_bvp_df['Label'] = create_labels(bvp_time_points, phases)
@@ -73,17 +69,19 @@ def create_subject_pickle_file(subject_id, dir):
 
     # HR
     empatica_hr_df = pd.read_csv(f'{dir}/empatica/HR.csv')
-    hr_time_points = np.arange(0, len(empatica_hr_df) / EMPATICA_HR_SAMPLING_FREQUENCY, 1 / EMPATICA_HR_SAMPLING_FREQUENCY)
+    hr_time_points = np.arange(0, len(empatica_hr_df) , 1)
     empatica_hr_df['Label'] = create_labels(hr_time_points, phases)
     data_dict['empatica']['hr'] = empatica_hr_df
 
     # TEMP
+    EMPATICA_TEMP_SAMPLING_FREQUENCY = get_sampling_frequency(CONFIG_PATH, 'empatica', 'temp')
     empatica_temp_df = pd.read_csv(f'{dir}/empatica/TEMP.csv')
     temp_time_points = np.arange(0, len(empatica_temp_df) / EMPATICA_TEMP_SAMPLING_FREQUENCY, 1 / EMPATICA_TEMP_SAMPLING_FREQUENCY)
     empatica_temp_df['Label'] = create_labels(temp_time_points, phases)
     data_dict['empatica']['temp'] = empatica_temp_df
 
     # EDA
+    EMPATICA_EDA_SAMPLING_FREQUENCY = get_sampling_frequency(CONFIG_PATH, 'empatica', 'eda')
     empatica_eda_df = pd.read_csv(f'{dir}/empatica/EDA.csv')
     eda_time_points = np.arange(0, len(empatica_eda_df) / EMPATICA_EDA_SAMPLING_FREQUENCY, 1 / EMPATICA_EDA_SAMPLING_FREQUENCY)
     empatica_eda_df['Label'] = create_labels(eda_time_points, phases)
@@ -91,6 +89,7 @@ def create_subject_pickle_file(subject_id, dir):
 
     # Quattrocento Data
     # EMG
+    EMG_SAMPLING_FREQUENCY = get_sampling_frequency(CONFIG_PATH, 'quattrocento', 'emg_upper_trapezius')
     emg_df = pd.read_csv(f'{dir}/quattrocento/EMG.csv', delimiter=';')
     emg_time_points = np.arange(0, len(emg_df) / EMG_SAMPLING_FREQUENCY, 1 / EMG_SAMPLING_FREQUENCY)
     emg_df['Label'] = create_labels(emg_time_points, phases)
@@ -101,6 +100,7 @@ def create_subject_pickle_file(subject_id, dir):
 
     # Myndsens Data
     # FNIRS
+    FNIRS_SAMPLING_FREQUENCY = get_sampling_frequency(CONFIG_PATH, 'myndsens', 'fnirs') 
     fnirs_df = pd.read_csv(f'{dir}/myndsens/FNIRS.csv')
     fnirs_time_points = np.arange(0, len(fnirs_df) / FNIRS_SAMPLING_FREQUENCY, 1 / FNIRS_SAMPLING_FREQUENCY)
     fnirs_df['Label'] = create_labels(fnirs_time_points, phases)
@@ -117,3 +117,6 @@ def preprocess_dataset():
             dir = f'src/mused/dataset/S{subject_id}'
             print(f"Creating pickle for subject {subject_id}")
             create_subject_pickle_file(subject_id, dir)
+
+if __name__ == "__main__":
+    preprocess_dataset()

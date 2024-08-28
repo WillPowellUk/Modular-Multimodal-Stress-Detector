@@ -24,7 +24,7 @@ class ECGPreprocessing:
         self.bw_highcut = bw_highcut
         self.fs = fs
 
-    def process(self, use_neurokit=False, plot=False):
+    def process(self, use_neurokit=True, plot=False):
         if isinstance(self.df , pd.Series):
             back_to_series = True
             self.df = pd.DataFrame(self.df)
@@ -42,7 +42,11 @@ class ECGPreprocessing:
             self.df["ecg"] = ecg_cleaned
             if plot:
                 self.plot_signal(ecg_cleaned, title="NeuroKit Cleaned ECG Signal")
-            return self.df
+            if back_to_series:
+                return self.df["ecg"]
+            else:
+                return self.df
+
 
         smoothed_signal = self.smooth_ecg(ecg_signal)
         if plot:

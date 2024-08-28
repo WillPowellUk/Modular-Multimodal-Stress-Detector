@@ -213,7 +213,7 @@ class ECGFeatureExtractor:
         if r_peaks_detected < (
             self.min_HR * ecg_duration_minutes
         ) or r_peaks_detected > (self.max_HR * ecg_duration_minutes):
-            return
+            return 
         time_domain = nk.hrv_time(r_peaks, sampling_rate=self.sampling_rate)
         frequency_domain = nk.hrv_frequency(r_peaks, sampling_rate=self.sampling_rate)
         signals, waves = nk.ecg_delineate(
