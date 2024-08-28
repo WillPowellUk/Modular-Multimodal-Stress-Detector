@@ -72,9 +72,6 @@ class ManualFeatureExtractor:
                 # Get the sampling frequency for this source and sensor
                 sampling_frequency = get_sampling_frequency(self.config_path, source, sensor)
 
-                if sampling_frequency > 2000:
-                    break
-
                 # Calculate the number of samples per split based on the sampling frequency
                 samples_per_split = split_length * sampling_frequency
 
@@ -125,8 +122,19 @@ class ManualFeatureExtractor:
                 # Combine all feature dataframes for the current sensor
                 if features_list:
                     combined_features_df = pd.concat(features_list, ignore_index=True)
+
+                    # Impute missing values with the mean of each column
+                    combined_features_df.fillna(combined_features_df.mean(), inplace=True)
+
+                    # Remove columns where the mean is NaN
+                    means = combined_features_df.mean()
+                    columns_to_drop = means[means.isna()].index
+                    if len(columns_to_drop) > 0:
+                        combined_features_df.drop(columns=columns_to_drop, inplace=True)
+                        print2(self.log_file, f"Dropped columns with NaN mean for sensor: {sensor} - {list(columns_to_drop)}")
+
                     self.data[source][sensor] = combined_features_df
-                    print2(self.log_file, f"Combined features for sensor: {sensor}.")
+                    print2(self.log_file, f"Combined and imputed features for sensor: {sensor}.")
 
                 else:
                     print2(self.log_file, f"No features extracted for sensor: {sensor}.")
@@ -139,12 +147,11 @@ class ManualFeatureExtractor:
 
 
 
-                
 if __name__ == "__main__":
-    for subject_id in range(1, 2):
+    for subject_id in range(1, 4):
         augmented_pkl_path = f"src/mused/dataset/S{subject_id}/S{subject_id}_augmented.pkl"
         config_path = "config_files/dataset/mused_configuration.json"
-        output_pkl_path = "src/mused/dataset/S{subject_id}/S{subject_id}_features.pkl"
+        output_pkl_path = f"src/mused/dataset/S{subject_id}/S{subject_id}_features.pkl"
 
         feature_extractor = ManualFeatureExtractor(
             augmented_pkl_path, config_path, output_pkl_path

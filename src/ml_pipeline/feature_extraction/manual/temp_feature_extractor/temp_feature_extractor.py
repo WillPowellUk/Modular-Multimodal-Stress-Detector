@@ -21,7 +21,7 @@ class TempFeatureExtractor:
         # Slope and dynamic range of TEMP
         features["slope_temp"] = np.polyfit(
             range(len(self.temp_data)), self.temp_data, 1
-        )[0]
+        )[0][0]
         features["range_temp"] = np.max(self.temp_data) - np.min(self.temp_data)
 
         return pd.DataFrame([features])

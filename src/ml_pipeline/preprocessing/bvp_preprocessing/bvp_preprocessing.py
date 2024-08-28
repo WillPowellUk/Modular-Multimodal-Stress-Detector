@@ -9,6 +9,7 @@ Fusion From Wearable Devices, 2023.
 
 import pandas as pd
 from scipy.signal import butter, filtfilt
+import neurokit2 as nk
 
 
 class BVPPreprocessing:
@@ -30,7 +31,11 @@ class BVPPreprocessing:
         self.df["bvp"] = filtered_signal
         return self.df
 
-    def bvp_filter(self, signal):
+    def bvp_filter(self, signal, use_NeuroKit=True):
+        if use_NeuroKit:
+            filtered_signal = nk.ppg_clean(signal, sampling_rate=self.fs)
+            return filtered_signal
+        
         nyquist = 0.5 * self.fs
         low = self.lowcut / nyquist
         high = self.highcut / nyquist

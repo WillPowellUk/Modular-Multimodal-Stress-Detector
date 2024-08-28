@@ -8,7 +8,7 @@ from scipy.signal import find_peaks
 class FNIRSDerivedHR:
     def __init__(self, df, sampling_rate=10):
         self.df = df
-        self.fs = fs
+        self.sampling_rate = sampling_rate
 
     def detect_hr(self):
         # FDHR signal features
@@ -21,21 +21,21 @@ class FNIRSDerivedHR:
 
         peaks_combined = self._weighted_mean_algorithm([peaks1, peaks2], len(O2Hb_filtered))  # Combine the peaks detected
 
-        corrected_peaks = self._correct_peaks(peaks_combined, self.fs)
-        HR = 60 / np.mean(np.diff(corrected_peaks) / self.fs)
-        print(f"Estimated Heart Rate: {HR:.2f} bpm")
+        corrected_peaks = self._correct_peaks(peaks_combined, self.sampling_rate)
+        HR = 60 / np.mean(np.diff(corrected_peaks) / self.sampling_rate)
+        # print(f"Estimated Heart Rate: {HR:.2f} bpm")
 
         features = self._fdhr_features(corrected_peaks)
 
         return pd.DataFrame([features])
 
-    def _correct_peaks(self, peaks, fs):
-        IBIs = np.diff(peaks) / fs
+    def _correct_peaks(self, peaks, sampling_rate):
+        IBIs = np.diff(peaks) / sampling_rate
         corrected_peaks = [peaks[0]]  # Start with the first peak
 
         for i in range(1, len(peaks)):
-            m = np.mean(IBIs[max(0, i-int(4*fs)):i])
-            sd = np.std(IBIs[max(0, i-int(4*fs)):i])
+            m = np.mean(IBIs[max(0, i-int(4*sampling_rate)):i])
+            sd = np.std(IBIs[max(0, i-int(4*sampling_rate)):i])
             SD = np.std(IBIs[:i])
             k = 0.8 * 15 / sd if sd > 0 else 0
 
@@ -43,7 +43,7 @@ class FNIRSDerivedHR:
                 corrected_peaks.append(peaks[i])
             else:
                 # Search for another peak within the 0.25-second window before the current peak
-                for j in range(i-1, max(-1, i-int(0.25*fs)), -1):
+                for j in range(i-1, max(-1, i-int(0.25*sampling_rate)), -1):
                     if peaks[j] not in corrected_peaks:
                         corrected_peaks[-1] = peaks[j]  # Replace previous peak with the closer one
                         break
@@ -55,7 +55,7 @@ class FNIRSDerivedHR:
     def _detect_peaks(self, signal):
         first_diff = np.diff(signal)
         max_first_diff = np.max(np.abs(first_diff))
-        peaks, _ = find_peaks(signal, distance=self.fs/2)
+        peaks, _ = find_peaks(signal, distance=self.sampling_rate/2)
 
         valid_peaks = []
         for peak in peaks:
@@ -78,7 +78,7 @@ class FNIRSDerivedHR:
 
     def _fdhr_features(self, peaks):
         # Example feature calculation based on detected peaks
-        IBIs = np.diff(peaks) / self.fs
+        IBIs = np.diff(peaks) / self.sampling_rate
         mean_IBI = np.mean(IBIs)
         std_IBI = np.std(IBIs)
         return {
@@ -87,9 +87,9 @@ class FNIRSDerivedHR:
         }
 
 class FNIRSFeatureExtractor:
-    def __init__(self, df, fs=10):
+    def __init__(self, df, sampling_rate=10):
         self.df = df
-        self.fs = fs
+        self.sampling_rate = sampling_rate
 
     def extract_features(self):
         features = {}
@@ -116,7 +116,7 @@ class FNIRSFeatureExtractor:
             features[f'{col}_mean'] = np.mean(signal)
 
         # FDHR signal features
-        derived_hr = FNIRSDerivedHR(self.df, self.fs)
+        derived_hr = FNIRSDerivedHR(self.df, self.sampling_rate)
         hr_features = derived_hr.detect_hr()
 
         features.update(hr_features.to_dict(orient='records')[0])
@@ -160,20 +160,20 @@ from scipy.signal import chirp, find_peaks
 
 # Assuming FNIRSDerivedHR class is already imported
 
-def simulate_fnirs_data(duration=60, fs=10, hr=60, noise_level=0.05):
+def simulate_fnirs_data(duration=60, sampling_rate=10, hr=60, noise_level=0.05):
     """
     Simulate synthetic fNIRS data with a given heart rate.
     
     Parameters:
         duration (int): Duration of the signal in seconds.
-        fs (int): Sampling frequency in Hz.
+        sampling_rate (int): Sampling frequency in Hz.
         hr (int): Heart rate in beats per minute.
         noise_level (float): Level of Gaussian noise to add to the signal.
     
     Returns:
         pd.DataFrame: DataFrame containing the simulated O2Hb and HHb signals.
     """
-    t = np.linspace(0, duration, int(duration * fs), endpoint=False)
+    t = np.linspace(0, duration, int(duration * sampling_rate), endpoint=False)
     heart_rate_freq = hr / 60.0  # Convert bpm to Hz
     signal_O2Hb = np.sin(2 * np.pi * heart_rate_freq * t)  # Simulate sine wave for O2Hb
     signal_HHb = np.sin(2 * np.pi * heart_rate_freq * t + np.pi / 4)  # Phase-shifted sine wave for HHb
@@ -190,15 +190,15 @@ def simulate_fnirs_data(duration=60, fs=10, hr=60, noise_level=0.05):
 def test_fnirs_derived_hr():
     # Simulation parameters
     duration = 60  # in seconds
-    fs = 10  # sampling frequency in Hz
+    sampling_rate = 10  # sampling frequency in Hz
     hr = 75  # simulated heart rate in bpm
     noise_level = 0.1  # noise level
 
     # Simulate fNIRS data
-    simulated_data = simulate_fnirs_data(duration=duration, fs=fs, hr=hr, noise_level=noise_level)
+    simulated_data = simulate_fnirs_data(duration=duration, sampling_rate=sampling_rate, hr=hr, noise_level=noise_level)
 
     # Initialize the FNIRSDerivedHR class
-    hr_detector = FNIRSDerivedHR(simulated_data, fs)
+    hr_detector = FNIRSDerivedHR(simulated_data, sampling_rate)
 
     # Run heart rate detection
     result_df = hr_detector.detect_hr()

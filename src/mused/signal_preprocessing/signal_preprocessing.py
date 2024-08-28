@@ -139,7 +139,7 @@ class SignalPreprocessor:
 
 
 if __name__ == "__main__":
-    for subject_id in range(1, 19):
+    for subject_id in range(1, 4):
         data_path = f"src/mused/dataset/S{subject_id}/S{subject_id}.pkl"
         config_path = "config_files/dataset/mused_configuration.json"
         output_path = f"src/mused/dataset/S{subject_id}/S{subject_id}_cleaned.pkl"
