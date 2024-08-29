@@ -147,7 +147,7 @@ class ManualFeatureExtractor:
 
 
 def main():
-    for subject_id in range(1, 4):
+    for subject_id in range(1, 19):
         augmented_pkl_path = f"src/mused/dataset/S{subject_id}/S{subject_id}_augmented.pkl"
         config_path = "config_files/dataset/mused_configuration.json"
         output_pkl_path = f"src/mused/dataset/S{subject_id}/S{subject_id}_features.pkl"

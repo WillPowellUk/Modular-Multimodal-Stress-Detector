@@ -84,7 +84,7 @@ class DataAugmenter:
 
 
 def main():
-    for subject_id in range(1, 4):
+    for subject_id in range(1, 19):
         print(f"Subject {subject_id}")
         pkl_path = f"src/mused/dataset/S{subject_id}/S{subject_id}_cleaned.pkl"
         pkl_output_path = f"src/mused/dataset/S{subject_id}/S{subject_id}_augmented.pkl"

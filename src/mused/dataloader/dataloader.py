@@ -155,7 +155,7 @@ def create_dataloader(subject_data, test_subject_id, batch_size=32):
 
 
 def main():
-    subjects = range(1, 4)  # Example: 3 subjects
+    subjects = range(1, 19)
     base_path = "src/mused/dataset"
     selected_sensors = {
         "polar": ["acc", "ecg"],
