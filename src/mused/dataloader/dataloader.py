@@ -16,6 +16,24 @@ class SensorDataset(Dataset):
     def __getitem__(self, idx):
         return self.data[idx], self.labels[idx]
 
+def normalize_data(data):
+    """
+    Normalize each feature in the DataFrame to have zero mean and unit variance.
+    
+    Parameters:
+    - data: pandas DataFrame containing the data to be normalized.
+
+    Returns:
+    - normalized_data: pandas DataFrame with normalized features.
+    """
+    # Compute mean and standard deviation for each column
+    mean = data.mean()
+    std = data.std()
+
+    # Normalize data
+    normalized_data = (data - mean) / std
+    return normalized_data
+
 def load_data(subject_ids, base_path, selected_sensors):
     """
     Load data from the specified pickle files and filter based on selected sensors.
@@ -36,20 +54,36 @@ def load_data(subject_ids, base_path, selected_sensors):
         with open(file_path, 'rb') as f:
             pkl_data = pickle.load(f)
 
-        # Filter the data based on selected sensors
-        filtered_data = []
+        # Load all data without filtering by is_augmented
+        collected_data = []
         for sensor, signals in selected_sensors.items():
             for signal in signals:
                 if sensor in pkl_data and signal in pkl_data[sensor]:
                     df = pkl_data[sensor][signal]
-                    # Consider only the rows where is_augmented is False
-                    df_filtered = df[df['is_augmented'] == False]
-                    filtered_data.append(df_filtered)
+                    collected_data.append(df)
 
-        # Concatenate all dataframes for a single subject
-        if filtered_data:
-            subject_data = pd.concat(filtered_data, axis=1)
-            data[subject_id] = subject_data
+        # Concatenate all dataframes for a single subject after cropping to minimum length
+        if collected_data:
+            # Find the minimum number of rows across all dataframes
+            min_rows = min(df.shape[0] for df in collected_data)
+            
+            # Trim each dataframe to the minimum number of rows
+            trimmed_data = [df.iloc[:min_rows, :] for df in collected_data]
+            
+            # Concatenate trimmed dataframes along columns
+            subject_data = pd.concat(trimmed_data, axis=1)
+
+            # Check for duplicate column names and remove duplicates if necessary
+            subject_data = subject_data.loc[:, ~subject_data.columns.duplicated()]
+            
+            # Normalize the subject data
+            normalized_data = normalize_data(subject_data.drop(columns=['Label', 'is_augmented']))
+
+            # Add back non-feature columns
+            normalized_data['Label'] = subject_data['Label'].values
+            normalized_data['is_augmented'] = subject_data['is_augmented'].values
+            
+            data[subject_id] = normalized_data
 
     return data
 
@@ -73,20 +107,42 @@ def create_dataloader(subject_data, test_subject_id, batch_size=32):
 
     for subject_id, data in subject_data.items():
         # Separate features and labels
+        if subject_id == test_subject_id:
+            # Filter out rows where 'is_augmented' is True
+            data = data[data['is_augmented'] == False]
+        else:
+            # For the train set, retain all rows including where is_augmented is True
+            pass
+
         features = data.drop(columns=['Label', 'is_augmented'])
         labels = data['Label'].values
 
         if subject_id == test_subject_id:
-            test_data.append(features.values)
+            test_data.append(features)  # Append DataFrame directly
             test_labels.extend(labels)
         else:
-            train_data.append(features.values)
+            train_data.append(features)  # Append DataFrame directly
             train_labels.extend(labels)
 
+    # Ensure all dataframes have the same columns and trim them if necessary
+    common_columns = set(train_data[0].columns)
+    for df in train_data[1:]:
+        common_columns.intersection_update(df.columns)
+    for df in test_data:
+        common_columns.intersection_update(df.columns)
+
+    common_columns = list(common_columns)  # Convert set to list
+    train_data = [df.loc[:, common_columns] for df in train_data]
+    test_data = [df.loc[:, common_columns] for df in test_data]
+
+    # Concatenate the list of DataFrames into a single DataFrame
+    train_data = pd.concat(train_data, ignore_index=True)
+    test_data = pd.concat(test_data, ignore_index=True)
+
     # Convert to PyTorch tensors
-    train_data = torch.tensor(pd.concat(train_data).values, dtype=torch.float32)
+    train_data = torch.tensor(train_data.values, dtype=torch.float32)
     train_labels = torch.tensor(train_labels, dtype=torch.long)
-    test_data = torch.tensor(pd.concat(test_data).values, dtype=torch.float32)
+    test_data = torch.tensor(test_data.values, dtype=torch.float32)
     test_labels = torch.tensor(test_labels, dtype=torch.long)
 
     # Create DataLoader
@@ -97,6 +153,7 @@ def create_dataloader(subject_data, test_subject_id, batch_size=32):
 
     return train_loader, test_loader
 
+
 def main():
     subjects = range(1, 4)  # Example: 3 subjects
     base_path = "src/mused/dataset"
@@ -106,7 +163,7 @@ def main():
         "myndsens": ["fnirs"]
     }
     
-    # Load and filter data
+    # Load and normalize data
     subject_data = load_data(subjects, base_path, selected_sensors)
 
     # Leave-One-Subject-Out Cross-Validation
