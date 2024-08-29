@@ -6,6 +6,7 @@ experiments/results/graphs
 data_collection
 src/mused/dataset
 src/mused/dataset_pkl
+src/mused/data_processing
 *.7z
 *.pyc
 __pycache__/
