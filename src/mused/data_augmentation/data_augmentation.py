@@ -83,7 +83,7 @@ class DataAugmenter:
         print(f"Data augmentation complete. Saved to {self.pkl_output_path}.")
 
 
-if __name__ == "__main__":
+def main():
     for subject_id in range(1, 4):
         print(f"Subject {subject_id}")
         pkl_path = f"src/mused/dataset/S{subject_id}/S{subject_id}_cleaned.pkl"
@@ -97,3 +97,6 @@ if __name__ == "__main__":
         SLIDING_LENGTH = SPLIT_LENGTH # this will create 6 samples per 30 seconds since 30/5 = 6 with 5:1 ratio of synthetic to real samples
 
         segments = data_augmenter.augment_data(WINDOW_LENGTH, SLIDING_LENGTH)
+
+if __name__ == "__main__":
+    main()

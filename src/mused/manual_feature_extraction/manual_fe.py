@@ -146,8 +146,7 @@ class ManualFeatureExtractor:
         print2(self.log_file, f"Feature extraction complete. Features saved to {self.output_pkl_path}.")
 
 
-
-if __name__ == "__main__":
+def main():
     for subject_id in range(1, 4):
         augmented_pkl_path = f"src/mused/dataset/S{subject_id}/S{subject_id}_augmented.pkl"
         config_path = "config_files/dataset/mused_configuration.json"
@@ -161,3 +160,6 @@ if __name__ == "__main__":
         SPLIT_LENGTH = int(WINDOW_LENGTH / 6) # this will sub-split the data 6 times each of 5 seconds
 
         feature_extractor.extract_features(WINDOW_LENGTH)
+
+if __name__ == "__main__":
+    main()
