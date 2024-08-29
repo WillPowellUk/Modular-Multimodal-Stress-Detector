@@ -174,7 +174,7 @@ def main():
         test_subject = subjects[test_index[0]]
         
         # Create dataloaders for the current split
-        train_loader, test_loader = create_dataloader(subject_data, test_subject)
+        train_loader, test_loader = create_dataloader(subject_data, test_subject, batch_size=32)
 
         # Example of using the DataLoader in training loop
         for epoch in range(1):
