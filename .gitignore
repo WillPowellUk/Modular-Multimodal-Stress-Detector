@@ -5,8 +5,11 @@ experiments/results/analysis
 experiments/results/graphs
 data_collection
 src/mused/dataset
+src/mused/datasets_cleaned
 src/mused/dataset_pkl
 src/mused/data_processing
+src/mused/results
+*.zip
 *.log
 *.7z
 *.pyc

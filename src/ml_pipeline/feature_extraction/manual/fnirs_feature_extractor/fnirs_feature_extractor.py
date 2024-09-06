@@ -192,7 +192,7 @@ def test_fnirs_derived_hr():
     duration = 60  # in seconds
     sampling_rate = 10  # sampling frequency in Hz
     hr = 75  # simulated heart rate in bpm
-    noise_level = 0.1  # noise level
+    noise_level = 0.3  # noise level
 
     # Simulate fNIRS data
     simulated_data = simulate_fnirs_data(duration=duration, sampling_rate=sampling_rate, hr=hr, noise_level=noise_level)
@@ -222,7 +222,7 @@ def test_fnirs_derived_hr():
 
     plt.xlabel("Time (samples)")
     plt.ylabel("Signal Amplitude")
-    plt.title("Simulated fNIRS Signals with Detected Peaks")
+    # plt.title("Simulated fNIRS Signals with Detected Peaks")
     plt.legend()
     plt.show()
 

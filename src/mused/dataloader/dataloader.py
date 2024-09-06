@@ -2,7 +2,7 @@ import os
 import pickle
 import torch
 from torch.utils.data import Dataset, DataLoader
-from sklearn.model_selection import LeaveOneOut
+from sklearn.model_selection import LeaveOneOut, train_test_split
 import pandas as pd
 
 class SensorDataset(Dataset):
@@ -154,9 +154,10 @@ def create_dataloader(subject_data, test_subject_id, batch_size=32):
     return train_loader, test_loader
 
 
-def main():
+
+def main_loso():
     subjects = range(1, 19)
-    base_path = "src/mused/dataset"
+    base_path = "src/mused/dataset/dataset_features"
     selected_sensors = {
         "polar": ["acc", "ecg"],
         "empatica": ["bvp"],
@@ -188,5 +189,78 @@ def main():
                     # Testing loop logic here
                     pass
 
+
+def create_personalized_dataloaders(subject_data, subject_id, batch_size=32):
+    """
+    Create train and test DataLoaders for a single subject's own data (non-augmented only),
+    splitting the data into 70% training and 30% testing.
+    
+    Parameters:
+    - subject_data: dictionary containing data for each subject.
+    - subject_id: integer representing the subject ID for which to create the DataLoaders.
+    - batch_size: integer specifying batch size for the DataLoader.
+
+    Returns:
+    - train_loader: DataLoader for the subject's own training data.
+    - test_loader: DataLoader for the subject's own testing data.
+    """
+    subject_data = subject_data[subject_id]
+
+    # Filter out rows where 'is_augmented' is True
+    subject_data = subject_data[subject_data['is_augmented'] == False]
+
+    # Separate features and labels
+    features = subject_data.drop(columns=['Label', 'is_augmented'])
+    labels = subject_data['Label'].values
+
+    # Split data into 70% training and 30% testing
+    train_features, test_features, train_labels, test_labels = train_test_split(
+        features, labels, test_size=0.3, random_state=42, stratify=labels
+    )
+
+    # Convert to PyTorch tensors
+    train_features_tensor = torch.tensor(train_features.values, dtype=torch.float32)
+    train_labels_tensor = torch.tensor(train_labels, dtype=torch.long)
+    test_features_tensor = torch.tensor(test_features.values, dtype=torch.float32)
+    test_labels_tensor = torch.tensor(test_labels, dtype=torch.long)
+
+    # Create DataLoaders
+    train_dataset = SensorDataset(train_features_tensor, train_labels_tensor)
+    test_dataset = SensorDataset(test_features_tensor, test_labels_tensor)
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+    return train_loader, test_loader
+
+def main_pers():
+    subjects = range(1, 19)
+    base_path = "src/mused/dataset/dataset_features"
+    selected_sensors = {
+        "polar": ["acc", "ecg"],
+        "empatica": ["bvp"],
+        "myndsens": ["fnirs"]
+    }
+    
+    # Load and normalize data
+    subject_data = load_data(subjects, base_path, selected_sensors)
+
+    # Personalized Training: Each subject trains and tests on their own data
+    for subject in subjects:
+        # Create dataloaders for the current subject
+        train_loader, test_loader = create_personalized_dataloaders(subject_data, subject, batch_size=32)
+
+        # Example of using the DataLoader in training loop
+        for epoch in range(1):  # Example: run for 1 epoch
+            for batch_data, batch_labels in train_loader:
+                # Training loop logic here
+                pass
+
+            # Example of using the DataLoader in testing loop
+            with torch.no_grad():
+                for batch_data, batch_labels in test_loader:
+                    # Testing loop logic here
+                    pass
+
 if __name__ == "__main__":
-    main()
+    main_pers()
