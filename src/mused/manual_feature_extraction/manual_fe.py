@@ -18,6 +18,7 @@ from src.ml_pipeline.feature_extraction.manual.eda_feature_extractor import EDAF
 from src.ml_pipeline.feature_extraction.manual.bvp_feature_extractor import BVPFeatureExtractor
 from src.ml_pipeline.feature_extraction.manual.acc_feature_extractor import AccFeatureExtractor
 from src.ml_pipeline.feature_extraction.manual.ecg_feature_extractor import ECGFeatureExtractor
+from src.ml_pipeline.feature_extraction.manual.ibi_feature_extractor import IBIFeatureExtractor
 from src.ml_pipeline.feature_extraction.manual.emg_feature_extractor import EMGFeatureExtractor
 from src.ml_pipeline.feature_extraction.manual.resp_feature_extractor import RespFeatureExtractor
 from src.ml_pipeline.feature_extraction.manual.temp_feature_extractor import TempFeatureExtractor
@@ -47,6 +48,7 @@ class ManualFeatureExtractor:
             'polar': {
                 'acc': AccFeatureExtractor,
                 'ecg': ECGFeatureExtractor,
+                'ibi': IBIFeatureExtractor,
             },
             'empatica': {
                 'acc': AccFeatureExtractor,
@@ -71,6 +73,9 @@ class ManualFeatureExtractor:
 
                 # Get the sampling frequency for this source and sensor
                 sampling_frequency = get_sampling_frequency(self.config_path, source, sensor)
+
+                if sampling_frequency == 130 or sampling_frequency == 2048 or sampling_frequency == 1:
+                    continue
 
                 # Calculate the number of samples per split based on the sampling frequency
                 samples_per_split = split_length * sampling_frequency
