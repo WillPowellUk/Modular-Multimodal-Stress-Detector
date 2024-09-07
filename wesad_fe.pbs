@@ -1,6 +1,6 @@
 #!/bin/bash
-#PBS -lselect=1:ncpus=4:mem=30gb:ngpus=0
-#PBS -lwalltime=1:0:0
+#PBS -lselect=1:ncpus=10:mem=30gb:ngpus=0
+#PBS -lwalltime=3:0:0
  
 cd $PBS_O_WORKDIR
  
@@ -11,8 +11,9 @@ source activate RCS_TEST_TF2
 # python ubfc_fe_30s.py
 # python wesad_fe_30s.py
 # python losocv.py
-python ubfc_losocv.py
+# python ubfc_losocv.py
 # python experiments/manual_fe/marco/marco.py
 # python experiments/manual_fe/marco/moscan.py
 # python experiments/manual_fe/marco/fine_tune_moscan.py
 # python src/ubfc-phys/download_dataset.py
+python mused_fe.py
