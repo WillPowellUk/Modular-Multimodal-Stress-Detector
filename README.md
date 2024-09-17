@@ -1,7 +1,7 @@
 # Truly Modular Multimodal Stress Detection from Biosensor Measurements
 
 Welcome to the **Modular Multimodal Stress Detection System**! 
-This software accomanies my MsC project titled: Rethinking Stress Monitoring: Convenient Modular Early-Onset Multimodal Stress Detection with Attention Score Caching available [here](https://willpowell.uk/files/William_Powell_MSc_Thesis.pdf).
+This software accompanies my MsC project titled: Rethinking Stress Monitoring: Convenient Modular Early-Onset Multimodal Stress Detection with Attention Score Caching available which will soon be publicly available.
 
 ## 🪄 The Magic
 
@@ -102,10 +102,6 @@ It is structured as follows:
 │   │   ├── data_augmentation
 │   │   ├── dataloader
 │   │   ├── data_preprocessing
-│   │   ├── data_processing
-│   │   ├── dataset
-│   │   ├── dataset_pkl
-│   │   ├── datasets_cleaned
 │   │   └── feature_analysis
 │   ├── ubfc_phys
 │   ├── utils
